@@ -1,0 +1,7 @@
+name = "Fleck"
+uuid = "5bb9b785-358c-4fee-af0f-b94a146244a8"
+authors = ["Andrew Dolgert <adolgert@uw.edu>"]
+version = "0.1.0"
+
+[compat]
+julia = "1.5"
