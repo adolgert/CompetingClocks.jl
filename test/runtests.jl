@@ -2,5 +2,8 @@ using Fleck
 using Test
 
 @testset "Fleck.jl" begin
-    # Write your tests here.
+    include("test_prefixsearch.jl")
+    include("test_direct.jl")
+    include("test_vas.jl")
+    include("test_vas_integrate.jl")
 end
