@@ -2,7 +2,9 @@ using SafeTestsets
 using Test
 
 
-@safetestset vas_sample "VAS samples with direct" begin
+@safetestset vas_sample = "VAS samples with direct" begin
+using Random: MersenneTwister
+using Fleck: VectorAdditionModel, MarkovDirect, vas_initial, send, vas_input
     rng = MersenneTwister(2930472)
     vas = VectorAdditionModel(transitions, rates)
     sampler = MarkovDirect()

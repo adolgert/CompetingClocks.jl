@@ -1,20 +1,10 @@
-using Distributions
-using HypothesisTests
-using Random
 using SafeTestsets
-using Test
-
-
-const CTDist = ContinuousUnivariateDistribution
-
-function hazards(callback::Function, distlist::Array{T, 1}, rng) where T <: CTDist
-    for dist_idx in 1:length(distlist)
-        callback(dist_idx, distlist[dist_idx], 0.0, true, rng)
-    end
-end
 
 
 @safetestset markov_direct_blah = "MarkovDirect initial" begin
+    using Fleck: MarkovDirect, next
+    using Random: MersenneTwister
+    using Distributions: Exponential
     md = MarkovDirect()
     distributions = fill(Exponential(1.5), 10)
     rng = MersenneTwister(90422342)
@@ -26,6 +16,9 @@ end
 
 
 @safetestset markov_direct_empty = "MarkovDirect empty hazard" begin
+    using Fleck: MarkovDirect, next
+    using Random: MersenneTwister
+    using Distributions: Exponential
     md = MarkovDirect()
     distributions = CTDist[]
     rng = MersenneTwister(90497979)
@@ -36,6 +29,10 @@ end
 
 
 @safetestset markov_direct_prob = "MarkovDirect probabilities correct" begin
+    using Fleck: MarkovDirect, next
+    using Random: MersenneTwister
+    using Distributions: Exponential
+    using HypothesisTests: BinomialTest
     md = MarkovDirect()
     distributions = vcat(
         fill(Exponential(1.5), 10),

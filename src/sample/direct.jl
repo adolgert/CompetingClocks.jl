@@ -1,6 +1,6 @@
 using DataStructures
-import Random: rand
-import Distributions: Uniform
+using Random: rand
+using Distributions: Uniform
 
 """
 Classic Direct method for exponential transitions.

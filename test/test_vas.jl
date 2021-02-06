@@ -12,6 +12,7 @@ end
 
 
 @safetestset vas_creates = "VAS creates" begin
+using Fleck: sample_transitions, VectorAdditionSystem
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     @test length(vas.rates) == size(vas.transitions, 2)
@@ -19,6 +20,7 @@ end
 
 
 @safetestset vas_intializes = "VAS initializes state" begin
+using Fleck: sample_transitions, VectorAdditionSystem, vas_initial, zero_state, initializer
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     initializer = vas_initial(vas, [1, 1, 0])
@@ -29,6 +31,8 @@ end
 
 
 @safetestset vas_reports_hazards = "VAS reports_hazards" begin
+using Fleck: sample_transitions, VectorAdditionSystem, vas_initial
+using Fleck: zero_state, initializer, push!, hazards!
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     initializer = vas_initial(vas, [1, 1, 0])
@@ -52,6 +56,8 @@ end
 
 
 @safetestset vas_changes_state = "VAS hazards during state change" begin
+using Fleck: sample_transitions, VectorAdditionSystem, vas_input
+using Fleck: zero_state, initializer, push!, hazards!
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     initializer = vas_initial(vas, [1, 1, 0])
@@ -77,6 +83,9 @@ end
 
 
 @safetestset vas_loops = "VAS main loop" begin
+using Fleck: sample_transitions, VectorAdditionSystem, vas_input
+using Fleck: zero_state, initializer, push!, hazards!
+using Random: MersenneTwister
     rng = MersenneTwister(2930472)
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
