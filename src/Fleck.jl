@@ -1,6 +1,7 @@
 module Fleck
 
 include("prefixsearch.jl")
+include("sample/interface.jl")
 include("sample/firstreaction.jl")
 include("sample/naive.jl")
 include("sample/fixeddirect.jl")

@@ -3,20 +3,24 @@ using SafeTestsets
 module DirectFixture
 using Distributions: ContinuousUnivariateDistribution
 const CTDist = ContinuousUnivariateDistribution
+# Use import so that we can extend the method.
+import Fleck: hazards
+using Random: AbstractRNG
 
-function hazards(callback::Function, distlist::Array{T, 1}, rng) where T <: CTDist
+function hazards(callback::Function, distlist::Array{T, 1}, rng::AbstractRNG) where T <: CTDist
     for dist_idx in 1:length(distlist)
-        callback(dist_idx, distlist[dist_idx], 0.0, true, rng)
+        callback(dist_idx, distlist[dist_idx], true)
     end
 end
-
+export CTDist
 end
 
 
-@safetestset markov_direct_blah = "MarkovDirect initial" begin
+@safetestset markov_direct_initial = "MarkovDirect initial" begin
     using Fleck: MarkovDirect, next
     using Random: MersenneTwister
     using Distributions: Exponential
+    using ..DirectFixture
     md = MarkovDirect()
     distributions = fill(Exponential(1.5), 10)
     rng = MersenneTwister(90422342)
@@ -32,7 +36,7 @@ end
     using Fleck: MarkovDirect, next
     using Random: MersenneTwister
     using Distributions: Exponential
-    using ..DirectFixture: CTDist
+    using ..DirectFixture
     md = MarkovDirect()
     distributions = CTDist[]
     rng = MersenneTwister(90497979)
@@ -47,7 +51,8 @@ end
     using Fleck: MarkovDirect, next
     using Random: MersenneTwister
     using Distributions: Exponential
-    using HypothesisTests: BinomialTest
+    using HypothesisTests: BinomialTest, confint
+    using ..DirectFixture
     md = MarkovDirect()
     distributions = vcat(
         fill(Exponential(1.5), 10),
