@@ -1,6 +1,6 @@
 using DataStructures
 using Random: rand
-using Distributions: Uniform
+using Distributions: Uniform, Exponential, params
 
 """
 Classic Direct method for exponential transitions.
@@ -14,10 +14,12 @@ function next(rm::MarkovDirect, process, when, rng)
     total = 0.0
     cumulative = zeros(Float64, 0)
     keys = Array{Any,1}()
-    hazards(process, rng) do clock, distribution, enabled, rng2
-        total += params(distribution)[1]
-        push!(cumulative, total)
-        push!(keys, clock)
+    hazards(process, rng) do clock, distribution::Exponential, enabled::Bool
+        if enabled
+            total += params(distribution)[1]
+            push!(cumulative, total)
+            push!(keys, clock)
+        end
     end
 
     if total > eps(Float64)
