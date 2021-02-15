@@ -2,6 +2,7 @@ import Random: MersenneTwister
 using SafeTestsets
 using Test
 
+module SampleVAS
 function sample_transitions()
     [
         -1  0  1  0  0;
@@ -9,10 +10,12 @@ function sample_transitions()
          0  1  0  1 -1
     ]
 end
+end
 
 
 @safetestset vas_creates = "VAS creates" begin
-using Fleck: sample_transitions, VectorAdditionSystem
+using Fleck: VectorAdditionSystem
+using ..SampleVAS: sample_transitions
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     @test length(vas.rates) == size(vas.transitions, 2)
@@ -20,7 +23,8 @@ end
 
 
 @safetestset vas_intializes = "VAS initializes state" begin
-using Fleck: sample_transitions, VectorAdditionSystem, vas_initial, zero_state, initializer
+using Fleck: VectorAdditionSystem, vas_initial, zero_state
+using ..SampleVAS: sample_transitions
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     initializer = vas_initial(vas, [1, 1, 0])
@@ -31,8 +35,9 @@ end
 
 
 @safetestset vas_reports_hazards = "VAS reports_hazards" begin
-using Fleck: sample_transitions, VectorAdditionSystem, vas_initial
-using Fleck: zero_state, initializer, push!, hazards!
+using Fleck: VectorAdditionSystem, vas_initial
+using Fleck: zero_state, push!, fire!
+using ..SampleVAS: sample_transitions
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     initializer = vas_initial(vas, [1, 1, 0])
@@ -48,7 +53,7 @@ using Fleck: zero_state, initializer, push!, hazards!
             @test enable in [:Enabled, :Disabled]
         end
     end
-    hazards!(track_hazards, vas, state, initializer, "rng")
+    fire!(track_hazards, vas, state, initializer, "rng")
     @test enabled == [1, 2, 3, 4]
     @test length(disabled) == 0
 end
@@ -56,8 +61,9 @@ end
 
 
 @safetestset vas_changes_state = "VAS hazards during state change" begin
-using Fleck: sample_transitions, VectorAdditionSystem, vas_input
-using Fleck: zero_state, initializer, push!, hazards!
+using Fleck: VectorAdditionSystem, vas_input, vas_initial
+using Fleck: zero_state, push!, fire!
+using ..SampleVAS: sample_transitions
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
     initializer = vas_initial(vas, [1, 1, 0])
@@ -76,16 +82,17 @@ using Fleck: zero_state, initializer, push!, hazards!
     end
     fire_index = 2
     input_change = vas_input(vas, fire_index)
-    hazards!(track_hazards, vas, state, input_change, "rng")
+    fire!(track_hazards, vas, state, input_change, "rng")
     @test enabled == [5]
     @test disabled == [2, 3, 4]
 end
 
 
 @safetestset vas_loops = "VAS main loop" begin
-using Fleck: sample_transitions, VectorAdditionSystem, vas_input
-using Fleck: zero_state, initializer, push!, hazards!
+using Fleck: VectorAdditionSystem, vas_input, vas_initial
+using Fleck: zero_state, push!, fire!
 using Random: MersenneTwister
+using ..SampleVAS: sample_transitions
     rng = MersenneTwister(2930472)
     transitions = sample_transitions()
     vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
@@ -109,7 +116,7 @@ using Random: MersenneTwister
         else
             input_change = vas_input(vas, next_transition)
         end
-        hazards!(track_hazards, vas, state, input_change, rng)
+        fire!(track_hazards, vas, state, input_change, rng)
         input_change(state)
         if any(state .< 0)
             println("idx $(i) state $(state)")

@@ -53,6 +53,7 @@ end
     using Distributions: Exponential
     using HypothesisTests: BinomialTest, confint
     using ..DirectFixture
+
     md = MarkovDirect()
     distributions = vcat(
         fill(Exponential(1.5), 10),
@@ -68,3 +69,4 @@ end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
     @test ci[1] < 3 / 5 < ci[2]
 end
+

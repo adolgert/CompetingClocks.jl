@@ -38,7 +38,7 @@ function vas_initial(vas::VectorAdditionSystem, initial_state)
 end
 
 
-function hazards!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
+function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
     state_prime = copy(state)
     modify_state(state_prime)
     for rate_idx in eachindex(vas.rates)
