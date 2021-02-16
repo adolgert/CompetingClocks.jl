@@ -53,3 +53,29 @@ function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state
         end
     end
 end
+
+
+struct VectorAdditionModel
+    vas::VectorAdditionSystem
+    state::Vector{Int}
+    when::Float64
+end
+
+
+using Random: AbstractRNG
+
+
+struct VectorAdditionFSM
+    vam::VectorAdditionModel
+    sampler::DirectCall{Int}
+end
+
+
+function simstep!(fsm::VectorAdditionFSM, state_update::Function, rng::AbstractRNG)
+    zero!(fsm.sampler)
+    visitor = (clock, dist, enabled, gen) -> begin
+        set_clock!(fsm.sampler, clock, dist, enabled, gen)
+    end
+    fire!(visitor, fsm.vam.vas, fsm.vam.state, state_update, rng)
+    next(fsm.sampler, fsm.vam.when, rng)
+end

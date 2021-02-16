@@ -1,4 +1,3 @@
-import Random: MersenneTwister
 using SafeTestsets
 using Test
 
@@ -134,5 +133,26 @@ using ..SampleVAS: sample_transitions
         end
         empty!(newly_enabled)
         empty!(disabled)
+    end
+end
+
+
+@safetestset vas_fsm_init = "VAS finite state init" begin
+    using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
+    using Fleck: VectorAdditionModel, VectorAdditionFSM, zero_state
+    using Fleck: DirectCall, simstep!
+    using Random: MersenneTwister
+    using ..SampleVAS: sample_transitions
+    rng = MersenneTwister(2930472)
+    transitions = sample_transitions()
+    vas = VectorAdditionSystem(transitions, [.5, .8, .7, .7, .7])
+    state = zero_state(vas)
+    vam = VectorAdditionModel(vas, state, 0.0)
+    fsm = VectorAdditionFSM(vam, DirectCall(Int))
+    initial_state = vas_initial(vas, [1, 1, 0])
+    next_transition = simstep!(fsm, initial_state, rng)
+    while next_transition !== nothing
+        token = vas_input(vas, next_transition)
+        next_transition = simstep!(fsm, token, rng)
     end
 end

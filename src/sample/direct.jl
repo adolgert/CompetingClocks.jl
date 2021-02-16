@@ -1,5 +1,5 @@
 using DataStructures
-using Random: rand
+using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, params
 
 """
@@ -10,7 +10,7 @@ struct MarkovDirect
 end
 
 
-function next(rm::MarkovDirect, process, when, rng)
+function next(rm::MarkovDirect, process, when, rng::AbstractRNG)
     total = 0.0
     cumulative = zeros(Float64, 0)
     keys = Array{Any,1}()
@@ -32,3 +32,43 @@ function next(rm::MarkovDirect, process, when, rng)
 end
 
 Observer(fr::MarkovDirect) = (hazard, time, updated, rng) -> nothing
+
+
+mutable struct DirectCall{T}
+    total::Float64
+    cumulative::Vector{Float64}
+    keys::Vector{T}
+end
+
+
+function DirectCall(::Type{T}) where {T}
+    DirectCall{T}(0, zeros(Float64, 0), zeros(T, 0))
+end
+
+
+function zero!(dc::DirectCall{T}) where {T}
+    dc.total = 0
+    dc.cumulative = zeros(Float64, 0)
+    dc.keys = zeros(T, 0)
+end
+
+
+function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential, enabled, rng::AbstractRNG) where {T}
+    if enabled == :Enabled
+        dc.total += params(distribution)[1]
+        push!(dc.cumulative, total)
+        push!(dc.keys, clock)
+    # else it's disabled.
+    end
+end
+
+
+function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
+    if dc.total > eps(Float64)
+        chosen = searchsortedfirst(dc.cumulative, rand(rng, Uniform(0, total)))
+        @assert chosen < length(dc.cumulative) + 1
+        return (when - log(rand(rng)) / dc.total, dc.keys[chosen])
+    else
+        return (Inf, nothing)
+    end
+end
