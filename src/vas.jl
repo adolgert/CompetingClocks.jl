@@ -13,18 +13,19 @@ transition places tokens into the state. Unlike chemical simulations,
 the rate doesn't depend on the number of combinations of species present.
 """
 struct VectorAdditionSystem
-    transitions::Array{Int, 2}  # states x transitions
+    take::Array{Int, 2}  # states x transitions
+    give::Array{Int, 2}  # states x transitions
     rates::Array{Float64, 1}  # length is transitions
 end
 
 
 function zero_state(vas::VectorAdditionSystem)
-    zeros(Int, size(vas.transitions, 1))
+    zeros(Int, size(vas.take, 1))
 end
 
 
 function vas_input(vas::VectorAdditionSystem, transition_idx)
-    state_change = vas.transitions[:, transition_idx]
+    state_change = vas.give[:, transition_idx] - vas.take[:, transition_idx]
     let delta = state_change
         state -> begin state .+= state_change end
     end
@@ -42,8 +43,8 @@ function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state
     state_prime = copy(state)
     modify_state(state_prime)
     for rate_idx in eachindex(vas.rates)
-        summed = vas.transitions[:, rate_idx] .+ state
-        summed_prime = vas.transitions[:, rate_idx] .+ state_prime
+        summed = state .- vas.take[:, rate_idx]
+        summed_prime = state_prime .- vas.take[:, rate_idx]
         was_enabled = all(summed .>= 0)
         now_enabled = all(summed_prime .>= 0)
         if was_enabled && !now_enabled
