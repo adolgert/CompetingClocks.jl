@@ -140,7 +140,7 @@ end
 @safetestset vas_fsm_init = "VAS finite state init" begin
     using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
     using Fleck: VectorAdditionModel, VectorAdditionFSM, zero_state
-    using Fleck: DirectCall, simstep!
+    using Fleck: DirectCall, simstep!, vas_input
     using Random: MersenneTwister
     using ..SampleVAS: sample_transitions
     rng = MersenneTwister(2930472)
@@ -150,9 +150,11 @@ end
     vam = VectorAdditionModel(vas, state, 0.0)
     fsm = VectorAdditionFSM(vam, DirectCall(Int))
     initial_state = vas_initial(vas, [1, 1, 0])
-    next_transition = simstep!(fsm, initial_state, rng)
-    while next_transition !== nothing
+    when, next_transition = simstep!(fsm, initial_state, rng)
+    limit = 10
+    while next_transition !== nothing && limit > 0
         token = vas_input(vas, next_transition)
-        next_transition = simstep!(fsm, token, rng)
+        when, next_transition = simstep!(fsm, token, rng)
+        limit -= 1
     end
 end

@@ -54,18 +54,17 @@ end
 
 
 function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential, enabled, rng::AbstractRNG) where {T}
-    if enabled == :Enabled
+    if Base.:(==)(enabled, :Enabled)  # Why is == not found otherwise?
         dc.total += params(distribution)[1]
-        push!(dc.cumulative, total)
+        push!(dc.cumulative, dc.total)
         push!(dc.keys, clock)
-    # else it's disabled.
-    end
+    end  # else it's disabled.
 end
 
 
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
     if dc.total > eps(Float64)
-        chosen = searchsortedfirst(dc.cumulative, rand(rng, Uniform(0, total)))
+        chosen = searchsortedfirst(dc.cumulative, rand(rng, Uniform(0, dc.total)))
         @assert chosen < length(dc.cumulative) + 1
         return (when - log(rand(rng)) / dc.total, dc.keys[chosen])
     else
