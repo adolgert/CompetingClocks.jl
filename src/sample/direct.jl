@@ -45,7 +45,8 @@ function DirectCall(::Type{T}) where {T}
 end
 
 
-function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential, enabled, rng::AbstractRNG) where {T}
+function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential,
+        enabled::Symbol, rng::AbstractRNG) where {T}
     if Base.:(==)(enabled, :Enabled)
         hazard = params(distribution)[1]
         if !haskey(dc.key, clock)

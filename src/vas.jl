@@ -15,7 +15,7 @@ the rate doesn't depend on the number of combinations of species present.
 struct VectorAdditionSystem
     take::Array{Int, 2}  # states x transitions
     give::Array{Int, 2}  # states x transitions
-    rates::Array{Float64, 1}  # length is transitions
+    rates::Vector{Function}  # length is transitions
 end
 
 
@@ -46,9 +46,16 @@ function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state
         was_enabled = all(state .- vas.take[:, rate_idx] .>= 0)
         now_enabled =  all(state_prime .- vas.take[:, rate_idx] .>= 0)
         if was_enabled && !now_enabled
-            visitor(rate_idx, Distributions.Exponential(vas.rates[rate_idx]), :Disabled, rng)
+            visitor(rate_idx, Distributions.Exponential(1), :Disabled, rng)
         elseif !was_enabled && now_enabled
-            visitor(rate_idx, Distributions.Exponential(vas.rates[rate_idx]), :Enabled, rng)
+            visitor(rate_idx, vas.rates[rate_idx](state_prime), :Enabled, rng)
+        elseif was_enabled && now_enabled
+            ratefunc = vas.rates[rate_idx]
+            former_rate = ratefunc(state)
+            current_rate = ratefunc(state_prime)
+            if former_rate != current_rate
+                visitor(rate_idx, current_rate, :Changed, rng)
+            end  # Else don't notify because rate is the same.
         end
     end
 end
