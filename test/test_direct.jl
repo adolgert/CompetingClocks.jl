@@ -70,3 +70,20 @@ end
     @test ci[1] < 3 / 5 < ci[2]
 end
 
+
+@safetestset direct_call_prob = "DirectCall probabilities" begin
+    using Fleck: DirectCall, set_clock!, next
+    using Random: MersenneTwister
+    using Distributions: Exponential
+
+    dc = DirectCall(Int)
+    rng = MersenneTwister(90422342)
+    propensities = [0.3, 0.2, 0.7, 0.001, 0.25]
+    for (i, p) in enumerate(propensities)
+        set_clock!(dc, i, Exponential(p), :Enabled, rng)
+    end
+    when, which = next(dc, 100.0, rng)
+    @test when > 100
+    @test 1 <= which
+    @test which <= length(propensities)
+end

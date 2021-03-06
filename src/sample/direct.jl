@@ -35,38 +35,38 @@ Observer(fr::MarkovDirect) = (hazard, time, updated, rng) -> nothing
 
 
 mutable struct DirectCall{T}
-    total::Float64
-    cumulative::Vector{Float64}
-    keys::Vector{T}
+    key::Dict{T, Int64}
+    propensity::Vector{Float64}
 end
 
 
 function DirectCall(::Type{T}) where {T}
-    DirectCall{T}(0, zeros(Float64, 0), zeros(T, 0))
-end
-
-
-function zero!(dc::DirectCall{T}) where {T}
-    dc.total = 0
-    dc.cumulative = zeros(Float64, 0)
-    dc.keys = zeros(T, 0)
+    DirectCall{T}(Dict{T, Int64}(), zeros(Float64, 0))
 end
 
 
 function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential, enabled, rng::AbstractRNG) where {T}
-    if Base.:(==)(enabled, :Enabled)  # Why is == not found otherwise?
-        dc.total += params(distribution)[1]
-        push!(dc.cumulative, dc.total)
-        push!(dc.keys, clock)
-    end  # else it's disabled.
+    if Base.:(==)(enabled, :Enabled)
+        hazard = params(distribution)[1]
+        if !haskey(dc.key, clock)
+            dc.key[clock] = length(push!(dc.propensity, hazard))
+        else
+            dc.propensity[dc.key[clock]] = hazard
+        end
+    elseif Base.:(==)(enabled, :Changed)  # Why is == not found otherwise?
+        dc.propensity[clock] = params(distribution)[1]
+    else  # else it's disabled.
+        dc.propensity[clock] = 0.0
+    end
 end
 
 
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
-    if dc.total > eps(Float64)
-        chosen = searchsortedfirst(dc.cumulative, rand(rng, Uniform(0, dc.total)))
-        @assert chosen < length(dc.cumulative) + 1
-        return (when - log(rand(rng)) / dc.total, dc.keys[chosen])
+    total = sum(dc.propensity)
+    if total > eps(Float64)
+        chosen = searchsortedfirst(cumsum(dc.propensity), rand(rng, Uniform(0, total)))
+        @assert chosen < length(dc.propensity) + 1
+        return (when - log(rand(rng)) / total, dc.key[chosen])
     else
         return (Inf, nothing)
     end

@@ -43,10 +43,8 @@ function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state
     state_prime = copy(state)
     modify_state(state_prime)
     for rate_idx in eachindex(vas.rates)
-        summed = state .- vas.take[:, rate_idx]
-        summed_prime = state_prime .- vas.take[:, rate_idx]
-        was_enabled = all(summed .>= 0)
-        now_enabled = all(summed_prime .>= 0)
+        was_enabled = all(state .- vas.take[:, rate_idx] .>= 0)
+        now_enabled =  all(state_prime .- vas.take[:, rate_idx] .>= 0)
         if was_enabled && !now_enabled
             visitor(rate_idx, Distributions.Exponential(vas.rates[rate_idx]), :Disabled, rng)
         elseif !was_enabled && now_enabled
@@ -73,7 +71,6 @@ end
 
 
 function simstep!(fsm::VectorAdditionFSM, state_update::Function, rng::AbstractRNG)
-    zero!(fsm.sampler)
     visitor = (clock, dist, enabled, gen) -> begin
         set_clock!(fsm.sampler, clock, dist, enabled, gen)
     end
