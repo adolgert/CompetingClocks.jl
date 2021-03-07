@@ -47,7 +47,6 @@ end
 
 function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         enabled::Symbol, rng::AbstractRNG) where {T}
-    @show enabled, clock, length(dc.key)
     if Base.:(==)(enabled, :Enabled)
         hazard = params(distribution)[1]
         if !haskey(dc.key, clock)
@@ -56,9 +55,9 @@ function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential,
             dc.propensity[dc.key[clock]] = hazard
         end
     elseif Base.:(==)(enabled, :Changed)  # Why is == not found otherwise?
-        dc.propensity[clock] = params(distribution)[1]
+        dc.propensity[dc.key[clock]] = params(distribution)[1]
     else  # else it's disabled.
-        dc.propensity[clock] = 0.0
+        dc.propensity[dc.key[clock]] = 0.0
     end
 end
 
