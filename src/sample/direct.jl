@@ -47,6 +47,7 @@ end
 
 function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         enabled::Symbol, rng::AbstractRNG) where {T}
+    @show enabled, clock, length(dc.key)
     if Base.:(==)(enabled, :Enabled)
         hazard = params(distribution)[1]
         if !haskey(dc.key, clock)
@@ -67,7 +68,8 @@ function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
     if total > eps(Float64)
         chosen = searchsortedfirst(cumsum(dc.propensity), rand(rng, Uniform(0, total)))
         @assert chosen < length(dc.propensity) + 1
-        return (when - log(rand(rng)) / total, dc.key[chosen])
+        key_name = [x for (x, y) in pairs(dc.key) if Base.:(==)(y, chosen)][1]
+        return (when - log(rand(rng)) / total, key_name)
     else
         return (Inf, nothing)
     end

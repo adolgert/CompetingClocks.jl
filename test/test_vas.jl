@@ -160,7 +160,6 @@ using ..SampleVAS: sample_transitions
             input_change = vas_input(vas, next_transition)
         end
         fire!(track_hazards, vas, state, input_change, rng)
-        input_change(state)
         if any(state .< 0)
             println("idx $(i) state $(state)")
         end
@@ -224,6 +223,7 @@ end
     when, next_transition = simstep!(fsm, initial_state, rng)
     event_cnt = 0
     while next_transition !== nothing
+        @show next_transition
         token = vas_input(vas, next_transition)
         when, next_transition = simstep!(fsm, token, rng)
         event_cnt += 1

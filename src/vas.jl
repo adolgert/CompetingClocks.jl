@@ -40,19 +40,19 @@ end
 
 
 function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
-    state_prime = copy(state)
-    modify_state(state_prime)
+    former = copy(state)
+    modify_state(state)
     for rate_idx in eachindex(vas.rates)
-        was_enabled = all(state .- vas.take[:, rate_idx] .>= 0)
-        now_enabled =  all(state_prime .- vas.take[:, rate_idx] .>= 0)
+        was_enabled = all(former .- vas.take[:, rate_idx] .>= 0)
+        now_enabled =  all(state .- vas.take[:, rate_idx] .>= 0)
         if was_enabled && !now_enabled
             visitor(rate_idx, Distributions.Exponential(1), :Disabled, rng)
         elseif !was_enabled && now_enabled
-            visitor(rate_idx, vas.rates[rate_idx](state_prime), :Enabled, rng)
+            visitor(rate_idx, vas.rates[rate_idx](state), :Enabled, rng)
         elseif was_enabled && now_enabled
             ratefunc = vas.rates[rate_idx]
-            former_rate = ratefunc(state)
-            current_rate = ratefunc(state_prime)
+            former_rate = ratefunc(former)
+            current_rate = ratefunc(state)
             if former_rate != current_rate
                 visitor(rate_idx, current_rate, :Changed, rng)
             end  # Else don't notify because rate is the same.
