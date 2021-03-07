@@ -64,3 +64,44 @@ For each [state changed]
 ```
 
 The goal, then, is to make code where firing, finding affected transitions, and sampling those transitions, is all separate, but they get called nicely in order within a single loop.
+
+## Unwrapping the sequence
+
+I just said the sequence needs to intertwine two algorithms, how we update state and how we sample. Let's start with what the algorithms need to do, so that we get it correct. The complexity comes from doing non-exponential distributions. Each distribution now has an enabling time which moves the time = 0 for that distribution.
+
+The function to update the state and transitions is a moment where we break invariants of the system. That's what makes it difficult. If we change one part of the state and haven't yet changed the transitions that depend on that state, then we are mid-way through what should be an atomic change.
+
+Let's look at the situation without thinking about any caching anywhere. The state of the system is the physical state and the transition state.
+
+* Physical state is a vector of integers, for this Vector Addition System.
+* Transition state is a vector of transitions. Each transition has the following.
+  1. A univariate distribution over time.
+  2. An enabling time to indicate its left bound.
+  3. Whether it is enabled (could be encoded in the enabling time, but why.)
+
+Initialization is more interesting than we give it credit. We choose an initial physical state, but we can also choose a transition state that, for instance, includes transitions that were enabled in the past. They would need to be consistent with the current state. We usually start with a boring initialization and run a while in order to do this setup.
+
+Let's send in an event and see what happens. Watch for the event that fires being treated differently.
+
+1. Fire the event. The event is a change in state associated with a transition.
+   a. Change time to the event's time.
+   b. Mark event's transition as disabled.
+   c. Modify the physical state.
+   d. Recalculate for every possible transition:
+      * Enabled
+      * Disabled
+      * Changed, meaning its distribution or enabling time is now different.
+
+2. Update sampler with firing, then enabling, disabling, and changing. The same transition that fired can be enabled.
+
+Why did we track the firing transition separately? If we treated it with all other transitions, then the transition might be enabled before the event and still enabled after the event.
+
+## Common representation of transitions
+
+Is there a way that we can create code to help define and use transitions for different simulations?
+
+A transition has these functions:
+
+1. Is it enabled and, if so, with what distribution and time?
+2. Fire to change physical state.
+3. Fire to change transition state.

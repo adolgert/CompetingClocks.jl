@@ -1,14 +1,14 @@
 using DataStructures
 
 """
-This implements an incorrect algorithm which is the most common
+This implements an algorithm which is the most common
 intuitive choice. Each trajectory's distribution looks correct,
 but the master equation isn't correct.
 """
 
 struct NaiveSampler
     firing_queue::MutableBinaryHeap{NRTransition,Base.Order.ForwardOrdering}
-    # This maps from transition to entry in the firing queue.
+    # This maps from transition to an entry in the firing queue.
     transition_entry::Dict{Any,Int}
     disabled::Set{Any}
     init::Bool
@@ -28,6 +28,7 @@ varies from First Reaction. If anyone can show me when
 this fails to work, I'd be grateful. Even the sis.jl example works.
 """
 function NaiveSampler()
+    # The NRTransition is a key and a time.
     heap=mutable_binary_minheap(NRTransition)
     state=Dict{Any,Int}()
     NaiveSampler(heap, state, Set{Any}(), true)
@@ -35,7 +36,7 @@ end
 
 
 # Finds the next one without removing it from the queue.
-function Next(propagator::NaiveSampler, system, rng)
+function next(propagator::NaiveSampler, system, rng)
     if propagator.init
         Hazards(system, rng) do clock, now, updated, rng2
             NaiveObserve(propagator, clock, now, updated, rng2)
@@ -66,36 +67,35 @@ function Observer(propagator::NaiveSampler)
 end
 
 
-function NaiveObserve(propagator::NaiveSampler, clock,
-            time, updated, rng)
-    key=clock
-    if updated==:Fired || updated==:Disabled
-        heap_handle=propagator.transition_entry[key]
+function set_clock!(propagator::NaiveSampler, clock,
+            distribution, enabled, rng)
+    if enabled==:Fired || enabled==:Disabled
+        heap_handle=propagator.transition_entry[clock]
         # We store distributions in order to calculate remaining hazard
         # which will happen AFTER the state has changed.
         update!(propagator.firing_queue, heap_handle,
-            NRTransition(key, -1.))
+            NRTransition(clock, -1.))
         todelete=pop!(propagator.firing_queue)
-        delete!(propagator.transition_entry, key)
+        delete!(propagator.transition_entry, clock)
         push!(propagator.disabled, clock)
 
-    elseif updated==:Enabled
+    elseif enabled==:Enabled
         # if haskey(propagator.disabled, clock)
         #     error("Cannot re-enable a transition with this sampler.")
         # end
-        when_fire=Sample(clock.intensity, time, rng)
+        when_fire=rand(rng, distribution)
         heap_handle=push!(propagator.firing_queue,
-                NRTransition(key, when_fire))
-        propagator.transition_entry[key]=heap_handle
+                NRTransition(clock, when_fire))
+        propagator.transition_entry[clock]=heap_handle
 
-    elseif updated==:Modified
+    elseif enabled==:Changed
         # if haskey(propagator.disabled, clock)
         #     error("Cannot modify a transition with this sampler.")
         # end
         when_fire=Sample(clock.intensity, time, rng)
-        heap_handle=propagator.transition_entry[key]
+        heap_handle=propagator.transition_entry[clock]
         update!(propagator.firing_queue, heap_handle,
-                NRTransition(key, when_fire))
+                NRTransition(clock, when_fire))
     else
         assert(false)
     end
