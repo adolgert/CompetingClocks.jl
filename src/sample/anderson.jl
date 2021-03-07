@@ -1,4 +1,4 @@
-import DataStructures: MutableBinaryHeap, mutable_binary_minheap
+import DataStructures: MutableBinaryHeap, MutableBinaryMinHeap
 using Random
 
 """
@@ -22,7 +22,7 @@ end
 Construct a Next Reaction sampler.
 """
 function NextReactionHazards()
-    heap = mutable_binary_minheap(NRTransition)
+    heap = MutableBinaryMinHeap(NRTransition)
     @debug("SampleSemiMarkov.NextReactionHazards type ", typeof(heap))
     state = Dict{Any,TransitionRecord}()
     NextReactionHazards(heap, state, true)

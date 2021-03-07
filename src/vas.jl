@@ -13,18 +13,19 @@ transition places tokens into the state. Unlike chemical simulations,
 the rate doesn't depend on the number of combinations of species present.
 """
 struct VectorAdditionSystem
-    transitions::Array{Int, 2}  # states x transitions
-    rates::Array{Float64, 1}  # length is transitions
+    take::Array{Int, 2}  # states x transitions
+    give::Array{Int, 2}  # states x transitions
+    rates::Vector{Function}  # length is transitions
 end
 
 
 function zero_state(vas::VectorAdditionSystem)
-    zeros(Int, size(vas.transitions, 1))
+    zeros(Int, size(vas.take, 1))
 end
 
 
 function vas_input(vas::VectorAdditionSystem, transition_idx)
-    state_change = vas.transitions[:, transition_idx]
+    state_change = vas.give[:, transition_idx] - vas.take[:, transition_idx]
     let delta = state_change
         state -> begin state .+= state_change end
     end
@@ -38,18 +39,48 @@ function vas_initial(vas::VectorAdditionSystem, initial_state)
 end
 
 
-function hazards!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
-    state_prime = copy(state)
-    modify_state(state_prime)
+function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
+    former = copy(state)
+    modify_state(state)
     for rate_idx in eachindex(vas.rates)
-        summed = vas.transitions[:, rate_idx] .+ state
-        summed_prime = vas.transitions[:, rate_idx] .+ state_prime
-        was_enabled = all(summed .>= 0)
-        now_enabled = all(summed_prime .>= 0)
+        was_enabled = all(former .- vas.take[:, rate_idx] .>= 0)
+        now_enabled =  all(state .- vas.take[:, rate_idx] .>= 0)
         if was_enabled && !now_enabled
-            visitor(rate_idx, Distributions.Exponential(vas.rates[rate_idx]), :Disabled, rng)
+            visitor(rate_idx, Distributions.Exponential(1), :Disabled, rng)
         elseif !was_enabled && now_enabled
-            visitor(rate_idx, Distributions.Exponential(vas.rates[rate_idx]), :Enabled, rng)
+            visitor(rate_idx, vas.rates[rate_idx](state), :Enabled, rng)
+        elseif was_enabled && now_enabled
+            ratefunc = vas.rates[rate_idx]
+            former_rate = ratefunc(former)
+            current_rate = ratefunc(state)
+            if former_rate != current_rate
+                visitor(rate_idx, current_rate, :Changed, rng)
+            end  # Else don't notify because rate is the same.
         end
     end
+end
+
+
+struct VectorAdditionModel
+    vas::VectorAdditionSystem
+    state::Vector{Int}
+    when::Float64
+end
+
+
+using Random: AbstractRNG
+
+
+struct VectorAdditionFSM
+    vam::VectorAdditionModel
+    sampler::DirectCall{Int}
+end
+
+
+function simstep!(fsm::VectorAdditionFSM, state_update::Function, rng::AbstractRNG)
+    visitor = (clock, dist, enabled, gen) -> begin
+        set_clock!(fsm.sampler, clock, dist, enabled, gen)
+    end
+    fire!(visitor, fsm.vam.vas, fsm.vam.state, state_update, rng)
+    next(fsm.sampler, fsm.vam.when, rng)
 end
