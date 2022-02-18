@@ -104,7 +104,7 @@ end
 
 
 @safetestset vas_changes_state = "VAS hazards during state change" begin
-using Fleck: VectorAdditionSystem, vas_input, vas_initial
+using Fleck: VectorAdditionSystem, vas_delta, vas_initial
 using Fleck: zero_state, push!, fire!
 using ..SampleVAS: sample_transitions
 take, give, rates = sample_transitions()
@@ -124,7 +124,7 @@ initializer = vas_initial(vas, [1, 1, 0])
         end
     end
     fire_index = 2
-    input_change = vas_input(vas, fire_index)
+    input_change = vas_delta(vas, fire_index)
     fire!(track_hazards, vas, state, input_change, "rng")
     @test enabled == [5]
     @test disabled == [2, 3, 4]
@@ -132,7 +132,7 @@ end
 
 
 @safetestset vas_loops = "VAS main loop" begin
-using Fleck: VectorAdditionSystem, vas_input, vas_initial
+using Fleck: VectorAdditionSystem, vas_delta, vas_initial
 using Fleck: zero_state, push!, fire!
 using Random: MersenneTwister
 using ..SampleVAS: sample_transitions
@@ -157,7 +157,7 @@ using ..SampleVAS: sample_transitions
         if isnothing(next_transition)
             input_change = vas_initial(vas, [1, 1, 0])
         else
-            input_change = vas_input(vas, next_transition)
+            input_change = vas_delta(vas, next_transition)
         end
         fire!(track_hazards, vas, state, input_change, rng)
         if any(state .< 0)
@@ -183,7 +183,7 @@ end
 @safetestset vas_fsm_init = "VAS finite state init" begin
     using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
     using Fleck: VectorAdditionModel, VectorAdditionFSM, zero_state
-    using Fleck: DirectCall, simstep!, vas_input
+    using Fleck: DirectCall, simstep!, vas_delta
     using Random: MersenneTwister
     using ..SampleVAS: sample_transitions
     rng = MersenneTwister(2930472)
@@ -196,7 +196,7 @@ end
     when, next_transition = simstep!(fsm, initial_state, rng)
     limit = 10
     while next_transition !== nothing && limit > 0
-        token = vas_input(vas, next_transition)
+        token = vas_delta(vas, next_transition)
         when, next_transition = simstep!(fsm, token, rng)
         limit -= 1
     end
@@ -206,7 +206,7 @@ end
 @safetestset vas_fsm_sir = "VAS runs SIR to completion" begin
     using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
     using Fleck: VectorAdditionModel, VectorAdditionFSM, zero_state
-    using Fleck: DirectCall, simstep!, vas_input
+    using Fleck: DirectCall, simstep!, vas_delta
     using Random: MersenneTwister
     using ..SampleVAS: sample_sir
     rng = MersenneTwister(979797)
@@ -223,9 +223,11 @@ end
     when, next_transition = simstep!(fsm, initial_state, rng)
     event_cnt = 0
     while next_transition !== nothing
-        token = vas_input(vas, next_transition)
+        token = vas_delta(vas, next_transition)
         when, next_transition = simstep!(fsm, token, rng)
         event_cnt += 1
     end
     println(event_cnt)
+    @test event_cnt > 0
+    @test sum(vam.state) == cnt
 end
