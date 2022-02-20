@@ -13,7 +13,7 @@ function sir_vas(N, β, γ)
         1 0;
         0 1;
     ]
-    rates = [(state) -> state[1] * state[2] * β/N, (state) -> state[2] * γ]
+    rates = [(state) -> Exponential(state[1] * state[2] * β/N), (state) -> Exponential(state[2] * γ)]
     (take, give, rates)
 end
 
