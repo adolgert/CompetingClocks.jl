@@ -1,19 +1,19 @@
 using Random
-
-
+include("../src/sample/direct.jl")
+include("../src/vas.jl")
 
 function sir_vas(N, β, γ)
     take = [
         1 0;
-        0 1;
+        1 1;
         0 0;
     ]
     give = [
         0 0;
-        1 0;
+        2 0;
         0 1;
     ]
-    rates = [(state) -> state[1] * state[2] * β/N, (state) -> state[2] * γ]
+    rates = [(state) -> Exponential(state[1] * state[2] * β/N), (state) -> Exponential(state[2] * γ)]
     (take, give, rates)
 end
 
