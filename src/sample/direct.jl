@@ -34,7 +34,7 @@ end
 Observer(fr::MarkovDirect) = (hazard, time, updated, rng) -> nothing
 
 
-mutable struct DirectCall{T}
+struct DirectCall{T}
     key::Dict{T, Int64}
     propensity::Vector{Float64}
 end

@@ -97,7 +97,7 @@ using Random: AbstractRNG
 
 struct VectorAdditionFSM
     vam::VectorAdditionModel
-    sampler::DirectCall{Int}
+    sampler::Any
 end
 
 
