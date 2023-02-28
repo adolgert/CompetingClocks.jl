@@ -1,7 +1,7 @@
 using Random
 using Plots
-include("../src/sample/direct.jl")
-include("../src/vas.jl")
+using Distributions
+using Fleck
 
 function sir_vas(β, c, γ)
     take = [

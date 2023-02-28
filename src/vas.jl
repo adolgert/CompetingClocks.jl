@@ -1,6 +1,8 @@
 # A Vector Addition System
 import Distributions
 
+export VectorAdditionSystem, zero_state, vas_delta, vas_initial, fire!, simstep!,
+    VectorAdditionModel, VectorAdditionFSM
 
 """
 A `VectorAdditionSystem` is an older form of simulation that is a lot
@@ -12,10 +14,10 @@ must be an integer at least that large. Positive numbers mean the
 transition places tokens into the state. Unlike chemical simulations,
 the rate need not depend on the number of combinations of species present.
 """
-struct VectorAdditionSystem
+struct VectorAdditionSystem{T <: Function}
     take::Array{Int, 2}  # states x transitions
     give::Array{Int, 2}  # states x transitions
-    rates::Vector{Function}  # length is transitions
+    rates::Vector{T}  # length is transitions
 end
 
 

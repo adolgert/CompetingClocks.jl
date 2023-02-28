@@ -2,6 +2,8 @@ using DataStructures
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, params
 
+export DirectCall
+
 """
 Classic Direct method for exponential transitions.
 This doesn't do any caching of rates.
