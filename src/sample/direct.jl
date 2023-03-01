@@ -56,7 +56,7 @@ function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         else
             dc.propensity[dc.key[clock]] = hazard
         end
-    elseif enabled == :Changed  # Why is == not found otherwise?
+    elseif enabled == :Changed
         dc.propensity[dc.key[clock]] = params(distribution)[1]
     else  # else it's disabled.
         dc.propensity[dc.key[clock]] = 0.0

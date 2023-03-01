@@ -46,8 +46,8 @@ while next_transition !== nothing
     tnow += when
     out[event_cnt + 1, 1] = tnow
     out[event_cnt + 1, 2:4] = vam.state
-    token = vas_delta(vas, next_transition)
-    when, next_transition = simstep!(fsm, token, rng)
+    state_update = vas_delta(vas, next_transition)
+    when, next_transition = simstep!(fsm, state_update, rng)
     event_cnt += 1
 end
 
