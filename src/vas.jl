@@ -1,5 +1,6 @@
 # A Vector Addition System
 import Distributions
+using Random: AbstractRNG
 
 export VectorAdditionSystem, zero_state, vas_delta, vas_initial, fire!, simstep!,
     VectorAdditionModel, VectorAdditionFSM
@@ -20,6 +21,17 @@ struct VectorAdditionSystem{T <: Function}
     rates::Vector{T}  # length is transitions
 end
 
+struct VectorAdditionModel
+    vas::VectorAdditionSystem
+    state::Vector{Int}
+    when::Float64
+end
+
+struct VectorAdditionFSM
+    vam::VectorAdditionModel
+    sampler::Any
+end
+
 
 """
     zero_state(vas::VectorAdditionSystem)
@@ -29,7 +41,6 @@ Return a state vector of all zeros.
 function zero_state(vas::VectorAdditionSystem)
     zeros(Int, size(vas.take, 1))
 end
-
 
 """
     vas_delta(vas::VectorAdditionSystem, transition_idx)
@@ -59,13 +70,14 @@ end
 
 
 """
-    fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
+    fire!(visitor, vas::VectorAdditionSystem, state, modify_state, rng)
 
-Fire a transition. `visitor` is a function taking four arguments,  
-`modify_state` is a function returned from `vas_delta`, or any other
-function that accepts the state vector (argument `state`) as input and applies the update.
+Fire a transition. `visitor` is a function taking four arguments,
+`clock`, `dist`, `enable`, `gen`. `modify_state` is a function returned 
+from `vas_delta`, or any other function that accepts the state vector 
+(argument `state`) as input and applies the update.
 """
-function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state, rng)
+function fire!(visitor, vas::VectorAdditionSystem, state, modify_state, rng)
     former = copy(state)
     modify_state(state)
     for rate_idx in eachindex(vas.rates)
@@ -85,23 +97,6 @@ function fire!(visitor::Function, vas::VectorAdditionSystem, state, modify_state
         end
     end
 end
-
-
-struct VectorAdditionModel
-    vas::VectorAdditionSystem
-    state::Vector{Int}
-    when::Float64
-end
-
-
-using Random: AbstractRNG
-
-
-struct VectorAdditionFSM
-    vam::VectorAdditionModel
-    sampler::Any
-end
-
 
 function simstep!(fsm::VectorAdditionFSM, state_update::Function, rng::AbstractRNG)
     visitor = (clock, dist, enabled, gen) -> begin
