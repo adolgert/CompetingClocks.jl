@@ -53,6 +53,8 @@ The method `fire!` first modifies state, then, for each clock in the system, it 
 
 The method `simstep!` first applies `fire!`, followed by `next`.
 
+## Sampling
+
 Each sampler needs to implement the following interface:
 
 ```
@@ -60,5 +62,5 @@ next(sampler, when::Float64, rng::AbstractRNG)
 set_clock!(sampler, clock::T, distribution::Exponential, enabled::Symbol, rng::AbstractRNG)
 ```
 
-## Gillespie's Direct Method
-
+  - `next` is responsible for returning a tuple containing the next stopping time and which transition will cause it.
+  - `set_clock!(sampler, clock::T, distribution, enabled::Symbol, rng::AbstractRNG)` is responsible for updating the transition `clock` 
