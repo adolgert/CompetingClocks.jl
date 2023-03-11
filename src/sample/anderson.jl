@@ -22,7 +22,7 @@ end
 Construct a Next Reaction sampler.
 """
 function NextReactionHazards()
-    heap = MutableBinaryMinHeap(NRTransition)
+    heap = MutableBinaryMinHeap{NRTransition}()
     @debug("SampleSemiMarkov.NextReactionHazards type ", typeof(heap))
     state = Dict{Any,TransitionRecord}()
     NextReactionHazards(heap, state, true)
