@@ -5,13 +5,30 @@ using Distributions: Uniform, Exponential, params
 export DirectCall
 
 """
-Classic Direct method for exponential transitions.
-This doesn't do any caching of rates.
+Classic Direct method for exponential transitions. At every time step, it
+samples the distribution of every competing clock in order to find the soonest
+to fire. This doesn't do any caching of rates. This sampler can be the fastest
+when there are fewer than a dozen competing clocks.
 """
 struct MarkovDirect
 end
 
 
+"""
+    next(md::MarkovDirect, process, when, rng::AbstractRNG)
+
+This function is responsible for updating the state of the sampler and
+returning both the next clock to fire and when it fires. The `process` is
+the body of the simulation, its state and rules for what happens next.
+The return value is `(time::Float64, clock_identifier)`.
+That `process` must have a method called `hazards` which will report
+all changes from the last event.
+
+    hazards(process, rng::AbstractRNG, clock_update_function)
+
+The `clock_update_function` takes the arguments
+(`clock_identifier`, `distribution`, `enabled::Bool`).
+"""
 function next(rm::MarkovDirect, process, when, rng::AbstractRNG)
     total = 0.0
     cumulative = zeros(Float64, 0)
