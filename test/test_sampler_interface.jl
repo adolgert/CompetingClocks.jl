@@ -1,3 +1,24 @@
+"""
+This isn't a unit test. It's a performance test of different interfaces
+between the process and the sampler.
+
+Someone using this library writes a
+simulation state, a set of rules to update that state, and a set of rules
+about when the next states can happen. Together, this defines the process, and
+they should be able to write it any way they want.
+
+The sampler needs to know every time there is a change to when next states
+can happen. That's a relatively tight integration with the process. This
+file measures performance for several different approaches to how they talk.
+
+The two main options are using an iterator and using a visitor. Both are classic
+ways to separate tightly-coupled components. The iterator
+means that, every time an event fires, the process creates an iterator over
+all changed distributions, gives that to the sampler, and the samper walks
+through the changes. The visitor pattern means that the process offers to
+the sampler a function. When the sampler calls that function, the function
+walks through the process to examine each changed distribution.
+"""
 import LightGraphs: SimpleGraph, add_vertices!, neighbors
 import Distributions: Uniform, Exponential, Weibull, Gamma, ContinuousUnivariateDistribution, params
 import Random: MersenneTwister, rand
