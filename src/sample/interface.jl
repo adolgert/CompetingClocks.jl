@@ -1,14 +1,19 @@
 using Random: AbstractRNG
+using Distributions: UnivariateDistribution
 
-"""
-    hazards(::Function, process, ::AbstractRNG)
+export enable!, disable!, next
 
-A process can pass transition distributions by creating a `hazards`
-function that follows a visitor pattern. The first argument is a
-callback function that takes three arguments: an identifier for a
-clock, a distribution, and whether to enable or disable it.
-"""
-function hazards(::Function, process, ::AbstractRNG)
+
+function enable!(
+    sampler,
+    clock,
+    distribution::UnivariateDistribution,
+    te::Float64, # enabling time
+    when::Float64, # current simulation time
+    rng::AbstractRNG
+    )
 end
 
-export hazards
+function disable!(sampler, clock, when::Float64) end
+
+function next(sampler, when::Float64, rng::AbstractRNG) end

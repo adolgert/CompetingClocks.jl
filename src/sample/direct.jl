@@ -2,57 +2,21 @@ using DataStructures
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, params
 
-export DirectCall
-
-"""
-Classic Direct method for exponential transitions. At every time step, it
-samples the distribution of every competing clock in order to find the soonest
-to fire. This doesn't do any caching of rates. This sampler can be the fastest
-when there are fewer than a dozen competing clocks.
-"""
-struct MarkovDirect
-end
+export DirectCall, enable!, disable!, next
 
 
 """
-    next(md::MarkovDirect, process, when, rng::AbstractRNG)
+    DirectCall{T}
 
-This function is responsible for updating the state of the sampler and
-returning both the next clock to fire and when it fires. The `process` is
-the body of the simulation, its state and rules for what happens next.
-The return value is `(time::Float64, clock_identifier)`.
-That `process` must have a method called `hazards` which will report
-all changes from the last event.
+DirectCall is responsible for sampling among Exponential distributions. It
+samples using the Direct method. In this case, there is no optimization to
+that Direct method.
 
-    hazards(process, rng::AbstractRNG, clock_update_function)
-
-The `clock_update_function` takes the arguments
-(`clock_identifier`, `distribution`, `enabled::Bool`).
+The type `T` is the type of an identifier for each transition. This identifier
+is usually a nominal integer but can be a any key that identifies it, such as
+a string or tuple of integers. Instances of type `T` are used as keys in a
+dictionary.
 """
-function next(rm::MarkovDirect, process, when, rng::AbstractRNG)
-    total = 0.0
-    cumulative = zeros(Float64, 0)
-    keys = Array{Any,1}()
-    hazards(process, rng) do clock, distribution::Exponential, enabled::Bool
-        if enabled
-            total += params(distribution)[1]
-            push!(cumulative, total)
-            push!(keys, clock)
-        end
-    end
-
-    if total > eps(Float64)
-        chosen = searchsortedfirst(cumulative, rand(rng, Uniform(0, total)))
-        @assert chosen < length(cumulative) + 1
-        return (when - log(rand(rng)) / total, keys[chosen])
-    else
-        return (Inf, nothing)
-    end
-end
-
-Observer(fr::MarkovDirect) = (hazard, time, updated, rng) -> nothing
-
-
 struct DirectCall{T}
     key::Dict{T, Int64}
     propensity::Vector{Float64}
@@ -64,23 +28,51 @@ function DirectCall(::Type{T}) where {T}
 end
 
 
-function set_clock!(dc::DirectCall{T}, clock::T, distribution::Exponential,
-        enabled::Symbol, rng::AbstractRNG) where {T}
-    if enabled == :Enabled
-        hazard = params(distribution)[1]
-        if !haskey(dc.key, clock)
-            dc.key[clock] = length(push!(dc.propensity, hazard))
-        else
-            dc.propensity[dc.key[clock]] = hazard
-        end
-    elseif enabled == :Changed
-        dc.propensity[dc.key[clock]] = params(distribution)[1]
-    else  # else it's disabled.
-        dc.propensity[dc.key[clock]] = 0.0
+"""
+    enable!(dc::DirectCall, clock::T, distribution, when, rng)
+
+Tell the `DirectCall` sampler to enable this clock. The `clock` argument is
+an identifier for the clock. The distribution is a univariate distribution
+in time. In Julia, distributions are always relative to time `t=0`, but ours
+start at some absolute enabling time, ``t_e``, so we provide that here.
+The `when` argument is the time at which this clock is enabled, which may be
+later than when it was first enabled. The `rng` is a random number generator.
+
+If a particular clock had one rate before an event and it has another rate
+after the event, call `enable!` to update the rate.
+"""
+function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
+        te::Float64, when::Float64, rng::AbstractRNG) where {T}
+    hazard = params(distribution)[1]
+    if !haskey(dc.key, clock)
+        dc.key[clock] = length(push!(dc.propensity, hazard))
+    else
+        dc.propensity[dc.key[clock]] = hazard
     end
 end
 
 
+"""
+    disable!(dc::DirectCall, clock::T, when)
+
+Tell the `DirectCall` sampler to disable this clock. The `clock` argument is
+an identifier for the clock. The `when` argument is the time at which this
+clock is enabled.
+"""
+function disable!(dc::DirectCall{T}, clock::T, when::Float64) where {T}
+    dc.propensity[dc.key[clock]] = 0.0
+end
+
+
+"""
+    next(dc::DirectCall, when::Float64, rng::AbstractRNG)
+
+Ask the sampler what clock will be the next to fire and at what time. This does
+not change the sampler. You can call this multiple times and get multiple
+answers. Each answer is a tuple of `(when, which clock)`. If there is no clock
+to fire, then the response will be `(Inf, nothing)`. That's a good sign the
+simulation is done.
+"""
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
     total = sum(dc.propensity)
     if total > eps(Float64)
