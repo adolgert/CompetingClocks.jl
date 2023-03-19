@@ -34,34 +34,24 @@ end
 
 
 """
-Every time a clock is enabled, this draws a putative time at which it would
-fire. The next to fire is chosen, and those that are disabled are removed from
-the list.
+    FirstToFire(KeyType::Type)
+
+Construct a FirstToFire.
+As soon as a distribution is enabled, this draws a value from the distribution.
+The soonest to fire wins. When a clock is disabled, its future firing time is
+removed from the list. There is no memory of previous firing times.
 """
 struct FirstToFire{T}
     firing_queue::MutableBinaryHeap{NRTransition{T}}
     # This maps from transition to entry in the firing queue.
     transition_entry::Dict{T,Int}
-    disabled::Set{T}
 end
 
 
-"""
-Construct a FirstToFire.
-This doesn't require a clock that remembers integrated hazard.
-This sampler is inappropriate if any transition is either
-re-enabled after being disabled or has its distribution
-modified while enabled. It's OK if each transition fires
-only once.
-
-BUT I can't create a model where this sampler's output
-varies from First Reaction. If anyone can show me when
-this fails to work, I'd be grateful. Even the sis.jl example works.
-"""
 function FirstToFire(KeyType::Type)
     heap = MutableBinaryMinHeap{NRTransition{KeyType}}()
     state = Dict{KeyType,Int}()
-    FirstToFire{KeyType}(heap, state, Set{KeyType}())
+    FirstToFire{KeyType}(heap, state)
 end
 
 
