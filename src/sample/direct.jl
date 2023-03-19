@@ -29,7 +29,7 @@ end
 
 
 """
-    enable!(dc::DirectCall, clock::T, distribution, when, rng)
+    enable!(dc::DirectCall, clock::T, distribution::Exponential, when, rng)
 
 Tell the `DirectCall` sampler to enable this clock. The `clock` argument is
 an identifier for the clock. The distribution is a univariate distribution
