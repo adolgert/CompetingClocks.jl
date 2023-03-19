@@ -1,65 +1,6 @@
 using SafeTestsets
 using Test
 
-# This module defines utility functions for the tests below.
-# You have to put them into a module in order for them to be
-# found within a @safetestset.
-module SampleVAS
-using Combinatorics
-using Distributions
-using Fleck
-export sample_transitions, sample_sir, TrackerSampler, enable!, disable!
-function sample_transitions()
-    all = [
-        -1  0  1  0  0;
-         1 -1 -1 -1  1;
-         0  1  0  1 -1
-    ]
-    take = -1 * (all .* (all .< 0))
-    give = all .* (all .> 0)
-    rates = Function[x -> Exponential(1.0) for x in 1:size(all, 2)]
-    (take, give, rates)
-end
-
-# cnt is the number of individuals
-# vector is cnt of S, cnt of I, cnt of R
-function sample_sir(cnt)
-    s = 0
-    i = cnt
-    r = 2 * cnt
-    i_rate, r_rate = (0.9, 0.01)
-    infection = collect(combinations(1:cnt, 2))
-    recover = cnt
-    # Rows are s individuals, i individuals, r individuals
-    # Columns are infections, then recoveries.
-    take = zeros(Int, 3 * cnt, 2 * length(infection) + recover)
-    give = zeros(Int, 3 * cnt, 2 * length(infection) + recover)
-    rates = Function[]
-    idx = 0
-    for (a, b) in infection
-        idx += 1  # b infects a
-        take[s + a, idx] = 1
-        take[i + b, idx] = 1
-        give[i + a, idx] = 1
-        give[i + b, idx] = 1
-        push!(rates, state -> Exponential(i_rate))
-        idx += 1  # a infects b
-        take[i + a, idx] = 1
-        take[s + b, idx] = 1
-        give[i + a, idx] = 1
-        give[i + b, idx] = 1
-        push!(rates, state -> Exponential(i_rate))
-    end
-    for c in 1:recover
-        idx += 1
-        take[i + c, idx] = 1
-        give[r + c, idx] = 1
-        push!(rates, state -> Exponential(r_rate))
-    end
-    (take, give, rates)
-end
-
-end
 
 
 @safetestset vas_creates = "VAS creates" begin
@@ -171,17 +112,15 @@ end
 
 @safetestset vas_fsm_init = "VAS finite state init" begin
     using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
-    using Fleck: VectorAdditionModel, VectorAdditionFSM, zero_state
+    using Fleck: VectorAdditionFSM, zero_state
     using Fleck: DirectCall, simstep!, vas_delta
     using Random: MersenneTwister
     using ..SampleVAS: sample_transitions
     rng = MersenneTwister(2930472)
     take, give, rates = sample_transitions()
     vas = VectorAdditionSystem(take, give, rates)
-    state = zero_state(vas)
-    vam = VectorAdditionModel(vas, state, 0.0)
     initial_state = vas_initial(vas, [1, 1, 0])
-    fsm = VectorAdditionFSM(vam, initial_state, DirectCall(Int), rng)
+    fsm = VectorAdditionFSM(vas, initial_state, DirectCall(Int), rng)
     when, next_transition = simstep!(fsm)
     limit = 10
     while next_transition !== nothing && limit > 0
@@ -193,21 +132,18 @@ end
 
 @safetestset vas_fsm_sir = "VAS runs SIR to completion" begin
     using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
-    using Fleck: VectorAdditionModel, VectorAdditionFSM, zero_state
+    using Fleck: VectorAdditionFSM, zero_state
     using Fleck: DirectCall, simstep!, vas_delta
     using Random: MersenneTwister
     using ..SampleVAS: sample_sir
     rng = MersenneTwister(979797)
     cnt = 10
-    take, give, rates = sample_sir(cnt)
-    vas = VectorAdditionSystem(take, give, rates)
-    state = zero_state(vas)
-    vam = VectorAdditionModel(vas, state, 0.0)
+    vas = VectorAdditionSystem(sample_sir(cnt)...)
     starting = zeros(Int, 3 * cnt)
     starting[2:cnt] .= 1
     starting[cnt + 1] = 1  # Start with one infected.
     initial_state = vas_initial(vas, starting)
-    fsm = VectorAdditionFSM(vam, initial_state, DirectCall(Int), rng)
+    fsm = VectorAdditionFSM(vas, initial_state, DirectCall(Int), rng)
     when, next_transition = simstep!(fsm)
     event_cnt = 0
     while next_transition !== nothing
@@ -216,5 +152,5 @@ end
     end
     println(event_cnt)
     @test event_cnt > 0
-    @test sum(vam.state) == cnt
+    @test sum(fsm.state.state) == cnt
 end

@@ -2,6 +2,9 @@ using Fleck
 using SafeTestsets
 using Test
 
+# Not tests. These are helper functions for tests.
+include("test_utility.jl")
+
 @testset "test_prefixsearch.jl" begin
     include("test_prefixsearch.jl")
 end
@@ -14,4 +17,6 @@ end
     include("test_vas.jl")
 end
 
-#include("test_vas_integrate.jl")
+@testset "test_vas_integrate.jl" begin
+    include("test_vas_integrate.jl")
+end

@@ -25,12 +25,11 @@ struct VectorAdditionSystem{T <: Function}
 end
 
 
-mutable struct VectorAdditionModel
-    # This part is immutable.
-    vas::VectorAdditionSystem
-    # The mutable state is below.
-    state::Vector{Int}
-    when::Float64
+# Just the state for the vector addition.
+# This is mutable, while the vector addition system is immutable.
+mutable struct VectorAdditionState
+    state::Vector{Int}  # This is X, sometimes called "physical state."
+    when::Float64       # This is T
 end
 
 
@@ -38,7 +37,7 @@ end
 This observes the vector addition machine. After each event, it outputs
 the event and the time.
 """
-function vam_event_observer(vam::VectorAdditionModel, when::Float64, event::Int)
+function vam_event_observer(Q::VectorAdditionState, when::Float64, event::Int)
     return (when, event)
 end
 
@@ -51,9 +50,12 @@ a simulation. We will organize this like it's a finite state machine,
 so it will have an initializer, a dynamics, and an observer.
 """
 mutable struct VectorAdditionFSM
-    # These are both state and dynamics.
-    vam::VectorAdditionModel
+    # This is rules about the simulation. It's part of the dynamics.
+    vas::VectorAdditionSystem
+    state::VectorAdditionState
+    # The sampler does hold state of which events are enabled.
     sampler::Any
+    # The random number generator has state, too.
     rng::AbstractRNG
 
     # The initializer, aka iota.
@@ -65,8 +67,18 @@ mutable struct VectorAdditionFSM
 end
 
 
-function VectorAdditionFSM(vam, initializer, sampler, rng)
-    VectorAdditionFSM(vam, sampler, rng, initializer, false, vam_event_observer)
+"""
+This creates a simulation, taking as input a model, an initializer, a sampler,
+and a random number generator. This combines several steps we could do
+separately.
+
+ 1. Create the rules for the simulation, the VectorAdditionSystem.
+ 2. Combine the immutable rules with mutable state into a VectorAdditionModel.
+ 3. 
+"""
+function VectorAdditionFSM(vas, initializer, sampler, rng)
+    state = VectorAdditionState(zero_state(vas), 0.0)
+    VectorAdditionFSM(vas, state, sampler, rng, initializer, false, vam_event_observer)
 end
 
 
@@ -141,15 +153,15 @@ token, but the token here is always, "Go!"
 """
 function simstep!(fsm::VectorAdditionFSM)
     if !fsm.is_initialized
-        fire!(fsm.sampler, fsm.vam.vas, fsm.vam.state, fsm.initializer, fsm.vam.when, fsm.rng)
+        fire!(fsm.sampler, fsm.vas, fsm.state.state, fsm.initializer, fsm.state.when, fsm.rng)
         fsm.is_initialized = true
     end
-    (when, what) = next(fsm.sampler, fsm.vam.when, fsm.rng)
+    (when, what) = next(fsm.sampler, fsm.state.when, fsm.rng)
     if when < Inf
-        action = vas_delta(fsm.vam.vas, what)
-        fsm.vam.when = when
-        fire!(fsm.sampler, fsm.vam.vas, fsm.vam.state, action, fsm.vam.when, fsm.rng)
-        fsm.observer(fsm.vam, when, what)
+        action = vas_delta(fsm.vas, what)
+        fsm.state.when = when
+        fire!(fsm.sampler, fsm.vas, fsm.state.state, action, fsm.state.when, fsm.rng)
+        fsm.observer(fsm.state, when, what)
     else
         (when, what)
     end
