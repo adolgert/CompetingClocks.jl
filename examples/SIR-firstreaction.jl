@@ -26,17 +26,19 @@ take, give, rates = sir_vas(p...)
 rng = MersenneTwister()
 vas = VectorAdditionSystem(take, give, rates)
 
-fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), DirectCall{Int}(), rng)
+fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), FirstReaction{Int}(), rng)
 out = Matrix{Float64}(undef, u0[2] + 2*u0[1] + 1, 4)
 
 event_cnt = 0
+tnow = 0.0
 while true
     when, next_transition = simstep!(fsm)
     if next_transition === nothing
         break
     end
+    tnow += when
     event_cnt += 1
-    out[event_cnt, 1] = fsm.state.when
+    out[event_cnt, 1] = tnow
     out[event_cnt, 2:4] = fsm.state.state
 end
 

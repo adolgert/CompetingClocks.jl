@@ -20,11 +20,7 @@ dictionary.
 struct DirectCall{T}
     key::Dict{T, Int64}
     propensity::Vector{Float64}
-end
-
-
-function DirectCall(::Type{T}) where {T}
-    DirectCall{T}(Dict{T, Int64}(), zeros(Float64, 0))
+    DirectCall{T}() where {T} = new(Dict{T, Int64}(), zeros(Float64, 0))
 end
 
 
