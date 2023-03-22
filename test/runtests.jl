@@ -9,6 +9,10 @@ include("test_utility.jl")
     include("test_prefixsearch.jl")
 end
 
+@testset "test_nrtransition.jl" begin
+    include("test_nrtransition.jl")
+end
+
 @testset "test_direct.jl" begin
     include("test_direct.jl")
 end
