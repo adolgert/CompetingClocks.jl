@@ -24,31 +24,20 @@ u0 = [990,10,0]; # S,I,R
 take, give, rates = sir_vas(p...)
 
 rng = MersenneTwister()
-
 vas = VectorAdditionSystem(take, give, rates)
-state = zero_state(vas)
 
-vam = VectorAdditionModel(vas, state, 0.0)
-fsm = VectorAdditionFSM(vam, DirectCall(Int))
-
-initial_state = vas_initial(vas, u0)
-
+fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), DirectCall(Int), rng)
 out = Matrix{Float64}(undef, u0[2] + 2*u0[1] + 1, 4)
 
-when, next_transition = simstep!(fsm, initial_state, rng)
-
 event_cnt = 0
-tnow = 0.0
-out[event_cnt + 1, 2:4] = u0
-out[event_cnt + 1, 1] = tnow
-
-while next_transition !== nothing
-    tnow += when
-    out[event_cnt + 1, 1] = tnow
-    out[event_cnt + 1, 2:4] = vam.state
-    state_update = vas_delta(vas, next_transition)
-    when, next_transition = simstep!(fsm, state_update, rng)
+while true
+    when, next_transition = simstep!(fsm)
+    if next_transition === nothing
+        break
+    end
     event_cnt += 1
+    out[event_cnt, 1] = fsm.state.when
+    out[event_cnt, 2:4] = fsm.state.state
 end
 
 plot(
