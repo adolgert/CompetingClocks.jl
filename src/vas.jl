@@ -159,7 +159,7 @@ function simstep!(fsm::VectorAdditionFSM)
     (when, what) = next(fsm.sampler, fsm.state.when, fsm.rng)
     if when < Inf
         action = vas_delta(fsm.vas, what)
-        fsm.state.when = when
+        fsm.state.when += when
         fire!(fsm.sampler, fsm.vas, fsm.state.state, action, fsm.state.when, fsm.rng)
         fsm.observer(fsm.state, when, what)
     else

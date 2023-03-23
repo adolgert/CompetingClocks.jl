@@ -75,7 +75,7 @@ function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
         chosen = searchsortedfirst(cumsum(dc.propensity), rand(rng, Uniform(0, total)))
         @assert chosen < length(dc.propensity) + 1
         key_name = [x for (x, y) in pairs(dc.key) if y == chosen][1]
-        return (when - log(rand(rng)) / total, key_name)
+        return (-log(rand(rng)) / total, key_name)
     else
         return (Inf, nothing)
     end
