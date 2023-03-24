@@ -53,7 +53,7 @@ end
 
 
 function disable!(propagator::FirstToFire{T}, clock::T, when::Float64) where {T}
-    heap_handle=propagator.transition_entry[clock]
+    heap_handle = propagator.transition_entry[clock]
     delete!(propagator.firing_queue, heap_handle)
     delete!(propagator.transition_entry, clock)
 end
