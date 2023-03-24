@@ -145,26 +145,56 @@ Have you been anxious about the notation? The Gibson and Bruck paper failed with
 \begin{equation}
 	\exp\left(-\int_{t_0}^{\tau}\lambda_n(s)ds\right) = \exp\left(-\int_{t_0}^{t_n}\lambda_n(s)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n+1}(s)ds\right)
 \end{equation}
-The integrals cover the relevant durations and the hazards are the hazards of those distributions during those durations.
+The integrals cover the relevant durations and the hazards are the hazards of those distributions during those durations. This equation also leads to an observation. Anderson's method is the Next Reaction method in log space. Who knew? Everybody. Everybody knew.
 
-If we think of the first draw as a draw by inversion,
+We can make our notation in a way that will have an echo in the code. All software libraries treat distributions as starting at time zero and leave it to the client to shift their absolute time. Therefore, let's think about distributions as an enabling time that defines the zero, a current time, and the distribution, $(t_e, t_n, f)$.
+
+If we think of the first draw as a draw by inversion, we can write it as inversion of a conditional survival.
 \begin{equation}
-	U = 1-F_{a,n}(\tau).
+	U = S(t_n - t_e, \tau - t_n)
 \end{equation}
-(Because $0<U<1$, this could $U=F_{a,n}(\tau)$ equally well.) This $U$ is the right-hand side of \ref{eqn:survivalrule}. Our algorithm is then this:
+Because $0<U<1$, this could equally well be $U=F(t_n-t_e, \tau-t_n)$ equally well. If the enabling time is in the future, that's fine, but it changes the draw to use a marginal survival.
+\begin{equation}
+	U = S(0, \tau - t_e) = S(\tau - t_e)
+\end{equation}
+This $U$ is the right-hand side of \ref{eqn:survivalrule}.
 
+When Gibson and Bruck discuss an update rule, it requires storing the remaining $U$.
 \begin{enumerate}
 	\item When we make the first draw, we save $U$.
 	\item Each time, $t_n$, a transition is disabled, we calculate
 		\begin{equation}
-			U'=\frac{U}{1-F_{a,n}(t_n)}
+			U'=\frac{U}{S(t_n-t_e, \tau - t_n)}
 		\end{equation}
 	\item When the transition is enabled or changed, we calculate its draw by inversion with the saved $U'$,
 	\begin{equation}
-		U'=1-F_{a,n+1}(\tau').
+		U'=S(t_n-t_e, \tau' - t_n).
 	\end{equation}
 \end{enumerate}
 While the first draw of $\tau$ can be done using appropriate, non-inversion, methods for any distribution, it is a weakness of this method that later enabling of the transition requires using inversion, which can be much slower and more error-prone.
 
+Let's walk through the cases because they clarify what we need to store within the sampler.
+\begin{itemize}
+	\item First time enabling the transition. Sample any way possible from $S(t_n-t_e, \tau-t_n)$, but then calculate and store $U=S(t_n-t_e, \tau-t_n)$.
+	\item Enabling a transition that fired. Sample any way possible from $S(t_n-t_e, \tau-t_n)$, but then calculate and store $U=S(t_n-t_e, \tau-t_n)$.
+	\item Enabling a transition that was disabled before it fired.
+	\begin{itemize}
+		\item General case. Sample by inversion $U=S(t_n-t_e, \tau-t_n)$.
+		\item The transition is picking up where it left off. We don't have to sample because the firing time is just pushed forward. Does this happen often enough to care? If the previous distribution was $(t_e, t_n, f)$ when it was disabled at time $t_n$, we know the transition is merely shifted because, at time $t_{n+1}$, it has the form $(t_{n+1}-(t_e-t_n), t_{n+1}, f)$. In this case, $\tau' = \tau + t_{n+1}-t_n$, and there is no change to the stored $U$.
+	\end{itemize}
+	\item Disabling a transition that did not fire. If a transition did not fire at time $t_{n+1}$, calculate conditional survival, $S(t_n-t_e, t_{n+1}-t_e)$ and adjust the stored $U$ by dividing by the conditional survival.
+	\item Disabling the transition that fired. If we adjust the conditional survival according to the formula above, it may close to zero but not equal. We need it to be $U=0$, so set that value.
+\end{itemize}
+From the cases above, the sampler needs to store two kinds of information.
+\begin{itemize}
+	\item Long-term values about all transitions. These are $U$, $t_e-t_n$, and $f$.
+	\item Short-term values for currently-enabled transitions. These are $t_e$, $t_n$, $f$.
+\end{itemize}
+
+There are a couple of challenges. One is how to know when two floating-point values are equal, such as in the check that the transition is picking up where it left off. This is handled in code by calculating the machine epsilon for a floating point of the size of $t_n$. Multiply that by a small factor, such as 2 or 4, and use that as an error bound.
+
+Another challenge is how to figure out which disabled transition is the one that fired. If the caller specifies it is disabling the transition that fired, then it's clear. If the caller doesn't specify, can we know? The transitions are in a heap where the soonest is on top. If the first transition that's disabled was the one on top and the next transition becomes the one on top, it could look like it was next to fire. We could check the times on those transitions in order to see whether the time of disabling matches the time of the top transition, but that's prone to error because it requires equality of floating-point numbers. There will definitely be some time when two numbers in a continuous time simulation are very close to each other.
+
+On the other hand, there isn't a good way to use a Next Reaction sampler except to always choose the transition it sampled to be next. Let's store the response from the next() function and assume that's the one that fired when it gets disabled.
 
 \end{document}
