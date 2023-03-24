@@ -1,6 +1,6 @@
 using DataStructures
 using Random: rand, AbstractRNG
-using Distributions: Uniform, Exponential, params
+using Distributions: Uniform, Exponential, rate
 
 export DirectCall, enable!, disable!, next
 
@@ -39,7 +39,7 @@ after the event, call `enable!` to update the rate.
 """
 function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         te::Float64, when::Float64, rng::AbstractRNG) where {T}
-    hazard = params(distribution)[1]
+    hazard = rate(distribution)
     if !haskey(dc.key, clock)
         dc.key[clock] = length(push!(dc.propensity, hazard))
     else
