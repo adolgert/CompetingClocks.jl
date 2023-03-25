@@ -41,7 +41,11 @@ function enable!(
     propagator::FirstToFire{T}, clock::T, distribution::UnivariateDistribution,
     te::Float64, when::Float64, rng::AbstractRNG) where {T}
 
-    when_fire = rand(rng, truncated(distribution, when - te, Inf))
+    if te < when
+        when_fire = te + rand(rng, truncated(distribution, when - te, Inf))
+    else
+        when_fire = te + rand(rng, distribution)
+    end
     if haskey(propagator.transition_entry, clock)
         heap_handle = propagator.transition_entry[clock]
         update!(propagator.firing_queue, heap_handle, OrderedSample{T}(clock, when_fire))
