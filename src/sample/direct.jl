@@ -87,7 +87,7 @@ function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
     if total > eps(Float64)
         chosen = searchsortedfirst(dc.cumulant, rand(rng, Uniform(0, total)))
         @assert chosen < length(dc.propensity) + 1
-        tau = when + rand(rng, Exponential(1 / total))
+        tau = rand(rng, Exponential(1 / total))
         return (tau, dc.key[chosen])
     else
         return (Inf, nothing)
