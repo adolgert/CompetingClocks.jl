@@ -32,8 +32,12 @@ function next(fr::FirstReaction{T}, when::Float64, rng) where {T}
 	soonest_time = Inf
 
     for entry::EnablingEntry{T} in fr.core_matrix
-		relative_dist = truncated(entry.distribution, when - entry.te, Inf)
-		putative_time = rand(rng, relative_dist)
+		if entry.te < when
+			relative_dist = truncated(entry.distribution, when - entry.te, Inf)
+			putative_time = entry.te + rand(rng, relative_dist)
+		else
+			putative_time = entry.te + rand(rng, entry.distribution)
+		end
 		if putative_time < soonest_time
 			soonest_clock = entry.clock
 			soonest_time = putative_time

@@ -11,14 +11,14 @@ The soonest to fire wins. When a clock is disabled, its future firing time is
 removed from the list. There is no memory of previous firing times.
 """
 struct FirstToFire{T}
-    firing_queue::MutableBinaryHeap{NRTransition{T}}
+    firing_queue::MutableBinaryHeap{OrderedSample{T}}
     # This maps from transition to entry in the firing queue.
     transition_entry::Dict{T,Int}
 end
 
 
 function FirstToFire(KeyType::Type)
-    heap = MutableBinaryMinHeap{NRTransition{KeyType}}()
+    heap = MutableBinaryMinHeap{OrderedSample{KeyType}}()
     state = Dict{KeyType,Int}()
     FirstToFire{KeyType}(heap, state)
 end
@@ -29,7 +29,7 @@ function next(propagator::FirstToFire, when::Float64, rng::AbstractRNG)
     least = if !isempty(propagator.firing_queue)
         top(propagator.firing_queue)
     else
-        NRTransition(nothing, Inf)
+        OrderedSample(nothing, Inf)
     end
     @debug("FirstToFire.next queue length ",
             length(propagator.firing_queue), " least ", least)
@@ -44,9 +44,9 @@ function enable!(
     when_fire = rand(rng, truncated(distribution, when - te, Inf))
     if haskey(propagator.transition_entry, clock)
         heap_handle = propagator.transition_entry[clock]
-        update!(propagator.firing_queue, heap_handle, NRTransition{T}(clock, when_fire))
+        update!(propagator.firing_queue, heap_handle, OrderedSample{T}(clock, when_fire))
     else
-        heap_handle = push!(propagator.firing_queue, NRTransition{T}(clock, when_fire))
+        heap_handle = push!(propagator.firing_queue, OrderedSample{T}(clock, when_fire))
         propagator.transition_entry[clock] = heap_handle
     end
 end
