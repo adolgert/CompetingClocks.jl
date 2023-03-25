@@ -14,7 +14,7 @@ function sir_vas(β, c, γ)
         2 0;
         0 1;
     ]
-    rates = [(state) -> Exponential(1.0/(β*c*state[2]/sum(state)*state[1])), (state) -> Exponential(1.0/(state[2] * γ))]
+    rates = [(state) -> Exponential(1/(β*c*state[2]/sum(state)*state[1])), (state) -> Exponential(1/(state[2] * γ))]
     (take, give, rates)
 end
 
@@ -26,7 +26,7 @@ take, give, rates = sir_vas(p...)
 rng = MersenneTwister()
 vas = VectorAdditionSystem(take, give, rates)
 
-fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), DirectCall{Int}(), rng)
+fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), FirstReaction{Int}(), rng)
 out = Matrix{Float64}(undef, u0[2] + 2*u0[1] + 1, 4)
 
 event_cnt = 0

@@ -1,6 +1,6 @@
 using DataStructures
 using Random: rand, AbstractRNG
-using Distributions: Uniform, Exponential, params
+using Distributions: Uniform, Exponential, rate
 
 export DirectCall, enable!, disable!, next
 
@@ -20,11 +20,7 @@ dictionary.
 struct DirectCall{T}
     key::Dict{T, Int64}
     propensity::Vector{Float64}
-end
-
-
-function DirectCall(::Type{T}) where {T}
-    DirectCall{T}(Dict{T, Int64}(), zeros(Float64, 0))
+    DirectCall{T}() where {T} = new(Dict{T, Int64}(), zeros(Float64, 0))
 end
 
 
@@ -43,7 +39,7 @@ after the event, call `enable!` to update the rate.
 """
 function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         te::Float64, when::Float64, rng::AbstractRNG) where {T}
-    hazard = params(distribution)[1]
+    hazard = rate(distribution)
     if !haskey(dc.key, clock)
         dc.key[clock] = length(push!(dc.propensity, hazard))
     else
@@ -79,7 +75,7 @@ function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
         chosen = searchsortedfirst(cumsum(dc.propensity), rand(rng, Uniform(0, total)))
         @assert chosen < length(dc.propensity) + 1
         key_name = [x for (x, y) in pairs(dc.key) if y == chosen][1]
-        return (when - log(rand(rng)) / total, key_name)
+        return (-log(rand(rng)) / total, key_name)
     else
         return (Inf, nothing)
     end
