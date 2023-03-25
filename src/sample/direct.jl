@@ -10,7 +10,8 @@ export DirectCall, enable!, disable!, next
 
 DirectCall is responsible for sampling among Exponential distributions. It
 samples using the Direct method. In this case, there is no optimization to
-that Direct method.
+that Direct method, so we call it DirectCall because it recalculates
+everything every time you call it.
 
 The type `T` is the type of an identifier for each transition. This identifier
 is usually a nominal integer but can be a any key that identifies it, such as

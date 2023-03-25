@@ -118,7 +118,7 @@ function consume_cumulant(record::NRTransition, tn::Float64)
 end
 
 
-NRNotFound = NRTransition(0, -1.0, Never(), 0.0, 0.0)
+const NRNotFound = NRTransition(0, -1.0, Never(), 0.0, 0.0)
 
 
 function enable!(
