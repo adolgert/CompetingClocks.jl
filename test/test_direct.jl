@@ -16,7 +16,7 @@ end
     using Random: MersenneTwister
     using Distributions: Exponential
 
-    dc = DirectCall(Int)
+    dc = DirectCall{Int}()
     rng = MersenneTwister(90422342)
     propensities = [0.3, 0.2, 0.7, 0.001, 0.25]
     for (i, p) in enumerate(propensities)

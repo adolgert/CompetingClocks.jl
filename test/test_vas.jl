@@ -120,7 +120,7 @@ end
     take, give, rates = sample_transitions()
     vas = VectorAdditionSystem(take, give, rates)
     initial_state = vas_initial(vas, [1, 1, 0])
-    fsm = VectorAdditionFSM(vas, initial_state, DirectCall(Int), rng)
+    fsm = VectorAdditionFSM(vas, initial_state, DirectCall{Int}(), rng)
     when, next_transition = simstep!(fsm)
     limit = 10
     while next_transition !== nothing && limit > 0
@@ -143,7 +143,7 @@ end
     starting[2:cnt] .= 1
     starting[cnt + 1] = 1  # Start with one infected.
     initial_state = vas_initial(vas, starting)
-    fsm = VectorAdditionFSM(vas, initial_state, DirectCall(Int), rng)
+    fsm = VectorAdditionFSM(vas, initial_state, DirectCall{Int}(), rng)
     when, next_transition = simstep!(fsm)
     event_cnt = 0
     while next_transition !== nothing

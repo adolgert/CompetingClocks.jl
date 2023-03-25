@@ -18,9 +18,17 @@ a string or tuple of integers. Instances of type `T` are used as keys in a
 dictionary.
 """
 struct DirectCall{T}
-    key::Dict{T, Int64}
+    # Map from clock name to index in propensity array.
+    index::Dict{T, Int64}
+    # Map from index in propensity array to clock name.
+    key::Vector{T}
+    # The propensities themselves, where propensity = hazard.
     propensity::Vector{Float64}
-    DirectCall{T}() where {T} = new(Dict{T, Int64}(), zeros(Float64, 0))
+    # A buffer to store the cumulant when we evaluate it.
+    cumulant::Vector{Float64}
+    DirectCall{T}() where {T} = new(
+        Dict{T, Int64}(), Vector{T}(), zeros(Float64, 0), zeros(Float64, 0)
+        )
 end
 
 
@@ -40,10 +48,13 @@ after the event, call `enable!` to update the rate.
 function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         te::Float64, when::Float64, rng::AbstractRNG) where {T}
     hazard = rate(distribution)
-    if !haskey(dc.key, clock)
-        dc.key[clock] = length(push!(dc.propensity, hazard))
+    idx = get(dc.index, clock, 0)
+    if idx == 0
+        dc.index[clock] = length(push!(dc.propensity, hazard))
+        push!(dc.key, clock)
+        push!(dc.cumulant, zero(Float64))
     else
-        dc.propensity[dc.key[clock]] = hazard
+        dc.propensity[idx] = hazard
     end
 end
 
@@ -56,7 +67,7 @@ an identifier for the clock. The `when` argument is the time at which this
 clock is enabled.
 """
 function disable!(dc::DirectCall{T}, clock::T, when::Float64) where {T}
-    dc.propensity[dc.key[clock]] = 0.0
+    dc.propensity[dc.index[clock]] = 0.0
 end
 
 
@@ -70,12 +81,13 @@ to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
-    total = sum(dc.propensity)
+    cumsum!(dc.cumulant, dc.propensity)
+    total = dc.cumulant[length(dc.cumulant)]
     if total > eps(Float64)
-        chosen = searchsortedfirst(cumsum(dc.propensity), rand(rng, Uniform(0, total)))
+        chosen = searchsortedfirst(dc.cumulant, rand(rng, Uniform(0, total)))
         @assert chosen < length(dc.propensity) + 1
-        key_name = [x for (x, y) in pairs(dc.key) if y == chosen][1]
-        return (-log(rand(rng)) / total, key_name)
+        tau = when + rand(rng, Exponential(1 / total))
+        return (tau, dc.key[chosen])
     else
         return (Inf, nothing)
     end
