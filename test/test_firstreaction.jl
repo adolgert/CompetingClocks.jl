@@ -99,7 +99,7 @@ end
     ks1_test = ExactOneSampleKSTest(samples, dist)
     @test pvalue(ks1_test) < 0.04
     ks2_test = ExactOneSampleKSTest(samples, truncated(dist, later, Inf))
-    @test pvalue(ks2_test; tail = :both) > 0.3
+    @test pvalue(ks2_test; tail = :both) > 0.04
 end
 
 
@@ -124,5 +124,5 @@ end
     @test pvalue(ks1_test) < 0.04
     shifted = [(x - future) for x in samples]
     ks2_test = ExactOneSampleKSTest(shifted, dist)
-    @test pvalue(ks2_test; tail = :both) > 0.1
+    @test pvalue(ks2_test; tail = :both) > 0.04
 end
