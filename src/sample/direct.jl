@@ -82,8 +82,11 @@ to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
+    if length(dc.propensity) == 0
+        return (Inf, nothing)
+    end
     cumsum!(dc.cumulant, dc.propensity)
-    total = dc.cumulant[length(dc.cumulant)]
+    total = last(dc.cumulant)
     if total > eps(Float64)
         chosen = searchsortedfirst(dc.cumulant, rand(rng, Uniform(0, total)))
         @assert chosen < length(dc.propensity) + 1
