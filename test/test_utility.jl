@@ -57,3 +57,48 @@ function sample_sir(cnt)
 end
 
 end
+
+
+module DirectFixture
+using Distributions: Exponential, Weibull
+using Test
+using Fleck: enable!, next
+using HypothesisTests: BinomialTest, confint
+
+function test_exponential_binomial(sampler, rng)
+    # Given 10 slow distributions and 10 fast, we can figure out
+    # that the marginal probability of a low vs a high is 1 / (1 + 1.5) = 3/5.
+    # Check that we get the correct marginal probability.
+    for i in 1:10
+        enable!(sampler, i, Exponential(1), 0.0, 0.0, rng)
+    end
+    for i in 11:20
+        enable!(sampler, i, Exponential(1.5), 0.0, 0.0, rng)
+    end
+    hilo = zeros(Int, 2)
+    curtime = 20.3
+    for i in 1:10000
+        when, which = next(sampler, curtime, rng)
+        hilo[(which - 1) ÷ 10 + 1] += 1
+    end
+    ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
+    @test ci[1] < 3 / 5 < ci[2]
+end
+
+function test_weibull_binomial(sampler, rng)
+    for i in 1:10
+        enable!(sampler, i, Weibull(1, 1), 0.0, 0.0, rng)
+    end
+    for i in 11:20
+        enable!(sampler, i, Weibull(1, 1.5), 0.0, 0.0, rng)
+    end
+    hilo = zeros(Int, 2)
+    curtime = 20.3
+    for i in 1:10000
+        when, which = next(sampler, curtime, rng)
+        hilo[(which - 1) ÷ 10 + 1] += 1
+    end
+    ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
+    @test ci[1] < 3 / 5 < ci[2]
+end
+end

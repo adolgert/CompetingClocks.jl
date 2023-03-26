@@ -31,7 +31,7 @@ end
 end
 
 
-@safetestset direct_call_prob = "DirectCall probabilities correct" begin
+@safetestset direct_call_later = "DirectCall probabilities correct at a later time" begin
     using Fleck: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
@@ -49,7 +49,7 @@ end
         enable!(md, i, Exponential(1.5), 0.0, 0.0, rng)
     end
     hilo = zeros(Int, 2)
-    curtime = 0.0
+    curtime = 2.5
     for i in 1:10000
         when, which = next(md, curtime, rng)
         hilo[(which - 1) ÷ 10 + 1] += 1
@@ -59,29 +59,13 @@ end
 end
 
 
-@safetestset direct_call_later = "DirectCall probabilities correct at later time" begin
+@safetestset direct_call_prob = "DirectCall probabilities correct" begin
     using Fleck: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
     using HypothesisTests: BinomialTest, confint
+    using ..DirectFixture: test_exponential_binomial
     rng = MersenneTwister(223497123)
-
-    # Given 10 slow distributions and 10 fast, we can figure out
-    # that the marginal probability of a low vs a high is 1 / (1 + 1.5) = 3/5.
-    # Check that we get the correct marginal probability.
     md = DirectCall{Int}()
-    for i in 1:10
-        enable!(md, i, Exponential(1), 0.0, 0.0, rng)
-    end
-    for i in 11:20
-        enable!(md, i, Exponential(1.5), 0.0, 0.0, rng)
-    end
-    hilo = zeros(Int, 2)
-    curtime = 20.3
-    for i in 1:10000
-        when, which = next(md, curtime, rng)
-        hilo[(which - 1) ÷ 10 + 1] += 1
-    end
-    ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
-    @test ci[1] < 3 / 5 < ci[2]
+    test_exponential_binomial(md, rng)
 end
