@@ -14,6 +14,9 @@ take this many tokens from the state, meaning the state at those indices
 must be an integer at least that large. Positive numbers mean the
 transition places tokens into the state. Unlike chemical simulations,
 the rate need not depend on the number of combinations of species present.
+
+The vector `rates` is a list of functions that look at the current state
+and choose a rate for a transiton.
 """
 struct VectorAdditionSystem{T <: Function}
     take::Array{Int, 2}  # states x transitions
@@ -21,15 +24,61 @@ struct VectorAdditionSystem{T <: Function}
     rates::Vector{T}  # length is transitions
 end
 
-struct VectorAdditionModel
-    vas::VectorAdditionSystem
-    state::Vector{Int}
-    when::Float64
+
+# Just the state for the vector addition.
+# This is mutable, while the vector addition system is immutable.
+mutable struct VectorAdditionState
+    state::Vector{Int}  # This is X, sometimes called "physical state."
+    when::Float64       # This is T
 end
 
-struct VectorAdditionFSM
-    vam::VectorAdditionModel
+
+"""
+This observes the vector addition machine. After each event, it outputs
+the event and the time.
+"""
+function vam_event_observer(Q::VectorAdditionState, when::Float64, event::Int)
+    return (when, event)
+end
+
+
+"""
+    VectorAdditionFSM(vam, initializer, sampler, rng)
+
+This puts together the model and a sampler. This is what we think of as
+a simulation. We will organize this like it's a finite state machine,
+so it will have an initializer, a dynamics, and an observer.
+"""
+mutable struct VectorAdditionFSM
+    # This is rules about the simulation. It's part of the dynamics.
+    vas::VectorAdditionSystem
+    state::VectorAdditionState
+    # The sampler does hold state of which events are enabled.
     sampler::Any
+    # The random number generator has state, too.
+    rng::AbstractRNG
+
+    # The initializer, aka iota.
+    initializer::Function
+    is_initialized::Bool
+
+    # Observer, aka lambda.
+    observer::Function
+end
+
+
+"""
+This creates a simulation, taking as input a model, an initializer, a sampler,
+and a random number generator. This combines several steps we could do
+separately.
+
+ 1. Create the rules for the simulation, the VectorAdditionSystem.
+ 2. Combine the immutable rules with mutable state into a VectorAdditionModel.
+ 3. 
+"""
+function VectorAdditionFSM(vas, initializer, sampler, rng)
+    state = VectorAdditionState(zero_state(vas), 0.0)
+    VectorAdditionFSM(vas, state, sampler, rng, initializer, false, vam_event_observer)
 end
 
 
@@ -42,11 +91,11 @@ function zero_state(vas::VectorAdditionSystem)
     zeros(Int, size(vas.take, 1))
 end
 
-"""
-    vas_delta(vas::VectorAdditionSystem, transition_idx)
 
-Return a function taking a single argument `state` that applies the
-state change assocaited with the transition indexed by `transition_idx`.
+"""
+    vas_delta(state::Vector{Int}, vas::VectorAdditionSystem, transition_idx::Int)
+
+Apply the state change assocaited with the transition indexed by `transition_idx`.
 """
 function vas_delta(vas::VectorAdditionSystem, transition_idx)
     state_change = vas.give[:, transition_idx] - vas.take[:, transition_idx]
@@ -54,7 +103,6 @@ function vas_delta(vas::VectorAdditionSystem, transition_idx)
         state -> begin state .+= delta end
     end
 end
-
 
 """
     vas_initial(vas::VectorAdditionSystem, initial_state)
@@ -70,38 +118,51 @@ end
 
 
 """
-    fire!(visitor, vas::VectorAdditionSystem, state, modify_state, rng)
+    fire!(sampler, vas::VectorAdditionSystem, state, modify_state, rng)
 
-Fire a transition. `visitor` is a function taking four arguments,
-`clock`, `dist`, `enable`, `gen`. `modify_state` is a function returned 
-from `vas_delta`, or any other function that accepts the state vector 
-(argument `state`) as input and applies the update.
+Fire a transition. `sampler` is a sampler for the next state.
+`modify_state` is either an initialization or a time-stepping function.
+For either initialization or time-stepping, this notifies the sampler about
+changes to the transitions.
 """
-function fire!(visitor, vas::VectorAdditionSystem, state, modify_state, rng)
+function fire!(sampler, vas::VectorAdditionSystem, state, modify_state, now, rng)
     former = copy(state)
     modify_state(state)
     for rate_idx in eachindex(vas.rates)
         was_enabled = all(former .- vas.take[:, rate_idx] .>= 0)
         now_enabled =  all(state .- vas.take[:, rate_idx] .>= 0)
         if was_enabled && !now_enabled
-            visitor(rate_idx, Distributions.Exponential(1), :Disabled, rng)
+            disable!(sampler, rate_idx, now)
         elseif !was_enabled && now_enabled
-            visitor(rate_idx, vas.rates[rate_idx](state), :Enabled, rng)
+            enable!(sampler, rate_idx, vas.rates[rate_idx](state), now, now, rng)
         elseif was_enabled && now_enabled
             ratefunc = vas.rates[rate_idx]
             former_rate = ratefunc(former)
             current_rate = ratefunc(state)
             if former_rate != current_rate
-                visitor(rate_idx, current_rate, :Changed, rng)
+                enable!(sampler, rate_idx, current_rate, now, now, rng)
             end  # Else don't notify because rate is the same.
         end
     end
 end
 
-function simstep!(fsm::VectorAdditionFSM, state_update::Function, rng::AbstractRNG)
-    visitor = (clock, dist, enabled, gen) -> begin
-        set_clock!(fsm.sampler, clock, dist, enabled, gen)
+
+"""
+Tell the finite state machine to step. A finite state machine has an input
+token, but the token here is always, "Go!"
+"""
+function simstep!(fsm::VectorAdditionFSM)
+    if !fsm.is_initialized
+        fire!(fsm.sampler, fsm.vas, fsm.state.state, fsm.initializer, fsm.state.when, fsm.rng)
+        fsm.is_initialized = true
     end
-    fire!(visitor, fsm.vam.vas, fsm.vam.state, state_update, rng)
-    next(fsm.sampler, fsm.vam.when, rng)
+    (when, what) = next(fsm.sampler, fsm.state.when, fsm.rng)
+    if when < Inf
+        action = vas_delta(fsm.vas, what)
+        fsm.state.when += when
+        fire!(fsm.sampler, fsm.vas, fsm.state.state, action, fsm.state.when, fsm.rng)
+        fsm.observer(fsm.state, when, what)
+    else
+        (when, what)
+    end
 end

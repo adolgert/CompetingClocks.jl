@@ -12,7 +12,7 @@ end
 
 
 mutable struct NextReactionHazards
-	firing_queue::MutableBinaryHeap{NRTransition,Base.Order.ForwardOrdering}
+	firing_queue::MutableBinaryHeap{OrderedSample,Base.Order.ForwardOrdering}
 	transition_state::Dict{Any,TransitionRecord}
 	init::Bool
 end
@@ -22,7 +22,7 @@ end
 Construct a Next Reaction sampler.
 """
 function NextReactionHazards()
-    heap = MutableBinaryMinHeap{NRTransition}()
+    heap = MutableBinaryMinHeap{OrderedSample}()
     @debug("SampleSemiMarkov.NextReactionHazards type ", typeof(heap))
     state = Dict{Any,TransitionRecord}()
     NextReactionHazards(heap, state, true)
@@ -38,7 +38,7 @@ function Next(propagator::NextReactionHazards, system, rng)
 	    propagator.init = false
 	end
 
-	NotFound = NRTransition(nothing, Inf)
+	NotFound = OrderedSample(nothing, Inf)
 	if !isempty(propagator.firing_queue)
 		least = top(propagator.firing_queue)
 	else
@@ -85,10 +85,10 @@ function Enable(propagator::NextReactionHazards, clock,
 				record.exponential_interval, " when ", when_fire,
 				" dist ", clock)
 			update!(propagator.firing_queue, record.heap_handle,
-				NRTransition(key, when_fire))
+				OrderedSample(key, when_fire))
 		else
 			record.heap_handle = push!(propagator.firing_queue,
-				NRTransition(key, when_fire))
+				OrderedSample(key, when_fire))
 			@debug("SampleSemiMarkov.enable keyp ", key, " interval ",
 				record.exponential_interval, " when ", when_fire,
 				" dist ", clock)
@@ -96,7 +96,7 @@ function Enable(propagator::NextReactionHazards, clock,
 	else
 		firing_time, interval = MeasuredSample(clock.intensity, now, rng)
 		@assert(firing_time >= now)
-        handle = push!(propagator.firing_queue, NRTransition(key, firing_time))
+        handle = push!(propagator.firing_queue, OrderedSample(key, firing_time))
         @debug("SampleSemiMarkov.enable Adding key ", key, " interval ",
         	interval, " when ", firing_time, " dist ", clock)
 		record = TransitionRecord(interval, handle)
@@ -113,7 +113,7 @@ function Disable(propagator::NextReactionHazards, key, now,
 	# We store distributions in order to calculate remaining hazard
 	# which will happen AFTER the state has changed.
 	update!(propagator.firing_queue, record.heap_handle,
-		NRTransition(key, -1.))
+		OrderedSample(key, -1.))
 	todelete = pop!(propagator.firing_queue)
 	@assert(todelete.key == key && todelete.time == -1)
     if updated == :Disabled

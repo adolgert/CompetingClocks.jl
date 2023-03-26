@@ -1,69 +1,57 @@
 using SafeTestsets
 
-module DirectFixture
-using Distributions: ContinuousUnivariateDistribution
-const CTDist = ContinuousUnivariateDistribution
-# Use import so that we can extend the method.
-import Fleck: hazards
-using Random: AbstractRNG
 
-function hazards(callback::Function, distlist::Array{T, 1}, rng::AbstractRNG) where T <: CTDist
-    for dist_idx in 1:length(distlist)
-        callback(dist_idx, distlist[dist_idx], true)
-    end
-end
-export CTDist
-end
-
-
-@safetestset markov_direct_initial = "MarkovDirect initial" begin
-    using Fleck: MarkovDirect, next
+@safetestset direct_call_prob = "DirectCall probabilities" begin
+    using Fleck: DirectCall, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
-    using ..DirectFixture
-    md = MarkovDirect()
-    distributions = fill(Exponential(1.5), 10)
+
+    dc = DirectCall{Int}()
     rng = MersenneTwister(90422342)
-    current = 0.0
-    when, which = next(md, distributions, current, rng)
-    @test when > 0
+    propensities = [0.3, 0.2, 0.7, 0.001, 0.25]
+    for (i, p) in enumerate(propensities)
+        enable!(dc, i, Exponential(p), 0.0, 0.0, rng)
+    end
+    when, which = next(dc, 100.0, rng)
+    @test when > 100
     @test 1 <= which
-    @test which <= 10
+    @test which <= length(propensities)
 end
 
 
-@safetestset markov_direct_empty = "MarkovDirect empty hazard" begin
-    using Fleck: MarkovDirect, next
+@safetestset direct_call_empty = "DirectCall empty hazard" begin
+    using Fleck: DirectCall, next, enable!
     using Random: MersenneTwister
-    using Distributions: Exponential
-    using ..DirectFixture
-    md = MarkovDirect()
-    distributions = CTDist[]
+    md = DirectCall{Int}()
     rng = MersenneTwister(90497979)
     current = 0.0
-    when, which = next(md, distributions, current, rng)
+    when, which = next(md, current, rng)
     @test isinf(when)
     @test which === nothing
 end
 
 
-@safetestset markov_direct_prob = "MarkovDirect probabilities correct" begin
-    using Fleck: MarkovDirect, next
+@safetestset direct_call_later = "DirectCall probabilities correct at a later time" begin
+    using Fleck: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
     using HypothesisTests: BinomialTest, confint
-    using ..DirectFixture
+    rng = MersenneTwister(2343979)
 
-    md = MarkovDirect()
-    distributions = vcat(
-        fill(Exponential(1.5), 10),
-        fill(Exponential(1), 10)
-    )
-    rng = MersenneTwister(90422342)
+    # Given 10 slow distributions and 10 fast, we can figure out
+    # that the marginal probability of a low vs a high is 1 / (1 + 1.5) = 3/5.
+    # Check that we get the correct marginal probability.
+    md = DirectCall{Int}()
+    for i in 1:10
+        enable!(md, i, Exponential(1), 0.0, 0.0, rng)
+    end
+    for i in 11:20
+        enable!(md, i, Exponential(1.5), 0.0, 0.0, rng)
+    end
     hilo = zeros(Int, 2)
-    curtime = 0.0
+    curtime = 2.5
     for i in 1:10000
-        when, which = next(md, distributions, curtime, rng)
+        when, which = next(md, curtime, rng)
         hilo[(which - 1) ÷ 10 + 1] += 1
     end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
@@ -71,19 +59,13 @@ end
 end
 
 
-@safetestset direct_call_prob = "DirectCall probabilities" begin
-    using Fleck: DirectCall, set_clock!, next
+@safetestset direct_call_prob = "DirectCall probabilities correct" begin
+    using Fleck: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
-
-    dc = DirectCall(Int)
-    rng = MersenneTwister(90422342)
-    propensities = [0.3, 0.2, 0.7, 0.001, 0.25]
-    for (i, p) in enumerate(propensities)
-        set_clock!(dc, i, Exponential(p), :Enabled, rng)
-    end
-    when, which = next(dc, 100.0, rng)
-    @test when > 100
-    @test 1 <= which
-    @test which <= length(propensities)
+    using HypothesisTests: BinomialTest, confint
+    using ..DirectFixture: test_exponential_binomial
+    rng = MersenneTwister(223497123)
+    md = DirectCall{Int}()
+    test_exponential_binomial(md, rng)
 end
