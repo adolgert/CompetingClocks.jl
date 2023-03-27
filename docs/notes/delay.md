@@ -22,6 +22,27 @@ Perhaps it would be really nice to have a single model where we could walk from 
 
 The chemical kinetics people have recently worked out recipes which teach people how to use what they call the DCME (delay chemical master equation) to represent systems with delays of the types commonly encountered in chemical models. Papers [1,2] both develop this work, though [2] is more clear and we will follow that in this brief review.
 
+The DCME is given below:
+
+$$
+\begin{align*}
+
+\frac{\partial}{\partial t}P(X,t) &= -\sum_{R_{j}\in M_{0d}} a_{j}(X)P(X,t) + \sum_{R_{j}\in M_{0d}} a_{j}(X-\nu_{j})P(X-\nu_{j},t) \\
+&- \sum_{R_{j}\in M_{dn}} \sum_{X_{i}\in I(X)}a_{j}(X_{i})P(X,t;X_{i},t-\tau_{j}) + \sum_{R_{j}\in M_{dn}} \sum_{X_{i}\in I(X)} a_{j}(X_{i})P(X-\nu_{j},t;X_{i},t-\tau_{j}) \\
+&- \sum_{R_{j}\in M_{dc}}\sum_{X_{i}\in I(X)} a_{j}(X_{i})P(X,t;X_{i},t-\tau_{j}) + \sum_{R_{j}\in M_{dc}}\sum_{X_{i}\in I(X)} a_{j}(X_{i}) P(X-\nu_{j}^{p},t;X_{i},t-\tau_{j}) \\
+&- \sum_{R_{j}\in M_{dc}} a_{j}(X)P(X,t) + \sum_{R_{j}\in M_{dc}} a_{j}(X-\nu_{j}^{r}) P(X-\nu_{j}^{r},t)
+\end{align*}
+$$
+
+The first two terms are for non-delayed reactions $M_{0d}$ and therefore are the same as the typical CME (chemical master equation). Namely they are the probability the system is in $X$ at $t$ and is pushed out by a reaction $R_{j}$, and the second is the probability the state is one reaction $R_{j}$ away from $X$ at time $t$.
+
+The second two terms deal with delayed non-consuming reactions $M_{dn}$. The first of these two is the probability the system was in some state $X_{i}$ at time $t-\tau_{j}$ when $R_{j}$ initiated and is about to leave state $X$ at time $t$ when that reaction completes. The second of these two is the probability $R_{j}$ initiated at time $t-\tau_{j}$ and is currently in state $X-\nu_{j}$, and so will enter $X$ at time $t$.
+
+The last four terms deal with delayed consuming reactions $M_{dc}$. The first two of these are equivalent to the previous second two terms, but with respect to state changes originaing from the second update point (upon competion of reaction), upon which the state change vector $\nu_{j}^{p}$ is applied.
+
+The final two terms are the probability that the state is in $X$ at $t$ and is about to leave due to the initiation of a delayed consuming reaction (upon which the state change vector $\nu_{j}^{p}$ will be applied). the last is the probability that due to initiation, the state will jump into $X$ at time $t$.
+
+
 ## Bibliography
 
   1. [Lafuerza, Luis F., and Raul Toral. "Stochastic description of delayed systems." Philosophical Transactions of the Royal Society A: Mathematical, Physical and Engineering Sciences 371.1999 (2013): 20120458.](https://doi.org/10.1098/rsta.2012.0458)
