@@ -42,6 +42,18 @@ The last four terms deal with delayed consuming reactions $M_{dc}$. The first tw
 
 The final two terms are the probability that the state is in $X$ at $t$ and is about to leave due to the initiation of a delayed consuming reaction (upon which the state change vector $\nu_{j}^{p}$ will be applied). the last is the probability that due to initiation, the state will jump into $X$ at time $t$.
 
+The authors then note that all of the delays can follow general probability distributions rather than fixed (dirac) delays quite straightforwardly by using integro-differential equations in the above DCME wherever a delay reaction is considered.
+
+### Unsuitability of the DCME for ecological and epidemiological modeling
+
+While the DCME describes chemical systems well, it lacks sufficient generality for other systems. Consider the standard SIR model expressed as a CTMC; now modify it so that the I to R transition occurs after a deterministic delay. Expressed as a petri net, this consists of two events, the infection and recovery. When the infection event deposits a token into I at time $t$, the recovery event instantly becomes enabled, and a dirac hazard will occur with probability 1 at time $t+\tau$. This does not seem possible in the DCME framework (as expressed here).
+
+Consider infection as a typical non-delayed reaction. When a token arrives in I, recovery could be taken as a delayed non-consuming reaction, as the token will not leave until $\tau$ units of time have elapsed. However, recovery still initiates as the points of a Poisson process (the $a_{j}$ terms in the DCME). So it cannot be modeled this way.
+
+The SIR with deterministic recovery can only be modeled using a single delayed, consuming reaction, where the 2 update times correspond to putting a token into I and then putting it into R when it finishes. But this is certainly a very strange way to concieve of the model, which is not how one would interpret the petri net. And if the I to R transition can be interrupted, say, by death (I to dead), it becomes impossible to express in the DCME framework.
+
+So we need something more general to encompass these kinds of models. Counting processes.
+
 
 ## Bibliography
 
