@@ -26,7 +26,6 @@ The DCME is given below:
 
 $$
 \begin{align*}
-
 \frac{\partial}{\partial t}P(X,t) &= -\sum_{R_{j}\in M_{0d}} a_{j}(X)P(X,t) + \sum_{R_{j}\in M_{0d}} a_{j}(X-\nu_{j})P(X-\nu_{j},t) \\
 &- \sum_{R_{j}\in M_{dn}} \sum_{X_{i}\in I(X)}a_{j}(X_{i})P(X,t;X_{i},t-\tau_{j}) + \sum_{R_{j}\in M_{dn}} \sum_{X_{i}\in I(X)} a_{j}(X_{i})P(X-\nu_{j},t;X_{i},t-\tau_{j}) \\
 &- \sum_{R_{j}\in M_{dc}}\sum_{X_{i}\in I(X)} a_{j}(X_{i})P(X,t;X_{i},t-\tau_{j}) + \sum_{R_{j}\in M_{dc}}\sum_{X_{i}\in I(X)} a_{j}(X_{i}) P(X-\nu_{j}^{p},t;X_{i},t-\tau_{j}) \\
