@@ -18,17 +18,17 @@ the rate need not depend on the number of combinations of species present.
 The vector `rates` is a list of functions that look at the current state
 and choose a rate for a transiton.
 """
-struct VectorAdditionSystem{T <: Function}
-    take::Array{Int, 2}  # states x transitions
-    give::Array{Int, 2}  # states x transitions
-    rates::Vector{T}  # length is transitions
+struct VectorAdditionSystem{Ar <: AbstractArray{<:Int,2}, Ra <: AbstractArray{<:Function}}
+    take::Ar  # states x transitions
+    give::Ar  # states x transitions
+    rates::Ra  # length is transitions
 end
 
 
 # Just the state for the vector addition.
 # This is mutable, while the vector addition system is immutable.
-mutable struct VectorAdditionState
-    state::Vector{Int}  # This is X, sometimes called "physical state."
+mutable struct VectorAdditionState{St <: AbstractArray{<:Int}}
+    state::St  # This is X, sometimes called "physical state."
     when::Float64       # This is T
 end
 
@@ -49,21 +49,28 @@ This puts together the model and a sampler. This is what we think of as
 a simulation. We will organize this like it's a finite state machine,
 so it will have an initializer, a dynamics, and an observer.
 """
-mutable struct VectorAdditionFSM
+mutable struct VectorAdditionFSM{
+        VasT <: VectorAdditionSystem, 
+        VasS <: VectorAdditionState,
+        S,
+        R <: AbstractRNG,
+        I <: Function,
+        O <: Function
+    }  
     # This is rules about the simulation. It's part of the dynamics.
-    vas::VectorAdditionSystem
-    state::VectorAdditionState
+    vas::VasT
+    state::VasS
     # The sampler does hold state of which events are enabled.
-    sampler::Any
+    sampler::S
     # The random number generator has state, too.
-    rng::AbstractRNG
+    rng::R
 
     # The initializer, aka iota.
-    initializer::Function
+    initializer::I
     is_initialized::Bool
 
     # Observer, aka lambda.
-    observer::Function
+    observer::O
 end
 
 
@@ -159,7 +166,7 @@ function simstep!(fsm::VectorAdditionFSM)
     (when, what) = next(fsm.sampler, fsm.state.when, fsm.rng)
     if when < Inf
         action = vas_delta(fsm.vas, what)
-        fsm.state.when += when
+        fsm.state.when = when
         fire!(fsm.sampler, fsm.vas, fsm.state.state, action, fsm.state.when, fsm.rng)
         fsm.observer(fsm.state, when, what)
     else
