@@ -29,6 +29,7 @@ mutable struct GraphOccupancy
     when::Float64
 end
 
+
 """
 This is the type of the key the model uses to identify transitions.
 Here, it is a (Int, Int) tuple for GraphOccupancy.
@@ -40,7 +41,7 @@ Base.length(go::GraphOccupancy) = nv(go.g)
 function GraphOccupancy(rng::AbstractRNG)
     # Make a random graph.
     g = barabasi_albert(8, 4, 3, seed=123)  # add 4 nodes, each connected to 3 existing.
-    # It is some work to make random transitions. An actual model will be simpler.
+    # It is some work to make random transitions. An actual model would be simpler.
     transition = Dict{Tuple{Int,Int},Transition}()
     for e in edges(g)
         for (l, r) in [(src(e), dst(e)), (dst(e), src(e))]
@@ -98,8 +99,11 @@ function step!(go::GraphOccupancy, sampler, when::Float64,
         trans = go.transition[(go.vertex, dis_neighbor)]
         if trans.memory
             if (go.vertex, dis_neighbor) == which
+                # The transition that fires has its memory reset.
                 trans.consumed = 0.0
             else
+                # A transition with memory will increase its hazard rate by
+                # time-shifting the next time it's enabled.
                 trans.consumed += when - go.when
             end
         end
@@ -112,10 +116,11 @@ function step!(go::GraphOccupancy, sampler, when::Float64,
     go.vertex = which[2]  # The transition key is (from vertex, to vertex).
     go.when = when
 
-    # Then enable the new ones.
+    # Then enable the new ones that start at the next node.
     for en_neighbor in neighbors(go.g, go.vertex)
         trans = go.transition[(go.vertex, en_neighbor)]
         if trans.memory
+            # The memory means this transition says its enabling time is in the past.
             enable!(sampler, (go.vertex, en_neighbor), trans.distribution,
                 go.when + trans.relative_enabling_time - trans.consumed, go.when, rng)
         else
@@ -124,6 +129,7 @@ function step!(go::GraphOccupancy, sampler, when::Float64,
         end
     end
 
+    # Think of this as an observer of the state of the model.
     (resident, duration)
 end
 
@@ -131,9 +137,7 @@ end
 """
 This is the test. Run this with a sampler and check the occupancy numbers.
 """
-function run_graph_occupancy(step_cnt, sampler)
-    rng = Xoshiro(349827)
-    groc = GraphOccupancy(rng)
+function run_graph_occupancy(groc::GraphOccupancy, step_cnt, sampler, rng)
     initial_enabling(groc, sampler, rng)
     occupancy = zeros(Float64, length(groc))
     for step_idx in 1:step_cnt
@@ -146,7 +150,12 @@ end
 
 
 function sample_run_graph_occupancy()
+    model_rng = Xoshiro(349827)
+    single_groc = GraphOccupancy(model_rng)
+
+    groc = deepcopy(single_groc)
     sampler = ChatReaction{keyspace(GraphOccupancy)}()
-    occupancy = run_graph_occupancy(1000, sampler)
+    rng = Xoshiro(2342374)
+    occupancy = run_graph_occupancy(groc, 1000, sampler, rng)
     return occupancy
 end

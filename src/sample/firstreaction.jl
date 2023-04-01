@@ -66,7 +66,7 @@ end
 function enable!(fr::ChatReaction{T}, clock::T, distribution::UnivariateDistribution,
 		te::Float64, when::Float64, rng::AbstractRNG) where {T}
 
-	if clock ∈ fr.core_matrix.enabled
+	if clock ∈ keys(fr.core_matrix.enabled)
 		@warn "Re-enabling transition $clock without disabling first"
 	end
 	enable!(fr.core_matrix, clock, distribution, te, when, rng)
@@ -78,7 +78,7 @@ function disable!(fr::ChatReaction{T}, clock::T, when::Float64) where {T}
 	if clock ∉ fr.enables
 		@warn "Disabling a clock that was never enabled: $(clock)."
 	end
-	if clock ∉ fr.core_matrix.enabled
+	if clock ∉ keys(fr.core_matrix.enabled)
 		@warn "Disabling clock $(clock) that wasn't currently enabled"
 	end
 	disable!(fr.core_matrix, clock, when)
