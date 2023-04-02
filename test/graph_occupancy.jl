@@ -54,7 +54,7 @@ function GraphOccupancy(rng::AbstractRNG)
                 )
             ]
             distribution = sample(rng, distributions)
-            delta = rand(rng)
+            delta = 0.1 + rand(rng)
             relative_enabling_time = sample(rng, [-delta, 0, delta], Weights([0.2, 0.7, 0.1]))
             memory = sample(rng, [false, true], Weights([0.7, 0.3]))
             transition[(l, r)] = Transition(distribution, relative_enabling_time, memory, 0.0)
@@ -137,6 +137,7 @@ end
 mutable struct TransitionObserver
     min_duration::Float64
     max_duration::Float64
+    mean_duration::Float64
     total_duration::Float64
     call_cnt::Int64
 end
@@ -158,7 +159,7 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
         occupancy[resident_node] += duration
 
         if !haskey(observations, which)
-            observations[which] = TransitionObserver(Inf, 0.0, 0.0, 0)
+            observations[which] = TransitionObserver(Inf, 0.0, 0.0, 0.0, 0)
         end
         observations[which].total_duration += duration
         observations[which].min_duration = min(duration, observations[which].min_duration)
@@ -167,6 +168,11 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
 
         previous_time = when
         when, which = next(sampler, groc.when, rng)
+    end
+    for transobv in values(observations)
+        if transobv.call_cnt > 0
+            transobv.mean_duration = transobv.total_duration / transobv.call_cnt
+        end
     end
     occupancy, observations
 end

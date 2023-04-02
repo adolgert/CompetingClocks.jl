@@ -30,7 +30,7 @@ end
 
 
 function next(fr::FirstReaction{T}, when::Float64, rng) where {T}
-	soonest_clock = nothing
+	soonest_clock::Union{Nothing,T} = nothing
 	soonest_time = Inf
 
     for entry::EnablingEntry{T} in fr.core_matrix
