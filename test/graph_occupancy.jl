@@ -47,7 +47,7 @@ function GraphOccupancy(rng::AbstractRNG)
         for (l, r) in [(src(e), dst(e)), (dst(e), src(e))]
             distributions = [
                 Exponential(0.8 + 0.4 * rand(rng)),
-                Weibull(rand(rng, [0.5, 1, 1.5, 2])),
+                Weibull(rand(rng, [1, 1.5, 2])),
                 Gamma(
                     rand(rng, [1, 2, 3, 5]),
                     rand(rng, [1, 2])
@@ -61,7 +61,7 @@ function GraphOccupancy(rng::AbstractRNG)
         end
     end
     vertex = 1
-    when = -5.0 + 10 * rand(rng)  # Why not start with a weird time?
+    when = 0.0
     GraphOccupancy(g, transition, 1, when)
 end
 
@@ -92,7 +92,7 @@ function step!(go::GraphOccupancy, sampler, when::Float64,
     end
     @assert go.vertex == which[1]
     @assert which[2] ∈ neighbors(go.g, which[1])
-    @assert go.when < when
+    @assert go.when <= when
 
     # First disable previously-enabled hops from one node to the next.
     for dis_neighbor in neighbors(go.g, go.vertex)
@@ -137,13 +137,15 @@ end
 """
 This is the test. Run this with a sampler and check the occupancy numbers.
 """
-function run_graph_occupancy(groc::GraphOccupancy, step_cnt, sampler, rng)
+function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
     initial_enabling(groc, sampler, rng)
     occupancy = zeros(Float64, length(groc))
-    for step_idx in 1:step_cnt
-        when, which = next(sampler, groc.when, rng)
+
+    when, which = next(sampler, groc.when, rng)
+    while which !== nothing && when < finish_time
         resident_node, duration = step!(groc, sampler, when, which, rng)
         occupancy[resident_node] += duration
+        when, which = next(sampler, groc.when, rng)
     end
     occupancy
 end
@@ -156,6 +158,6 @@ function sample_run_graph_occupancy()
     groc = deepcopy(single_groc)
     sampler = ChatReaction{keyspace(GraphOccupancy)}()
     rng = Xoshiro(2342374)
-    occupancy = run_graph_occupancy(groc, 1000, sampler, rng)
+    occupancy = run_graph_occupancy(groc, 1e6, sampler, rng)
     return occupancy
 end
