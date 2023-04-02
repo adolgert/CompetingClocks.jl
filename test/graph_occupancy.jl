@@ -62,7 +62,7 @@ function GraphOccupancy(rng::AbstractRNG)
     end
     vertex = 1
     when = 0.0
-    GraphOccupancy(g, transition, 1, when)
+    GraphOccupancy(g, transition, vertex, when)
 end
 
 
@@ -134,20 +134,41 @@ function step!(go::GraphOccupancy, sampler, when::Float64,
 end
 
 
+mutable struct TransitionObserver
+    min_duration::Float64
+    max_duration::Float64
+    total_duration::Float64
+    call_cnt::Int64
+end
+
+
 """
 This is the test. Run this with a sampler and check the occupancy numbers.
 """
 function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
     initial_enabling(groc, sampler, rng)
     occupancy = zeros(Float64, length(groc))
+    KeyType = keyspace(GraphOccupancy)
+    observations = Dict{KeyType,TransitionObserver}()
 
+    previous_time = 0.0
     when, which = next(sampler, groc.when, rng)
     while which !== nothing && when < finish_time
         resident_node, duration = step!(groc, sampler, when, which, rng)
         occupancy[resident_node] += duration
+
+        if !haskey(observations, which)
+            observations[which] = TransitionObserver(Inf, 0.0, 0.0, 0)
+        end
+        observations[which].total_duration += duration
+        observations[which].min_duration = min(duration, observations[which].min_duration)
+        observations[which].max_duration = max(duration, observations[which].max_duration)
+        observations[which].call_cnt += 1
+
+        previous_time = when
         when, which = next(sampler, groc.when, rng)
     end
-    occupancy
+    occupancy, observations
 end
 
 
