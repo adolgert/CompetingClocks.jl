@@ -26,7 +26,10 @@ function initialize_model!(model, sampler, rng)
 
     # Start out with some born.
     for name_id in 1:Int(round(initial_population))
-        enable!(sampler, name_id, model.death_distribution, 0.0, 0.0, rng)
+        # We initialize the current state as though it had been running and particles
+        # were born in the past. This system should _start_ in steady-state.
+        past_birth = rand(rng, model.death_distribution)
+        enable!(sampler, name_id, model.death_distribution, -past_birth, 0.0, rng)
         model.next_name = name_id + 1
         model.alive += 1
     end
