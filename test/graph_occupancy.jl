@@ -1,3 +1,4 @@
+using DataStructures
 using Distributions
 using Fleck
 using Graphs
@@ -38,7 +39,14 @@ keyspace(::Type{GraphOccupancy}) = Tuple{Int,Int}
 Base.length(go::GraphOccupancy) = nv(go.g)
 
 
-function GraphOccupancy(rng::AbstractRNG)
+"""
+Make a model. The rng is a random number generator. Initialize that generator
+with a different seed to get a different system. The features is a dictionary
+of boolean values to tell this model how complicated it should be. We want
+to turn features on/off in order to ascertain when and why different samplers
+disagree about how to simulate the model.
+"""
+function GraphOccupancy(features::AbstractDict{String,Bool}, rng::AbstractRNG)
     # Make a random graph.
     g = barabasi_albert(8, 4, 3, seed=123)  # add 4 nodes, each connected to 3 existing.
     # It is some work to make random transitions. An actual model would be simpler.
@@ -47,16 +55,34 @@ function GraphOccupancy(rng::AbstractRNG)
         for (l, r) in [(src(e), dst(e)), (dst(e), src(e))]
             distributions = [
                 Exponential(0.8 + 0.4 * rand(rng)),
-                Weibull(rand(rng, [1, 1.5, 2])),
-                Gamma(
+            ]
+            if features["weibull"]
+                push!(distributions, Weibull(rand(rng, [1, 1.5, 2])))
+            end
+            if features["gamma"]
+                push!(distributions, Gamma(
                     rand(rng, [1, 2, 3, 5]),
                     rand(rng, [1, 2])
-                )
-            ]
+                ))
+            end
             distribution = sample(rng, distributions)
             delta = 0.1 + rand(rng)
-            relative_enabling_time = sample(rng, [-delta, 0, delta], Weights([0.2, 0.7, 0.1]))
-            memory = sample(rng, [false, true], Weights([0.7, 0.3]))
+            reltimes = [0]
+            relweights = [0.7]
+            if features["past"]
+                push!(reltimes, -delta)
+                push!(relweights, 0.2)
+            end
+            if features["future"]
+                push!(reltimes, delta)
+                push!(relweights, 0.1)
+            end
+            relative_enabling_time = sample(rng, reltimes, Weights(relweights))
+            if features["memory"]
+                memory = sample(rng, [false, true], Weights([0.7, 0.3]))
+            else
+                memory = false
+            end
             transition[(l, r)] = Transition(distribution, relative_enabling_time, memory, 0.0)
         end
     end
@@ -178,9 +204,18 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
 end
 
 
-function sample_run_graph_occupancy()
+function sample_run_graph_occupancy(options=Set{String}())
     model_rng = Xoshiro(349827)
-    single_groc = GraphOccupancy(model_rng)
+    features = Dict{String,Bool}(
+        "weibull"=>false, "gamma"=>false, "past"=>false, "future"=>false,
+        "memory"=>false)
+    for turn_on in options
+        if turn_on ∉ keys(features)
+            println("Trying to turn on $turn_on but it isn't a feature in $features")
+        end
+        features[turn_on] = true
+    end
+    single_groc = GraphOccupancy(features, model_rng)
 
     groc = deepcopy(single_groc)
     sampler = ChatReaction{keyspace(GraphOccupancy)}()
