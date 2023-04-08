@@ -6,6 +6,8 @@ using Random
 using StatsBase
 using Base
 
+const Time = Float64
+
 """
 A transition describes how a particle can move from one node to another along
 an edge. The distribution is the distribution of times for the jump, as a competing
@@ -17,23 +19,28 @@ been enabled.
 """
 mutable struct Transition
     distribution::UnivariateDistribution
-    relative_enabling_time::Float64
+    relative_enabling_time::Time
     memory::Bool
-    consumed::Float64
+    consumed::Time
 end
 
 
+"""
+This is the struct that describes both the model rules (graph shape and
+exact transitions on that graph) and the state of the system (location of the
+particle and current time).
+"""
 mutable struct GraphOccupancy
-    g::SimpleGraph{Int64}
+    g::SimpleGraph{Int64}  # Graph of nodes and edges to other nodes.
     transition::Dict{Tuple{Int,Int},Transition}
-    vertex::Int64
-    when::Float64
+    vertex::Int64  # Current node on which particle resides.
+    when::Time
 end
 
 
 """
 This is the type of the key the model uses to identify transitions.
-Here, it is a (Int, Int) tuple for GraphOccupancy.
+Here, it is a tuple of (node from which to hop, node to which to hop).
 """
 keyspace(::Type{GraphOccupancy}) = Tuple{Int,Int}
 Base.length(go::GraphOccupancy) = nv(go.g)
@@ -47,7 +54,7 @@ to turn features on/off in order to ascertain when and why different samplers
 disagree about how to simulate the model.
 """
 function GraphOccupancy(features::AbstractDict{String,Bool}, rng::AbstractRNG)
-    # Make a random graph.
+    # Make a random graph with random transitions.
     seed = rand(rng, 1:100000)
     g = barabasi_albert(8, 4, 3, seed=seed)  # add 4 nodes, each connected to 3 existing.
     # It is some work to make random transitions. An actual model would be simpler.
@@ -68,8 +75,8 @@ function GraphOccupancy(features::AbstractDict{String,Bool}, rng::AbstractRNG)
             end
             distribution = sample(rng, distributions)
             delta = 0.1 + rand(rng)
-            reltimes = [0]
-            relweights = [0.7]
+            reltimes = [0]  # This is a shift to the start of the distribution.
+            relweights = [0.7]  # The probability of choosing this shift value.
             if features["past"]
                 push!(reltimes, -delta)
                 push!(relweights, 0.2)
@@ -93,6 +100,10 @@ function GraphOccupancy(features::AbstractDict{String,Bool}, rng::AbstractRNG)
 end
 
 
+"""
+Before the simulation starts, the initial state should mean some transitions are
+enabled.
+"""
 function initial_enabling(go::GraphOccupancy, sampler, rng::AbstractRNG)
     vertex = go.vertex
     for neighbor in neighbors(go.g, vertex)
@@ -103,7 +114,7 @@ function initial_enabling(go::GraphOccupancy, sampler, rng::AbstractRNG)
 end
 
 
-function step!(go::GraphOccupancy, sampler, when::Float64,
+function step!(go::GraphOccupancy, sampler, when::Time,
         which::Tuple{Int64,Int64}, rng::AbstractRNG
         )
     if go.vertex != which[1]
@@ -161,11 +172,15 @@ function step!(go::GraphOccupancy, sampler, when::Float64,
 end
 
 
+"""
+This records how often a transition fired and for how long.
+It's used for watching output of the simulation.
+"""
 mutable struct TransitionObserver
-    min_duration::Float64
-    max_duration::Float64
-    mean_duration::Float64
-    total_duration::Float64
+    min_duration::Time
+    max_duration::Time
+    mean_duration::Time
+    total_duration::Time
     call_cnt::Int64
 end
 
@@ -175,18 +190,18 @@ This is the test. Run this with a sampler and check the occupancy numbers.
 """
 function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
     initial_enabling(groc, sampler, rng)
-    occupancy = zeros(Float64, length(groc))
+    occupancy = zeros(Time, length(groc))
     KeyType = keyspace(GraphOccupancy)
     observations = Dict{KeyType,TransitionObserver}()
 
-    previous_time = 0.0
     when, which = next(sampler, groc.when, rng)
     while which !== nothing && when < finish_time
         resident_node, duration = step!(groc, sampler, when, which, rng)
-        
+
         # The stopping time is finish_time, so don't count beyond the stopping time.
         if when >= finish_time
             duration -= (when - finish_time)
+            @assert duration > 0.0
         end
         occupancy[resident_node] += duration
 
@@ -198,13 +213,10 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
         observations[which].max_duration = max(duration, observations[which].max_duration)
         observations[which].call_cnt += 1
 
-        previous_time = when
         when, which = next(sampler, groc.when, rng)
     end
     for transobv in values(observations)
-        if transobv.call_cnt > 0
-            transobv.mean_duration = transobv.total_duration / transobv.call_cnt
-        end
+        transobv.mean_duration = transobv.total_duration / transobv.call_cnt
     end
     occupancy, observations
 end
