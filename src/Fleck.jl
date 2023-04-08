@@ -1,6 +1,7 @@
 module Fleck
 
 include("prefixsearch.jl")
+include("lefttrunc.jl")
 include("sample/neverdist.jl")
 include("sample/track.jl")
 # include("sample/interface.jl")

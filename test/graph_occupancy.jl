@@ -48,7 +48,8 @@ disagree about how to simulate the model.
 """
 function GraphOccupancy(features::AbstractDict{String,Bool}, rng::AbstractRNG)
     # Make a random graph.
-    g = barabasi_albert(8, 4, 3, seed=123)  # add 4 nodes, each connected to 3 existing.
+    seed = rand(rng, 1:100000)
+    g = barabasi_albert(8, 4, 3, seed=seed)  # add 4 nodes, each connected to 3 existing.
     # It is some work to make random transitions. An actual model would be simpler.
     transition = Dict{Tuple{Int,Int},Transition}()
     for e in edges(g)
@@ -182,6 +183,11 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
     when, which = next(sampler, groc.when, rng)
     while which !== nothing && when < finish_time
         resident_node, duration = step!(groc, sampler, when, which, rng)
+        
+        # The stopping time is finish_time, so don't count beyond the stopping time.
+        if when >= finish_time
+            duration -= (when - finish_time)
+        end
         occupancy[resident_node] += duration
 
         if !haskey(observations, which)
