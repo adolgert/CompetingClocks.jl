@@ -127,12 +127,13 @@ function enable!(
 
     # Three cases: a) never been enabled b) currently enabled c) was disabled.
     record = get(nr.transition_entry, clock, NRNotFound)
+    heap_handle = record.heap_handle
 
     if record.cumulant <= 0.0
         tau, cumulant = sample_shifted(rng, distribution, te, when)
-        sample = OrderedSample{T}(clock, tau)
+        sample = OrderedSample{T}(clock, tau)        
         if record.heap_handle > 0
-            heap_handle = update(nr.firing_queue, record.heap_handle, sample)
+            update!(nr.firing_queue, record.heap_handle, sample)
         else
             heap_handle = push!(nr.firing_queue, sample)
         end
@@ -152,7 +153,7 @@ function enable!(
                 tau = sample_by_inversion(distribution, te, when, cumulant)
                 entry = OrderedSample{T}(clock, tau)
                 update!(nr.firing_queue, record.heap_handle, entry)
-                transition_entry[clock] = NRTransition(
+                nr.transition_entry[clock] = NRTransition(
                     heap_handle, cumulant, distribution, te, when
                 )
             end
