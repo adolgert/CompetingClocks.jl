@@ -47,7 +47,7 @@ function next(nr::NextReaction{T}, when::Float64, rng::AbstractRNG) where {T}
         entry = nr.transition_entry[least.key]
         nr.transition_entry[least.key] = NRTransition(
             entry.heap_handle, 0.0, entry.distribution, entry.te, entry.t0
-            )
+        )
         return (least.time, least.key)
     else
         # Return type is Tuple{Float64, Union{Nothing,T}} because T is not default-constructible.
@@ -93,6 +93,7 @@ function sample_by_inversion(
     )
     if te < when
         te + cquantile(truncated(distribution, te-when, Inf), cumulant)
+        # te + cquantile(truncated(distribution, when - te, Inf), cumulant)
     else   # te > when
         te + cquantile(distribution, cumulant)
     end
@@ -114,7 +115,7 @@ function consume_cumulant(record::NRTransition, tn::Float64)
         1
     end
     # survive_t0_tn = survive_te_tn / survive_te_t0
-    record.cumulant * survive_te_t0 / survive_te_tn
+    record.cumulant * (survive_te_t0 - survive_te_tn)
 end
 
 
@@ -139,7 +140,7 @@ function enable!(
         end
         nr.transition_entry[clock] = NRTransition(
             heap_handle, cumulant, distribution, te, when
-            )
+        )
     else
         # The transition was previously enabled.
         if record.heap_handle > 0
@@ -164,7 +165,7 @@ function enable!(
             heap_handle = push!(nr.firing_queue, OrderedSample{T}(clock, tau))
             nr.transition_entry[clock] = NRTransition(
                 heap_handle, cumulant, distribution, te, when
-                )
+            )
         end
     end
 end
