@@ -68,7 +68,8 @@ function run_constant_birth(rng, max_step = 10000)
     death_rate = Weibull(2.0, 80)
     model = ConstantBirth(birth_rate, death_rate, 2, 0, 0.0)
 
-    sampler = FirstToFire{Int}()
+    # sampler = FirstToFire{Int}()
+    sampler = NextReaction{Int}()
     initialize_model!(model, sampler, rng)
     # Begin by dropping a few events to account for warm-up.
     when = 0.0
