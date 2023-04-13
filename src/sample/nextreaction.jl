@@ -105,7 +105,7 @@ end
 # te can be before t0, at t0, between t0 and when, or at when, or after when.
 function consume_cumulant(record::NRTransition, tn::Float64)
     survive_te_tn = if record.te < tn
-        ccdf(record.distribution, record.te - tn)
+        ccdf(record.distribution, tn-record.te)
     else
         1
     end
@@ -114,8 +114,7 @@ function consume_cumulant(record::NRTransition, tn::Float64)
     else
         1
     end
-    # survive_t0_tn = survive_te_tn / survive_te_t0
-    record.cumulant * (survive_te_t0 - survive_te_tn)
+    record.cumulant / (survive_te_tn * survive_te_t0)
 end
 
 
