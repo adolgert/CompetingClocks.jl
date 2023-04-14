@@ -26,7 +26,11 @@ take, give, rates = sir_vas(p...)
 rng = MersenneTwister()
 vas = VectorAdditionSystem(take, give, rates)
 
-fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), NextReaction{Int}(), rng)
+# sampler = DirectCall{Int}()
+# sampler = FirstReaction{Int}()
+# sampler = NextReaction{Int}()
+sampler = FirstToFire{Int}()
+fsm = VectorAdditionFSM(vas, vas_initial(vas, u0), sampler, rng)
 out = Matrix{Float64}(undef, u0[2] + 2*u0[1] + 1, 4)
 
 event_cnt = 0

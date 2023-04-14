@@ -92,8 +92,8 @@ function sample_by_inversion(
     distribution::UnivariateDistribution, te::Float64, when::Float64, cumulant::Float64
     )
     if te < when
-        te + cquantile(truncated(distribution, te-when, Inf), cumulant)
-        # te + cquantile(truncated(distribution, when - te, Inf), cumulant)
+        # te + cquantile(truncated(distribution, te-when, Inf), cumulant)
+        te + cquantile(truncated(distribution, when - te, Inf), cumulant)
     else   # te > when
         te + cquantile(distribution, cumulant)
     end
