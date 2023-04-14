@@ -92,7 +92,6 @@ function sample_by_inversion(
     distribution::UnivariateDistribution, te::Float64, when::Float64, cumulant::Float64
     )
     if te < when
-        # te + cquantile(truncated(distribution, te-when, Inf), cumulant)
         te + cquantile(truncated(distribution, when - te, Inf), cumulant)
     else   # te > when
         te + cquantile(distribution, cumulant)
@@ -109,13 +108,12 @@ function consume_cumulant(record::NRTransition, tn::Float64)
     else
         1
     end
-    # survive_te_t0 = if record.te < record.t0
-    #     ccdf(record.distribution, record.te-record.t0)
-    # else
-    #     1
-    # end
-    survive_te_t0 = 1
-    record.cumulant / (survive_te_tn * survive_te_t0)
+    survive_te_t0 = if record.te < record.t0
+        ccdf(record.distribution, record.t0-record.te)
+    else
+        1
+    end
+    record.cumulant / (survive_te_t0 / survive_te_tn)
 end
 
 
