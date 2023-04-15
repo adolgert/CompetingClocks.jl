@@ -5,7 +5,7 @@ using Test
 @safetestset vas_sample = "VAS samples with direct" begin
 using Random: MersenneTwister
 using Fleck: VectorAdditionSystem, VectorAdditionFSM, DirectCall, vas_initial
-using Fleck: simstep!, FirstToFire
+using Fleck: simstep!
 using ..SampleVAS: sample_sir
 
     rng = MersenneTwister(2930472)
@@ -63,7 +63,7 @@ end
 
     cnt = 30
     vas = VectorAdditionSystem(sample_sir(cnt)...)
-    sampler = FirstToFire(Int)
+    sampler = FirstToFire{Int}()
 
     starting = zeros(Int, 3 * cnt)
     starting[2:cnt] .= 1

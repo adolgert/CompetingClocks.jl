@@ -30,6 +30,11 @@ end
 end
 
 
+@testset "test_firsttofire.jl" begin
+    include("test_firsttofire.jl")
+end
+
+
 @testset "test_vas.jl" begin
     include("test_vas.jl")
 end

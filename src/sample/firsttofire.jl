@@ -11,16 +11,16 @@ The soonest to fire wins. When a clock is disabled, its future firing time is
 removed from the list. There is no memory of previous firing times.
 """
 struct FirstToFire{T}
-    firing_queue::MutableBinaryHeap{OrderedSample{T}}
+    firing_queue::MutableBinaryMinHeap{OrderedSample{T}}
     # This maps from transition to entry in the firing queue.
     transition_entry::Dict{T,Int}
 end
 
 
-function FirstToFire(KeyType::Type)
-    heap = MutableBinaryMinHeap{OrderedSample{KeyType}}()
-    state = Dict{KeyType,Int}()
-    FirstToFire{KeyType}(heap, state)
+function FirstToFire{T}() where {T}
+    heap = MutableBinaryMinHeap{OrderedSample{T}}()
+    state = Dict{T,Int}()
+    FirstToFire{T}(heap, state)
 end
 
 
