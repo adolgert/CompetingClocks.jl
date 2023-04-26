@@ -5,7 +5,7 @@ export NextReaction
 
 struct NRTransition
     heap_handle::Int
-    cumulant::Float64
+    cumulant::Float64 # value of S_{j}
     distribution::UnivariateDistribution
     te::Float64  # Enabling time of distribution
     t0::Float64  # Enabling time of transition
@@ -113,7 +113,7 @@ function consume_cumulant(record::NRTransition, tn::Float64)
     else
         1
     end
-    record.cumulant / (survive_te_t0 / survive_te_tn)
+    record.cumulant / (survive_te_t0 * survive_te_tn)
 end
 
 
