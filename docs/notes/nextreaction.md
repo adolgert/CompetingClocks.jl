@@ -31,3 +31,67 @@ In the general case, for non-Markovian or inhomogeneous Markovian processes,
 
 
 During the $n^{\text{th}}$ iteration of the First Reaction method, the random variables giving the relative putative times to firing are $R_{\alpha}$ for each transition. For homogeneous Markov processes we assume they follow an exponential distribution with parameter $a_{\alpha}$. The random variable giving the putative absolute time to firing is $T_{\alpha}=R_{\alpha}+t_{n}$. The distribution of $T_{\alpha}$ is the original shifted to the right by $t_{n}$.
+
+## Implementation in Fleck
+
+Let $\xi_{j}(v)$ be the most recent enabling time of clock $j$. When it is first enabled, we sample by inversion, which solves the following equation for the putative firing time $t^\prime$.
+
+$$
+S^{\prime}_{j} = S_{j0}(\xi_{j}(v),t^\prime)
+$$
+
+Where $S^{\prime}_{j} = 1 - U_{j}$ and $U_{j} \sim Unif(0,1)$.
+
+If the functional form of the survival changes before the clock fires at some time $t_{1}$ (e.g. due to another clock firing), then we must solve for a new putative firing time (also labeled $t^\prime$). This is called shifting the distribution and it looks like:
+
+$$
+S^{\prime}_{j} = S_{j0}(\xi_{j}(v),t_{1}) S_{j1}(t_{1},t^\prime)
+$$
+
+If we let the original enabling time be labeled at $t_{0} = \xi_{j}(v)$, and there are $n-1$ changes of functional form that occur (and the clock still has not fired), the general form of shifting the distribution is:
+
+$$
+S^{\prime}_{j} = S_{jn}(t_{n},t^\prime) \Pi_{m=0}^{n-1} S_{jm}(t_{m},t_{m+1})
+$$
+
+Again, the goal is to solve for $t^\prime$, the updated putative firing time, after the $n-1$-th change.
+
+The MNRM tries to do this efficiently by maintaining the value:
+
+$$
+S^{\prime}_{jn} = S^{\prime}_{j} / \Pi_{m=0}^{n-1} S_{jm}(t_{m},t_{m+1})
+$$
+
+as computational state to solve:
+
+$$
+S^{\prime}_{jn} = S_{jn}(t_{n},t^\prime)
+$$
+
+after each change to update $t^\prime$.
+
+## Anderson's method
+
+The modified next reaction method is described here.
+
+Instead of working with survivals, the MNRM works with cumulative hazards.
+
+The general form of "shifting the distribution" for MNRM looks like:
+
+$$
+\log(S^{\prime}_{j}) = L_{jn}(t_{n},t^{\prime}_{j}) + \sum_{m=0}^{n-1} L_{jm}(t_{m},t_{m+1})
+$$
+
+The MNRM maintains the value of:
+
+$$
+L^{\prime}_{jn} = \log(S^{\prime}_{j}) - \sum_{m=0}^{n-1} L_{jm}(t_{m},t_{m+1})
+$$
+
+as computational state to solve:
+
+$$
+L^{\prime}_{jn} = L_{jn}(t_{n},t^{\prime}_{j})
+$$
+
+for the new putative firing time $t^{\prime}_{j}$.

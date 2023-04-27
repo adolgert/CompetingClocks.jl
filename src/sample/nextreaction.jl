@@ -5,7 +5,7 @@ export NextReaction
 
 struct NRTransition
     heap_handle::Int
-    cumulant::Float64 # value of S_{j}
+    survival::Float64 # value of S_{j}
     distribution::UnivariateDistribution
     te::Float64  # Enabling time of distribution
     t0::Float64  # Enabling time of transition
@@ -77,32 +77,32 @@ function sample_shifted(
         shifted_distribution = truncated(distribution, when - te, Inf)
         sample = rand(rng, shifted_distribution)
         tau = te + sample
-        cumulant = ccdf(shifted_distribution, sample)
+        survival = ccdf(shifted_distribution, sample)
     else  # te >= when
         # The distribution starts in the future
         sample = rand(rng, distribution)
         tau = te + sample
-        cumulant = ccdf(distribution, sample)
+        survival = ccdf(distribution, sample)
     end
-    (tau, cumulant)
+    (tau, survival)
 end
 
 
 function sample_by_inversion(
-    distribution::UnivariateDistribution, te::Float64, when::Float64, cumulant::Float64
+    distribution::UnivariateDistribution, te::Float64, when::Float64, survival::Float64
     )
     if te < when
-        te + cquantile(truncated(distribution, when - te, Inf), cumulant)
+        te + cquantile(truncated(distribution, when - te, Inf), survival)
     else   # te > when
-        te + cquantile(distribution, cumulant)
+        te + cquantile(distribution, survival)
     end
 end
 
 
-# Transition was enabled between time record.t0 and when.
-# Divide the cumulant by the conditional survival between t0 and when.
-# te can be before t0, at t0, between t0 and when, or at when, or after when.
-function consume_cumulant(record::NRTransition, tn::Float64)
+# Transition was enabled between time record.t0 and tn.
+# Divide the survival by the conditional survival between t0 and tn.
+# te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
+function consume_survival(record::NRTransition, tn::Float64)
     survive_te_tn = if record.te < tn
         ccdf(record.distribution, tn-record.te)
     else
@@ -113,7 +113,7 @@ function consume_cumulant(record::NRTransition, tn::Float64)
     else
         1
     end
-    record.cumulant / (survive_te_t0 * survive_te_tn)
+    record.survival / (survive_te_t0 * survive_te_tn)
 end
 
 
@@ -128,8 +128,8 @@ function enable!(
     record = get(nr.transition_entry, clock, NRNotFound)
     heap_handle = record.heap_handle
 
-    if record.cumulant <= 0.0
-        tau, cumulant = sample_shifted(rng, distribution, te, when)
+    if record.survival <= 0.0
+        tau, survival = sample_shifted(rng, distribution, te, when)
         sample = OrderedSample{T}(clock, tau)        
         if record.heap_handle > 0
             update!(nr.firing_queue, record.heap_handle, sample)
@@ -137,7 +137,7 @@ function enable!(
             heap_handle = push!(nr.firing_queue, sample)
         end
         nr.transition_entry[clock] = NRTransition(
-            heap_handle, cumulant, distribution, te, when
+            heap_handle, survival, distribution, te, when
         )
     else
         # The transition was previously enabled.
@@ -148,21 +148,21 @@ function enable!(
                 # No change. It's common to re-enable an already-enabled distribution.
             else
                 # Account for time between when this was last enabled and now.
-                cumulant = consume_cumulant(record, when)
-                tau = sample_by_inversion(distribution, te, when, cumulant)
+                survival = consume_survival(record, when)
+                tau = sample_by_inversion(distribution, te, when, survival)
                 entry = OrderedSample{T}(clock, tau)
                 update!(nr.firing_queue, record.heap_handle, entry)
                 nr.transition_entry[clock] = NRTransition(
-                    heap_handle, cumulant, distribution, te, when
+                    heap_handle, survival, distribution, te, when
                 )
             end
 
         # The transition was previously disabled.
         else
-            tau = sample_by_inversion(distribution, te, when, record.cumulant)
+            tau = sample_by_inversion(distribution, te, when, record.survival)
             heap_handle = push!(nr.firing_queue, OrderedSample{T}(clock, tau))
             nr.transition_entry[clock] = NRTransition(
-                heap_handle, cumulant, distribution, te, when
+                heap_handle, survival, distribution, te, when
             )
         end
     end
@@ -173,6 +173,6 @@ function disable!(nr::NextReaction{T}, clock::T, when::Float64) where {T}
     record = nr.transition_entry[clock]
     delete!(nr.firing_queue, record.heap_handle)
     nr.transition_entry[clock] = NRTransition(
-        0, consume_cumulant(record, when), record.distribution, record.te, when
+        0, consume_survival(record, when), record.distribution, record.te, when
     )
 end
