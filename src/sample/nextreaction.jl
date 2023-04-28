@@ -162,7 +162,7 @@ function enable!(
             tau = sample_by_inversion(distribution, te, when, record.survival)
             heap_handle = push!(nr.firing_queue, OrderedSample{T}(clock, tau))
             nr.transition_entry[clock] = NRTransition(
-                heap_handle, survival, distribution, te, when
+                heap_handle, record.survival, distribution, te, when
             )
         end
     end

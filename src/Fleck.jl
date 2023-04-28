@@ -12,6 +12,7 @@ include("sample/nextreaction.jl")
 # include("sample/fixeddirect.jl")
 include("sample/direct.jl")
 # include("sample/anderson.jl")
+include("sample/newanderson.jl")
 include("vas.jl")
 
 export Never
