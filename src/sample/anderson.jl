@@ -1,143 +1,123 @@
-import DataStructures: MutableBinaryHeap, MutableBinaryMinHeap
-using Random
+using DataStructures
+
+export ModifiedNextReaction
 
 """
-Next reaction by Hazards
-Also called Anderson's method.
+    MNRM by Anderson
 """
-struct TransitionRecord
-	exponential_interval::Float64
-	heap_handle::Int64
+struct ModifiedNextReaction{T} <: AbstractNextReaction{T}
+    firing_queue::MutableBinaryHeap{OrderedSample{T}}
+    transition_entry::Dict{T,NRTransition}
 end
 
+get_survival_zero(::ModifiedNextReaction{T}) where {T} = -Inf
 
-mutable struct NextReactionHazards
-	firing_queue::MutableBinaryHeap{OrderedSample,Base.Order.ForwardOrdering}
-	transition_state::Dict{Any,TransitionRecord}
-	init::Bool
+function ModifiedNextReaction{T}() where {T}
+    heap = MutableBinaryMinHeap{OrderedSample{T}}()
+    ModifiedNextReaction{T}(heap, Dict{T,NRTransition}())
 end
 
+# next (use abstract method)
 
-"""
-Construct a Next Reaction sampler.
-"""
-function NextReactionHazards()
-    heap = MutableBinaryMinHeap{OrderedSample}()
-    @debug("SampleSemiMarkov.NextReactionHazards type ", typeof(heap))
-    state = Dict{Any,TransitionRecord}()
-    NextReactionHazards(heap, state, true)
+
+function sample_shifted(
+    nr::ModifiedNextReaction{T},
+    rng::AbstractRNG, distribution::UnivariateDistribution, te::Float64, when::Float64
+    ) where {T}
+    if te < when
+        shifted_distribution = truncated(distribution, when - te, Inf)
+        sample = rand(rng, shifted_distribution)
+        tau = te + sample
+        log_survival = logccdf(shifted_distribution, sample)
+    else  # te >= when
+        # The distribution starts in the future
+        sample = rand(rng, distribution)
+        tau = te + sample
+        log_survival = logccdf(distribution, sample)
+    end
+    (tau, log_survival)
 end
 
-
-# Finds the next one without removing it from the queue.
-function Next(propagator::NextReactionHazards, system, rng)
-	if propagator.init
-		Hazards(system, rng) do clock, now, updated, rng2
-			Enable(propagator, clock, now, updated, rng2)
-	    end
-	    propagator.init = false
-	end
-
-	NotFound = OrderedSample(nothing, Inf)
-	if !isempty(propagator.firing_queue)
-		least = top(propagator.firing_queue)
-	else
-		least = NotFound
-	end
-	@debug("SampleSemiMarkov.next queue length ",
-			length(propagator.firing_queue), " least ", least)
-	(least.time, least.key)
+function sample_by_inversion(
+    nr::ModifiedNextReaction{T},
+    distribution::UnivariateDistribution, te::Float64, when::Float64, logsurvival::Float64
+    ) where {T}
+    if te < when
+        te + invlogccdf(truncated(distribution, when - te, Inf), logsurvival)
+    else   # te > when
+        te + invlogccdf(distribution, logsurvival)
+    end
 end
 
-
-"""
-Returns an observer of intensities to decide what to
-do when they change.
-"""
-function Observer(propagator::NextReactionHazards)
-	function nrobserve(clock, time, updated, rng)
-		if updated == :Disabled || updated == :Fired
-			Disable(propagator, clock, time, updated, rng)
-		else
-			Enable(propagator, clock, time, updated, rng)
-		end
-	end
-end
-
-
-function unit_hazard_interval(rng::MersenneTwister)
-	-log(rand(rng))
-end
-
-
-# Enable or modify a hazard.
-function Enable(propagator::NextReactionHazards, clock,
-		now, updated, rng)
-	key = clock
-	clock_started = haskey(propagator.transition_state, key)
-	if clock_started
-		record = propagator.transition_state[key]
-		when_fire = Putative(clock.intensity, now, record.exponential_interval)
-
-		@assert(when_fire >= now)
-		if record.heap_handle >= 0
-			@debug("SampleSemiMarkov.enable keyu ", key, " interval ",
-				record.exponential_interval, " when ", when_fire,
-				" dist ", clock)
-			update!(propagator.firing_queue, record.heap_handle,
-				OrderedSample(key, when_fire))
-		else
-			record.heap_handle = push!(propagator.firing_queue,
-				OrderedSample(key, when_fire))
-			@debug("SampleSemiMarkov.enable keyp ", key, " interval ",
-				record.exponential_interval, " when ", when_fire,
-				" dist ", clock)
-		end
-	else
-		firing_time, interval = MeasuredSample(clock.intensity, now, rng)
-		@assert(firing_time >= now)
-        handle = push!(propagator.firing_queue, OrderedSample(key, firing_time))
-        @debug("SampleSemiMarkov.enable Adding key ", key, " interval ",
-        	interval, " when ", firing_time, " dist ", clock)
-		record = TransitionRecord(interval, handle)
-		propagator.transition_state[key] = record
-	end
-    @debug("SampleSemiMarkov.enable exit")
-end
-
-
-# Remove a transition from the queue because it was disabled.
-function Disable(propagator::NextReactionHazards, key, now,
-        updated, rng)
-	record = propagator.transition_state[key]
-	# We store distributions in order to calculate remaining hazard
-	# which will happen AFTER the state has changed.
-	update!(propagator.firing_queue, record.heap_handle,
-		OrderedSample(key, -1.))
-	todelete = pop!(propagator.firing_queue)
-	@assert(todelete.key == key && todelete.time == -1)
-    if updated == :Disabled
-    	record.heap_handle = -1 # This is the official sign it was disabled.
-    elseif updated == :Fired
-        # Deleting the key is slower for small, finite systems,
-        # but it makes infinite (meaning long-running) systems possible.
-        delete!(propagator.transition_state, key)
+function consume_survival(nr::ModifiedNextReaction{T}, record::NRTransition, tn::Float64) where {T}
+    log_survive_te_tn = if record.te < tn
+        logccdf(record.distribution, tn-record.te)
     else
-        assert(updated == :Disabled || updated == :Fired)
+        0
     end
+    log_survive_te_t0 = if record.te < record.t0
+        logccdf(record.distribution, record.t0-record.te)
+    else
+        0
+    end
+    record.survival - (log_survive_te_t0 + log_survive_te_tn)
 end
 
+# const MNRNotFound = MNRTransition(0, -Inf, Never(), 0.0, 0.0)
 
-function print_next_reaction_hazards(propagator::NextReactionHazards)
-    arr = Any[]
-    for x in keys(propagator.transition_state)
-        push!(arr, x)
-    end
-    sort!(arr)
-    for trans in arr
-        rec = propagator.transition_state[trans]
-        if rec.distribution !== nothing
-	        p=parameters(rec.distribution)
-    	end
-    end
-end
+# function enable!(
+#     nr::ModifiedNextReaction{T}, clock::T, distribution::UnivariateDistribution,
+#     te::Float64, when::Float64, rng::AbstractRNG) where {T}
+
+#     # Three cases: a) never been enabled b) currently enabled c) was disabled.
+#     record = get(nr.transition_entry, clock, MNRNotFound)
+#     heap_handle = record.heap_handle
+
+#     if record.log_survival <= -Inf
+#         tau, log_survival = sample_shifted(nr, rng, distribution, te, when)
+#         sample = OrderedSample{T}(clock, tau)        
+#         if record.heap_handle > 0
+#             update!(nr.firing_queue, record.heap_handle, sample)
+#         else
+#             heap_handle = push!(nr.firing_queue, sample)
+#         end
+#         nr.transition_entry[clock] = MNRTransition(
+#             heap_handle, log_survival, distribution, te, when
+#         )
+#     else
+#         # The transition was previously enabled.
+#         if record.heap_handle > 0
+#             # Consider te the same if the mantissa is within 2 bits of precision.
+#             same_te = abs(te - record.te) < 2 * eps(te)
+#             if same_te && distribution == record.distribution
+#                 # No change. It's common to re-enable an already-enabled distribution.
+#             else
+#                 # Account for time between when this was last enabled and now.
+#                 log_survival = consume_survival(record, when)
+#                 tau = sample_by_inversion(nr, distribution, te, when, log_survival)
+#                 entry = OrderedSample{T}(clock, tau)
+#                 update!(nr.firing_queue, record.heap_handle, entry)
+#                 nr.transition_entry[clock] = MNRTransition(
+#                     heap_handle, log_survival, distribution, te, when
+#                 )
+#             end
+    
+
+#         # The transition was previously disabled.
+#         else
+#             tau = sample_by_inversion(nr, distribution, te, when, record.log_survival)
+#             heap_handle = push!(nr.firing_queue, OrderedSample{T}(clock, tau))
+#             nr.transition_entry[clock] = MNRTransition(
+#                 heap_handle, record.log_survival, distribution, te, when
+#             )
+#         end
+#     end
+# end
+
+# function disable!(nr::ModifiedNextReaction{T}, clock::T, when::Float64) where {T}
+#     record = nr.transition_entry[clock]
+#     delete!(nr.firing_queue, record.heap_handle)
+#     nr.transition_entry[clock] = MNRTransition(
+#         0, consume_survival(record, when), record.distribution, record.te, when
+#     )
+# end

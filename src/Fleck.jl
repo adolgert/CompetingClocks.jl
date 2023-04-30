@@ -11,8 +11,7 @@ include("sample/firsttofire.jl")
 include("sample/nextreaction.jl")
 # include("sample/fixeddirect.jl")
 include("sample/direct.jl")
-# include("sample/anderson.jl")
-include("sample/newanderson.jl")
+include("sample/anderson.jl")
 include("vas.jl")
 
 export Never
