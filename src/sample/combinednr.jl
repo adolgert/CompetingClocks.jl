@@ -17,10 +17,10 @@ abstract type SamplingSpaceType end
 struct LinearSampling <: SamplingSpaceType end
 struct LogSampling <: SamplingSpaceType end
 sampling_space(::Type) = LinearSampling
-sampling_space(::Distributions.Exponential) = LogSampling
-sampling_space(::Distributions.Frechet) = LogSampling
-sampling_space(::Distributions.Gamma) = LogSampling
-sampling_space(::Distributions.Semicircle) = LinearSampling
+sampling_space(::Type{Distributions.Exponential}) = LogSampling
+sampling_space(::Type{Distributions.Frechet}) = LogSampling
+sampling_space(::Type{Distributions.Gamma}) = LogSampling
+sampling_space(::Type{Distributions.Semicircle}) = LinearSampling
 
 # The following four support functions are used by the CombinedNextReaction
 # sampler, and their use is decided by the `sampling_space()` above.
