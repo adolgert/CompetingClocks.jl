@@ -10,6 +10,11 @@ include("test_utility.jl")
 end
 
 
+@testset "test_combinednr.jl" begin
+    include("test_combinednr.jl")
+end
+
+
 @testset "test_firstreaction.jl" begin
     include("test_firstreaction.jl")
 end
