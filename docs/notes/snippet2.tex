@@ -1,0 +1,55 @@
+\begin{tabular}{|llrrrrr|} \hline
+& Space & $\mbox{log}_{10}|\epsilon|_1$ & $\mbox{log}_{10}\langle\epsilon\rangle$ & forward [s] & backward [s] & both [s]\\ \hline
+\multicolumn{7}{|l|}{Gumbel\{Float64\}($\mu$=0.0, $\theta$=1.0)}\\ \hline
+& Linear & {\color{blue}-16.0} & {\color{blue}-16.9} & {\color{blue}1.00e-06} & 3.26e-06 & {\color{blue}4.26e-06}\\
+& Log & Inf & Inf & 3.95e-06 & {\color{blue}1.84e-06} & 5.79e-06\\
+\hline
+\multicolumn{7}{|l|}{InverseGamma\{Float64\}(
+invd: Gamma\{Float64\}($\alpha$=1.0, $\theta$=1.0)
+$\theta$: 1.0
+)
+}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.7} & {\color{blue}1.44e-05} & {\color{blue}3.76e-05} & {\color{blue}5.20e-05}\\
+& Log & -14.3 & -15.2 & 2.09e-05 & 4.31e-05 & 6.40e-05\\
+\hline
+\multicolumn{7}{|l|}{InverseGaussian\{Float64\}($\mu$=1.0, $\lambda$=1.0)}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.2} & {\color{blue}3.66e-06} & {\color{blue}3.61e-05} & {\color{blue}3.98e-05}\\
+& Log & -13.6 & -14.6 & 7.06e-06 & 1.37e-04 & 1.44e-04\\
+\hline
+\multicolumn{7}{|l|}{JohnsonSU\{Int64\}($\xi$=0, $\lambda$=1, $\gamma$=0, $\delta$=1)}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.7} & {\color{blue}3.17e-06} & 4.16e-06 & {\color{blue}7.33e-06}\\
+& Log & -13.9 & -14.9 & 7.34e-06 & {\color{blue}3.30e-06} & 1.06e-05\\
+\hline
+\multicolumn{7}{|l|}{Kolmogorov()}\\ \hline
+& Linear & {\color{blue}-15.6} & -16.4 & {\color{blue}1.02e-06} & {\color{blue}1.02e-04} & {\color{blue}1.03e-04}\\
+& Log & -1.0 & {\color{blue}-Inf} & 2.34e-06 & 1.13e-03 & 1.13e-03\\
+\hline
+\multicolumn{7}{|l|}{Kumaraswamy\{Float64\}(a=1.0, b=1.0)}\\ \hline
+& Linear & {\color{blue}-16.3} & {\color{blue}-16.9} & {\color{blue}8.60e-07} & {\color{blue}9.00e-07} & {\color{blue}1.76e-06}\\
+& Log & -16.0 & -16.8 & 1.35e-06 & 1.32e-06 & 2.67e-06\\
+\hline
+\multicolumn{7}{|l|}{Laplace\{Float64\}($\mu$=0.0, $\theta$=1.0)}\\ \hline
+& Linear & {\color{blue}-16.9} & {\color{blue}-Inf} & {\color{blue}5.90e-07} & 1.89e-06 & 2.48e-06\\
+& Log & -11.7 & -14.1 & 1.08e-06 & {\color{blue}8.10e-07} & {\color{blue}1.89e-06}\\
+\hline
+\multicolumn{7}{|l|}{Levy\{Float64\}($\mu$=0.0, $\sigma$=1.0)}\\ \hline
+& Linear & {\color{blue}-15.2} & {\color{blue}-16.5} & {\color{blue}9.40e-07} & {\color{blue}1.00e-06} & {\color{blue}1.94e-06}\\
+& Log & -14.1 & -14.9 & 3.93e-06 & 1.68e-06 & 5.61e-06\\
+\hline
+\multicolumn{7}{|l|}{Lindley\{Float64\}($\theta$=1.0)}\\ \hline
+& Linear & {\color{blue}-15.7} & {\color{blue}-16.3} & {\color{blue}4.90e-07} & {\color{blue}1.53e-05} & {\color{blue}1.58e-05}\\
+& Log & -12.7 & -14.4 & 1.24e-06 & 1.57e-05 & 1.70e-05\\
+\hline
+\multicolumn{7}{|l|}{Logistic\{Float64\}($\mu$=0.0, $\theta$=1.0)}\\ \hline
+& Linear & {\color{blue}-16.0} & -17.2 & {\color{blue}6.60e-07} & 2.12e-06 & {\color{blue}2.78e-06}\\
+& Log & -14.8 & {\color{blue}-18.2} & 2.69e-06 & {\color{blue}1.27e-06} & 3.96e-06\\
+\hline
+\multicolumn{7}{|l|}{LogitNormal\{Float64\}($\mu$=0.0, $\sigma$=1.0)}\\ \hline
+& Linear & -15.5 & -16.3 & {\color{blue}2.29e-06} & {\color{blue}2.20e-06} & {\color{blue}4.49e-06}\\
+& Log & {\color{blue}-16.0} & {\color{blue}-16.6} & 5.37e-06 & 2.80e-06 & 8.17e-06\\
+\hline
+\multicolumn{7}{|l|}{LogNormal\{Float64\}($\mu$=0.0, $\sigma$=1.0)}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.7} & {\color{blue}2.39e-06} & {\color{blue}1.96e-06} & {\color{blue}4.35e-06}\\
+& Log & -14.1 & -15.1 & 4.31e-06 & 2.00e-06 & 6.31e-06\\
+\hline
+\end{tabular}
