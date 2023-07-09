@@ -1,5 +1,6 @@
 \documentclass{article}
 \usepackage{hyperref}
+\usepackage{xcolor}
 
 \title{Sampling Distributions in Julia}
 \author{Andrew Dolgert}
@@ -196,5 +197,44 @@ There are a couple of challenges. One is how to know when two floating-point val
 Another challenge is how to figure out which disabled transition is the one that fired. If the caller specifies it is disabling the transition that fired, then it's clear. If the caller doesn't specify, can we know? The transitions are in a heap where the soonest is on top. If the first transition that's disabled was the one on top and the next transition becomes the one on top, it could look like it was next to fire. We could check the times on those transitions in order to see whether the time of disabling matches the time of the top transition, but that's prone to error because it requires equality of floating-point numbers. There will definitely be some time when two numbers in a continuous time simulation are very close to each other.
 
 On the other hand, there isn't a good way to use a Next Reaction sampler except to always choose the transition it sampled to be next. Let's store the response from the next() function and assume that's the one that fired when it gets disabled.
+
+\section{Timing Sampling Methods}
+
+The Next Reaction method (Gibson and Bruck) and the Modified Next Reaction method (Anderson) are essentially the same algorithm except that one samples in a linear space and one samples in a logarithmic space. Which one is better depends on the distribution we're sampling and the parameter ranges for that distribution. This section looks at tests of the distributions defined in Julia in order to classify which one goes in which category, linear or logarithmic sampling.
+
+Below is a table that comes from a test in \texttt{test/nrmetric.jl}. The distributions come from \texttt{Distributions.jl}. Each distribution appears twice, once with default parameters and once as a truncated distribution, which is Julia's way of limiting the distribution's support so that we can sample values that are later than a given time. Each distribution is tested on 10,000 values. The table will have the following values.
+
+\begin{enumerate}
+	\item The space for the test, which is linear or logarithmic.
+
+	\item Error, as the log base-10 of the maximum error after sampling a survival and then inverting that back to get the sample. When the number is -16, that means the error is $10^{-16}$.
+
+	\item Average error in log base-10, which is the trimmed mean over all runs of the error in the previous column.
+
+	\item Forward timing in seconds. For the linear space, this is the time to perform the \texttt{ccdf} call. For the logarithmic space, this is the time to perform the \texttt{logccdf} call, both 10,000 times. A time of 6e-4 seconds means each iteration took, on average, 6e-8 seconds.
+
+	\item Backward timing in seconds. For the linear space, this is the time to perform the \texttt{cquantile} call. For the logarithmic space, this is the time to perform the \texttt{invlogccdf} call, both 10,000 times.
+\end{enumerate}
+
+\pagebreak
+\input{snippet1}
+
+\pagebreak
+\input{snippet2}
+
+\pagebreak
+\input{snippet3}
+
+The tables highlight which sampling method is more accurate and which is faster. Sometimes these two are at odds. Here's how I made choices.
+
+\begin{itemize}
+	\item Some distributions have trouble with log-space sampling in the tails. The Gumbel distribution is a good example. It works fine for values in between -2 and 2, but linear sampling remains stable outside that region, so we take the safer bet.
+
+	\item If the accuracy is great for either choice, but one is much faster, let's go with the faster one. The Laplace distribution is a good example. The worst accuracy is $10^{-15}$, but the log-space sampling is ten times faster. Another example is Cosine, where the log-space sampling gets an accuracy of $10^{-5.4}$ but the linear-space sampling accuracy is $10^{-10.9}$. While log-space is faster, we should surely use the linear sampling.
+\end{itemize}
+
+The Laplace distribution is the only one I can see going either way. You can either get ten times the accuracy or ten times the speed.
+
+The Exponential distribution has a problem with truncation. This should be fast and accurate but fails on both counts.
 
 \end{document}

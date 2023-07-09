@@ -1,10 +1,12 @@
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Fleck = "5bb9b785-358c-4fee-af0f-b94a146244a8"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 HypothesisTests = "09f84164-cd44-5f33-b23f-e6b0d136a0d5"
+InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
