@@ -69,6 +69,15 @@ invert_space(::Type{LinearSampling}, dist, survival) = cquantile(dist, survival)
 invert_space(::Type{LogSampling}, dist, survival) = invlogccdf(dist, survival)::Float64
 
 
+struct NRTransition
+    heap_handle::Int
+    survival::Float64 # value of S_{j}
+    distribution::UnivariateDistribution
+    te::Float64  # Enabling time of distribution
+    t0::Float64  # Enabling time of transition
+end
+
+
 """
 This combines Next Reaction Method and Modified Next Reaction Method.
 Each distribution is more precise being sampled in either a linear space
