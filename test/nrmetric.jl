@@ -116,6 +116,9 @@ function test_one!(buffer::AbstractArray, log::Vector{String}, dist)
     logear = (acc=log_accuracy!(buffer, dist), perf=log_timing!(buffer, dist))
 
     name = repr(dist)
+    if length(name) > 76
+        name = name[1:76]
+    end
     for (unic, latexc) in [
         ("{", raw"\{"), ("}", raw"\}"),
         ("θ", raw"$\theta$"), ("α", raw"$\alpha$"), ("β", raw"$\beta$"),
@@ -208,6 +211,12 @@ test_distributions = [
 
 println("There are $(length(test_distributions)) distributions to test.")
 
+trunc_distributions = Vector{UnivariateDistribution}()
+for t in test_distributions
+    push!(trunc_distributions, t)
+    push!(trunc_distributions, truncated(t, 0.01, Inf))
+end
+
 batch_size = 12
 full, partial = divrem(length(test_distributions), batch_size)
 iter_cnt = full + (partial > 0 ? 1 : 0)
@@ -217,12 +226,12 @@ for snip_idx in 1:iter_cnt
     push!(log, raw"& Space & $\mbox{log}_{10}|\epsilon|_1$ & $\mbox{log}_{10}\langle\epsilon\rangle$ & forward [s] & backward [s] & both [s]\\ \hline")
 
     low = (snip_idx - 1) * batch_size + 1
-    high = min(snip_idx * batch_size, length(test_distributions))
-    for dist in test_distributions[low:high]
+    high = min(snip_idx * batch_size, length(trunc_distributions))
+    for dist in trunc_distributions[low:high]
         println("Testing $(repr(dist))")
-        if typeof(dist) <: Biweight
+        if typeof(dist) <: Biweight || typeof(dist) <: Truncated{Biweight{Float64}}
             # Biweight gets hung up in the Linear sampling.
-            small_buffer = zeros(Float64, 1000)
+            small_buffer = zeros(Float64, 100)
             test_one!(small_buffer, log, dist)
         else
             test_one!(buffer, log, dist)

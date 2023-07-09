@@ -202,7 +202,7 @@ On the other hand, there isn't a good way to use a Next Reaction sampler except 
 
 The Next Reaction method (Gibson and Bruck) and the Modified Next Reaction method (Anderson) are essentially the same algorithm except that one samples in a linear space and one samples in a logarithmic space. Which one is better depends on the distribution we're sampling and the parameter ranges for that distribution. This section looks at tests of the distributions defined in Julia in order to classify which one goes in which category, linear or logarithmic sampling.
 
-Below is a table that comes from a test in \texttt{test/nrmetric.jl}. The distributions come from \texttt{Distributions.jl}. Each distribution is tested on 10,000 values. The table will have the following values.
+Below is a table that comes from a test in \texttt{test/nrmetric.jl}. The distributions come from \texttt{Distributions.jl}. Each distribution appears twice, once with default parameters and once as a truncated distribution, which is Julia's way of limiting the distribution's support so that we can sample values that are later than a given time. Each distribution is tested on 10,000 values. The table will have the following values.
 
 \begin{enumerate}
 	\item The space for the test, which is linear or logarithmic.
@@ -234,5 +234,7 @@ The tables highlight which sampling method is more accurate and which is faster.
 \end{itemize}
 
 The Laplace distribution is the only one I can see going either way. You can either get ten times the accuracy or ten times the speed.
+
+The Exponential distribution has a problem with truncation. This should be fast and accurate but fails on both counts.
 
 \end{document}
