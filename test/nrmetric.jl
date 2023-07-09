@@ -15,6 +15,7 @@
 using Distributions
 using Printf
 using StatsBase
+using Fleck
 
 
 function linear_accuracy!(buffer::AbstractArray, dist)
@@ -126,12 +127,13 @@ function test_one!(buffer::AbstractArray, log::Vector{String}, dist)
         name = replace(name, unic => latexc)
     end
     push!(log, raw"\multicolumn{7}{|l|}{" * name * raw"}\\ \hline")
+    ratio = div(10_000, length(buffer))
     for (space, metric) in [("Linear", linear), ("Log", logear)]
-        l1 = @sprintf "%3.1f" log10(metric.acc.l1)
-        eps = @sprintf "%3.1f" log10(metric.acc.mean)
-        forward = @sprintf "%7.2e" metric.perf[1].time
-        backward = @sprintf "%7.2e" metric.perf[2].time
-        both = @sprintf "%7.2e" (metric.perf[1].time + metric.perf[2].time)
+        l1 = @sprintf "%3.1f" log10(metric.acc.l1 * ratio)
+        eps = @sprintf "%3.1f" log10(metric.acc.mean * ratio)
+        forward = @sprintf "%7.2e" (metric.perf[1].time * ratio)
+        backward = @sprintf "%7.2e" (metric.perf[2].time * ratio)
+        both = @sprintf "%7.2e" ((metric.perf[1].time + metric.perf[2].time) * ratio)
         l1 = color(space, linear.acc.l1, logear.acc.l1, l1)
         eps = color(space, linear.acc.mean, logear.acc.mean, eps)
         forward = color(space, linear.perf[1].time, logear.perf[1].time, forward)
@@ -147,7 +149,7 @@ function test_one!(buffer::AbstractArray, log::Vector{String}, dist)
     push!(log, raw"\hline")
 end
 
-sample_cnt = 100
+sample_cnt = 10_000
 buffer = zeros(Float64, sample_cnt)
 test_distributions = [
     Distributions.Arcsine(),
@@ -218,7 +220,13 @@ for snip_idx in 1:iter_cnt
     high = min(snip_idx * batch_size, length(test_distributions))
     for dist in test_distributions[low:high]
         println("Testing $(repr(dist))")
-        test_one!(buffer, log, dist)
+        if typeof(dist) <: Biweight
+            # Biweight gets hung up in the Linear sampling.
+            small_buffer = zeros(Float64, 1000)
+            test_one!(small_buffer, log, dist)
+        else
+            test_one!(buffer, log, dist)
+        end
     end
 
     push!(log, raw"\end{tabular}")
