@@ -1,6 +1,7 @@
 using DataStructures
+using Random
 
-export NextReaction
+using Fleck: OrderedSample
 
 abstract type AbstractNextReaction{T} end
 

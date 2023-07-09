@@ -1,6 +1,8 @@
 using DataStructures
+using Random
 
-export ModifiedNextReaction
+using Fleck: OrderedSample
+
 
 """
     MNRM by Anderson

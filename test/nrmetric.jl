@@ -17,6 +17,8 @@ using Printf
 using StatsBase
 using Fleck
 
+include("nextreaction.jl")
+include("anderson.jl")
 
 function linear_accuracy!(buffer::AbstractArray, dist)
     for (i, v) in enumerate(LinRange(0.0001, 0.9999, length(buffer)))
