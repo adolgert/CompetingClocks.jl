@@ -12,7 +12,7 @@ hazard. The former is used for the Next Reaction method by Gibson and Bruck.
 The latter is used by the Modified Next Reaction method of Anderson.
 We are calling the first a linear space and the second a logarithmic space.
 """
-sampling_space(x) = sampling_space(typeof(x))
+sampling_space(x::T) where {T <: UnivariateDistribution} = sampling_space(typeof(x))
 abstract type SamplingSpaceType end
 struct LinearSampling <: SamplingSpaceType end
 struct LogSampling <: SamplingSpaceType end
@@ -55,11 +55,11 @@ sampling_space(::Type{Distributions.Weibull}) = LogSampling
 
 # The following four support functions are used by the CombinedNextReaction
 # sampler, and their use is decided by the `sampling_space()` above.
-get_survival_zero(x::T) where {T} = get_survival_zero(sampling_space(T))
+get_survival_zero(x::T) where {T <: UnivariateDistribution} = get_survival_zero(sampling_space(T))
 get_survival_zero(::Type{LinearSampling}) = 0.0
 get_survival_zero(::Type{LogSampling}) = -Inf
 
-get_survival_max(x::T) where {T} = get_survival_max(sampling_space(T))
+get_survival_max(x::T) where {T <: UnivariateDistribution} = get_survival_max(sampling_space(T))
 get_survival_max(::Type{LinearSampling}) = 1.0
 get_survival_max(::Type{LogSampling}) = 0.0
 
@@ -111,7 +111,8 @@ function next(nr::CombinedNextReaction{T}, when::Float64, rng::AbstractRNG) wher
         # by marking its remaining cumulative time as 0.0.
         entry = nr.transition_entry[least.key]
         nr.transition_entry[least.key] = NRTransition(
-            entry.heap_handle, get_survival_zero(nr), entry.distribution, entry.te, entry.t0
+            entry.heap_handle, get_survival_zero(entry.distribution),
+            entry.distribution, entry.te, entry.t0
         )
         return (least.time, least.key)
     else
@@ -178,11 +179,11 @@ function enable!(
     te::Float64, when::Float64, rng::AbstractRNG) where {T}
 
     # Three cases: a) never been enabled b) currently enabled c) was disabled.
-    record = get(nr.transition_entry, clock, NRTransition(0, get_survival_zero(nr), Never(), 0.0, 0.0))
+    record = get(nr.transition_entry, clock, NRTransition(0, get_survival_zero(distribution), Never(), 0.0, 0.0))
     heap_handle = record.heap_handle
 
     # if record.survival <= 0.0
-    if record.survival <= get_survival_zero(nr)
+    if record.survival <= get_survival_zero(distribution)
         tau, survival = sample_shifted(nr, rng, distribution, te, when)
         sample = OrderedSample{T}(clock, tau)        
         if record.heap_handle > 0
