@@ -12,7 +12,9 @@ hazard. The former is used for the Next Reaction method by Gibson and Bruck.
 The latter is used by the Modified Next Reaction method of Anderson.
 We are calling the first a linear space and the second a logarithmic space.
 """
-sampling_space(x::T) where {T <: UnivariateDistribution} = sampling_space(typeof(x))::Union{Type{LinearSampling},Type{LogSampling}}
+function sampling_space(x::T) where {T <: UnivariateDistribution}
+    sampling_space(typeof(x))::Union{Type{LinearSampling},Type{LogSampling}}
+end
 abstract type SamplingSpaceType end
 struct LinearSampling <: SamplingSpaceType end
 struct LogSampling <: SamplingSpaceType end
@@ -55,16 +57,27 @@ sampling_space(::Type{Distributions.Weibull}) = LogSampling
 
 # The following four support functions are used by the CombinedNextReaction
 # sampler, and their use is decided by the `sampling_space()` above.
-get_survival_zero(::T) where {T <: UnivariateDistribution} = get_survival_zero(sampling_space(T))::Float64
-get_survival_zero(::Type{T}) where {T <: UnivariateDistribution} = get_survival_zero(sampling_space(T))::Float64
+# I had some trouble getting these functions to be type stable, and their lack
+# of type stability hurt performance. Test performance by using
+# tests/time_combinednr.jl.
+function get_survival_zero(::T) where {T <: UnivariateDistribution}
+    get_survival_zero(sampling_space(T))::Float64
+end
+function get_survival_zero(::Type{T}) where {T <: UnivariateDistribution}
+    get_survival_zero(sampling_space(T))::Float64
+end
 get_survival_zero(::Type{LinearSampling}) = 0.0::Float64
 get_survival_zero(::Type{LogSampling}) = -Inf::Float64
 
-survival_space(::Type{T}, dist, sample) where {T <: UnivariateDistribution} = survival_space(sampling_space(T), dist, sample)
+function survival_space(::Type{T}, dist, sample) where {T <: UnivariateDistribution}
+    survival_space(sampling_space(T), dist, sample)
+end
 survival_space(::Type{LinearSampling}, dist, sample) = ccdf(dist, sample)::Float64
 survival_space(::Type{LogSampling}, dist, sample) = logccdf(dist, sample)::Float64
 
-invert_space(::Type{T}, dist, survival) where {T <: UnivariateDistribution} = invert_space(sampling_space(T), dist, survival)
+function invert_space(::Type{T}, dist, survival) where {T <: UnivariateDistribution}
+    invert_space(sampling_space(T), dist, survival)
+end
 invert_space(::Type{LinearSampling}, dist, survival) = cquantile(dist, survival)::Float64
 invert_space(::Type{LogSampling}, dist, survival) = invlogccdf(dist, survival)::Float64
 
@@ -79,7 +92,18 @@ end
 
 
 """
+    CombinedNextReaction{KeyType}()
+
 This combines Next Reaction Method and Modified Next Reaction Method.
+The Next Reaction Method is from Gibson and Bruck in their 2000 paper called
+``Efficient Exact Stochastic Simulation of Chemical Systems with Many Species
+and Many Channels." The Modified Next Reaction Method is from David F. Anderson's
+2007 paper, ``A modified Next Reaction Method for simulating chemical systems
+with time dependent propensities and delays." Both methods reuse draws of random
+numbers. The former works by accumulating survival of a distribution in
+a linear space and the latter works by accumulating survival of a distribution
+in a log space.
+
 Each distribution is more precise being sampled in either a linear space
 or a log space. This sampler chooses which space to use depending on the
 type of the `UnivariateDistribution`. Defaults are set for those distributions
@@ -97,6 +121,9 @@ given distribution, and specify its sampling space.
 struct LinearGamma <: Distributions.Gamma end
 sampling_space(::LinearGamma) = LinearSampling
 ```
+
+If you want to test a distribution, look at `tests/nrmetric.jl` to see how
+distributions are timed.
 """
 struct CombinedNextReaction{T}
     firing_queue::MutableBinaryHeap{OrderedSample{T}}
@@ -128,6 +155,9 @@ function next(nr::CombinedNextReaction, when::Float64, rng::AbstractRNG)
 end
 
 
+# Implementation note: This function and others below are parametrized on the
+# sampling space. If you parametrize on individual distributions, it will create
+# too many specializations, so using the SamplingSpaceType is a nice compromise.
 function sample_shifted(
     rng::AbstractRNG,
     distribution::UnivariateDistribution,
@@ -202,6 +232,7 @@ function enable!(
     nr::CombinedNextReaction{T}, clock::T, distribution::UnivariateDistribution,
     te::Float64, when::Float64, rng::AbstractRNG) where {T}
     enable!(nr, clock, distribution, sampling_space(distribution), te, when, rng)
+    nothing
 end
 
 
@@ -210,7 +241,11 @@ function enable!(
     te::Float64, when::Float64, rng::AbstractRNG) where {T, S <: SamplingSpaceType}
     
     # Three cases: a) never been enabled b) currently enabled c) was disabled.
-    record = get(nr.transition_entry, clock, NRTransition(0, get_survival_zero(S), Never(), 0.0, 0.0))
+    record = get(
+        nr.transition_entry,
+        clock,
+        NRTransition(0, get_survival_zero(S), Never(), 0.0, 0.0)
+        )
     heap_handle = record.heap_handle
 
     # if the transition needs to be re-drawn.
@@ -262,6 +297,11 @@ function disable!(nr::CombinedNextReaction{T}, clock::T, when::Float64) where {T
     record = nr.transition_entry[clock]
     delete!(nr.firing_queue, record.heap_handle)
     nr.transition_entry[clock] = NRTransition(
-        0, consume_survival(record, record.distribution, sampling_space(record.distribution), when), record.distribution, record.te, when
+        0,
+        consume_survival(record, record.distribution, sampling_space(record.distribution), when),
+        record.distribution,
+        record.te,
+        when
     )
+    nothing
 end
