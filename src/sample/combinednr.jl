@@ -12,7 +12,7 @@ hazard. The former is used for the Next Reaction method by Gibson and Bruck.
 The latter is used by the Modified Next Reaction method of Anderson.
 We are calling the first a linear space and the second a logarithmic space.
 """
-sampling_space(x::T) where {T <: UnivariateDistribution} = sampling_space(typeof(x))
+sampling_space(x::T) where {T <: UnivariateDistribution} = sampling_space(typeof(x))::Union{Type{LinearSampling},Type{LogSampling}}
 abstract type SamplingSpaceType end
 struct LinearSampling <: SamplingSpaceType end
 struct LogSampling <: SamplingSpaceType end
@@ -55,21 +55,18 @@ sampling_space(::Type{Distributions.Weibull}) = LogSampling
 
 # The following four support functions are used by the CombinedNextReaction
 # sampler, and their use is decided by the `sampling_space()` above.
-get_survival_zero(x::T) where {T <: UnivariateDistribution} = get_survival_zero(sampling_space(T))
-get_survival_zero(::Type{LinearSampling}) = 0.0
-get_survival_zero(::Type{LogSampling}) = -Inf
+get_survival_zero(::T) where {T <: UnivariateDistribution} = get_survival_zero(sampling_space(T))::Float64
+get_survival_zero(::Type{T}) where {T <: UnivariateDistribution} = get_survival_zero(sampling_space(T))::Float64
+get_survival_zero(::Type{LinearSampling}) = 0.0::Float64
+get_survival_zero(::Type{LogSampling}) = -Inf::Float64
 
-get_survival_max(x::T) where {T <: UnivariateDistribution} = get_survival_max(sampling_space(T))
-get_survival_max(::Type{LinearSampling}) = 1.0
-get_survival_max(::Type{LogSampling}) = 0.0
+survival_space(::Type{T}, dist, sample) where {T <: UnivariateDistribution} = survival_space(sampling_space(T), dist, sample)
+survival_space(::Type{LinearSampling}, dist, sample) = ccdf(dist, sample)::Float64
+survival_space(::Type{LogSampling}, dist, sample) = logccdf(dist, sample)::Float64
 
-survival_space(dist, sample) = survival_space(sampling_space(dist), dist, sample)
-survival_space(::Type{LinearSampling}, dist, sample) = ccdf(dist, sample)
-survival_space(::Type{LogSampling}, dist, sample) = logccdf(dist, sample)
-
-invert_space(dist, survival) = invert_space(sampling_space(dist), dist, survival)
-invert_space(::Type{LinearSampling}, dist, survival) = cquantile(dist, survival)
-invert_space(::Type{LogSampling}, dist, survival) = invlogccdf(dist, survival)
+invert_space(::Type{T}, dist, survival) where {T <: UnivariateDistribution} = invert_space(sampling_space(T), dist, survival)
+invert_space(::Type{LinearSampling}, dist, survival) = cquantile(dist, survival)::Float64
+invert_space(::Type{LogSampling}, dist, survival) = invlogccdf(dist, survival)::Float64
 
 
 """
@@ -104,7 +101,7 @@ function CombinedNextReaction{T}() where {T}
 end
 
 
-function next(nr::CombinedNextReaction{T}, when::Float64, rng::AbstractRNG) where {T}
+function next(nr::CombinedNextReaction, when::Float64, rng::AbstractRNG)
     if !isempty(nr.firing_queue)
         least = top(nr.firing_queue)
         # For this sampler, mark this transition as the one that will fire
@@ -123,35 +120,34 @@ end
 
 
 function sample_shifted(
-    nr::CombinedNextReaction{T},
     rng::AbstractRNG,
     distribution::UnivariateDistribution,
+    ::Type{S},
     te::Float64,
     when::Float64
-    ) where {T}
+    ) where {S <: SamplingSpaceType}
     if te < when
         shifted_distribution = truncated(distribution, when - te, Inf)
         sample = rand(rng, shifted_distribution)
         tau = te + sample
-        survival = survival_space(shifted_distribution, sample)
+        survival = survival_space(S, shifted_distribution, sample)
     else  # te >= when
         # The distribution starts in the future
         sample = rand(rng, distribution)
         tau = te + sample
-        survival = survival_space(distribution, sample)
+        survival = survival_space(S, distribution, sample)
     end
     (tau, survival)
 end
 
 
 function sample_by_inversion(
-    nr::NextReaction{T},
-    distribution::CombinedNextReaction, te::Float64, when::Float64, survival::Float64
-    ) where {T}
+    distribution::UnivariateDistribution, ::Type{S}, te::Float64, when::Float64, survival::Float64
+    ) where {S <: SamplingSpaceType}
     if te < when
-        te + invert_space(truncated(distribution, when - te, Inf), survival)
+        te + invert_space(S, truncated(distribution, when - te, Inf), survival)
     else   # te > when
-        te + invert_space(distribution, survival)
+        te + invert_space(S, distribution, survival)
     end
 end
 
@@ -159,41 +155,69 @@ end
 # Transition was enabled between time record.t0 and tn.
 # Divide the survival by the conditional survival between t0 and tn.
 # te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
-function consume_survival(nr::CombinedNextReaction{T}, record::NRTransition, tn::Float64) where {T}
+function consume_survival(
+    record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::Float64
+    ) where {S <: LinearSampling}
     survive_te_tn = if record.te < tn
-        survival_space(record.distribution, tn-record.te)
+        ccdf(distribution, tn-record.te)::Float64
     else
-        get_survival_max(record.distribution)
+        one(Float64)
     end
     survive_te_t0 = if record.te < record.t0
-        survival_space(record.distribution, record.t0-record.te)
+        ccdf(distribution, record.t0-record.te)::Float64
     else
-        get_survival_max(record.distribution)
+        one(Float64)
     end
     record.survival / (survive_te_t0 * survive_te_tn)
+end
+
+
+function consume_survival(
+    record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::Float64
+    ) where {S <: LogSampling}
+    log_survive_te_tn = if record.te < tn
+        logccdf(distribution, tn-record.te)::Float64
+    else
+        zero(Float64)
+    end
+    log_survive_te_t0 = if record.te < record.t0
+        logccdf(distribution, record.t0-record.te)::Float64
+    else
+        zero(Float64)
+    end
+    record.survival - (log_survive_te_t0 + log_survive_te_tn)
 end
 
 
 function enable!(
     nr::CombinedNextReaction{T}, clock::T, distribution::UnivariateDistribution,
     te::Float64, when::Float64, rng::AbstractRNG) where {T}
+    enable!(nr, clock, distribution, sampling_space(distribution), te, when, rng)
+end
 
+
+function enable!(
+    nr::CombinedNextReaction{T}, clock::T, distribution::UnivariateDistribution, ::Type{S},
+    te::Float64, when::Float64, rng::AbstractRNG) where {T, S <: SamplingSpaceType}
+    
     # Three cases: a) never been enabled b) currently enabled c) was disabled.
-    record = get(nr.transition_entry, clock, NRTransition(0, get_survival_zero(distribution), Never(), 0.0, 0.0))
+    record = get(nr.transition_entry, clock, NRTransition(0, get_survival_zero(S), Never(), 0.0, 0.0))
     heap_handle = record.heap_handle
 
-    # if record.survival <= 0.0
-    if record.survival <= get_survival_zero(distribution)
-        tau, survival = sample_shifted(nr, rng, distribution, te, when)
-        sample = OrderedSample{T}(clock, tau)        
+    # if the transition needs to be re-drawn.
+    if record.survival <= get_survival_zero(S)
+        tau, shift_survival = sample_shifted(rng, distribution, S, te, when)
+        sample = OrderedSample{T}(clock, tau)
         if record.heap_handle > 0
             update!(nr.firing_queue, record.heap_handle, sample)
         else
             heap_handle = push!(nr.firing_queue, sample)
         end
         nr.transition_entry[clock] = NRTransition(
-            heap_handle, survival, distribution, te, when
+            heap_handle, shift_survival, distribution, te, when
         )
+        
+    # The transition has remaining lifetime.
     else
         # The transition was previously enabled.
         if record.heap_handle > 0
@@ -203,24 +227,25 @@ function enable!(
                 # No change. It's common to re-enable an already-enabled distribution.
             else
                 # Account for time between when this was last enabled and now.
-                survival = consume_survival(nr, record, when)
-                tau = sample_by_inversion(nr, distribution, te, when, survival)
+                survival_remain = consume_survival(record, record.distribution, S, when)
+                tau = sample_by_inversion(distribution, S, te, when, survival_remain)
                 entry = OrderedSample{T}(clock, tau)
                 update!(nr.firing_queue, record.heap_handle, entry)
                 nr.transition_entry[clock] = NRTransition(
-                    heap_handle, survival, distribution, te, when
+                    heap_handle, survival_remain, distribution, te, when
                 )
             end
 
         # The transition was previously disabled.
         else
-            tau = sample_by_inversion(nr, distribution, te, when, record.survival)
+            tau = sample_by_inversion(distribution, S, te, when, record.survival)
             heap_handle = push!(nr.firing_queue, OrderedSample{T}(clock, tau))
             nr.transition_entry[clock] = NRTransition(
                 heap_handle, record.survival, distribution, te, when
             )
         end
     end
+    nothing
 end
 
 
@@ -228,6 +253,6 @@ function disable!(nr::CombinedNextReaction{T}, clock::T, when::Float64) where {T
     record = nr.transition_entry[clock]
     delete!(nr.firing_queue, record.heap_handle)
     nr.transition_entry[clock] = NRTransition(
-        0, consume_survival(nr, record, when), record.distribution, record.te, when
+        0, consume_survival(record, record.distribution, sampling_space(record.distribution), when), record.distribution, record.te, when
     )
 end
