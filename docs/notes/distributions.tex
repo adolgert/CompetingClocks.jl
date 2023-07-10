@@ -1,6 +1,31 @@
 \documentclass{article}
 \usepackage{hyperref}
-\usepackage{xcolor}
+\usepackage{jlcode}
+\usepackage{listings}
+\usepackage{sourcecodepro}
+% \usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[T1]{fontenc}
+
+% \lstdefinelanguage{Julia}%
+%   {morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,%
+%       end,export,false,for,function,immutable,import,importall,if,in,%
+%       macro,module,otherwise,quote,return,switch,true,try,type,typealias,%
+%       using,while},%
+%    sensitive=true,%
+%    alsoother={$},%
+%    morecomment=[l]\#,%
+%    morecomment=[n]{\#=}{=\#},%
+%    morestring=[s]{"}{"},%
+%    morestring=[m]{'}{'},%
+% }[keywords,comments,strings]%
+
+% \lstset{language=Julia,
+% 	basicstyle=\ttfamily\tiny,
+% 	keywordstyle=\color{blue}\ttfamily\tiny,
+% 	stringstyle=\color{red}\ttfamily\tiny,
+% 	commentstyle=\color{ForestGreen}\ttfamily\tiny,
+% 	morecomment=[l][\color{purple}]{\#}
+% }
 
 \title{Sampling Distributions in Julia}
 \author{Andrew Dolgert}
@@ -124,7 +149,7 @@ x = \Lambda(y)
 
 \section{Next Reaction for Non-Markov Processes}
 
-Gibson and Bruck describe the Next Reaction Method for non-Markov processes by focusing on one step of the algorithm. Assuming there was a draw for some time $\tau$ when the distribution $F_{a_n}$ would fire, and there is now a change to create distribution $F_{a,n+1}$, the new draw should be
+Gibson and Bruck describe the Next Reaction Method for non-Markov processes by focusing on one step of the algorithm. Identify the transitions with $a$ and the time points as $T_n$. Assuming there was a draw for some time $\tau$ when the distribution $F_{a,n}$ would fire, and there is now a change to create distribution $F_{a,n+1}$, the new draw should be
 \begin{equation}
 	\tau'=F_{a,n+1}^{-1}\left(\frac{F_{a,n}(\tau) - F_{a,n}(t_n)}{1-F_{a,n}(t_n)}\right).
 \end{equation}
@@ -236,5 +261,95 @@ The tables highlight which sampling method is more accurate and which is faster.
 The Laplace distribution is the only one I can see going either way. You can either get ten times the accuracy or ten times the speed.
 
 The Exponential distribution has a problem with truncation. This should be fast and accurate but fails on both counts.
+
+
+\section{Competing Processes}
+
+In this section, we ask how to calculate the likelihood of a trajectory. A trajectory is a single element of the joint random variables $\left\{X_n,T_n\right\}$ where $X_n$ is the state at time $n$ and $T_n$ is the time at time $n$. The curly-braces denote the set of all times $n$. Our goal is to be able to calculate this quantity numerically using a simulation.
+
+Start by asking the cumulative distribution function of a single step of a trajectory. Think of distributions, defined relative to a start time at $T_n$. Each is set to fire at some next time $x_a$. The joint cumulative density function from one time $T_n$ to the next, $T_{n+1}$ can be decomposed into independent density functions.
+\begin{eqnarray}
+	F_n(x_1, x_2,\ldots,x_m) &= &\int_0^{x_1}\cdots\int_0^{x_m}f(\xi_1,\xi_2,\ldots,\xi_m)d\xi_m\ldots d\xi_1 \\
+	&= &\int_0^{x_1}\cdots\int_0^{x_m}\prod_a f_a(\xi_a)d\xi_m\ldots d\xi_1\ \\
+	&= &\prod_a \left[\int_0^{\xi_a}f_a(\xi_a)d\xi_m\ldots d\xi_1\right]
+\end{eqnarray}
+If the next time step is at time $t=T_{n+1}-T_n$, then the joint cumulative distribution function is $F_n(t)=\prod_a F_a(t).$
+
+Now that we have the cumulative distribution function, it may be easier to see the likelihood of a single step of the trajectory. Given competing processes, the likelihood is the probability that one particular trajectory, called $\alpha$, fires between time $t$ and $t+\delta t$, and all other transitions fire later. We'll use $S(t)$ for the survival and $h(t)$ for the hazard.
+\begin{eqnarray}
+	c_{\alpha}(t)dt &=& f_{\alpha}(t)\prod_{a\ne\alpha}\left[\int_{t}^\infty f_a(\xi_a)dx_a\right] \\
+	&=& f_{\alpha}(t)\prod_{a\ne\alpha}S_a(t) \\
+	&=& \frac{f_{\alpha}(t)}{S_\alpha(t)}\prod_{a}S_a(t) \\
+	&=& h_{\alpha}(t)\prod_{a}S_a(t)
+\end{eqnarray}
+At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. If we think about the sequence of $\left\{T_n\right\}$, the $c_\alpha(t)$ form a matrix called the core matrix.
+
+We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
+
+Look, these values are remarkably similar to those computed for the Next Reaction method. And here's how they relate to Gillespie's method.
+
+
+\section{Common random numbers}
+
+Instead of calling \texttt{rand(rng, distribution)}, change it to \texttt{rand(rng, distribution, clock)}. Then keep track of a) the clock b) its $n$-th call and c) the survival associated with that call. Record choices and replay.
+
+This works best with samplers that use fewer random numbers, such as the Next Reaction method. It's these lines we would want to replace. In the case of CRN, the input wouldn't be a random sample but would be a survival from which to determine the sample.
+
+\begin{jllisting}
+sample = rand(rng, distribution)
+tau = te + sample
+survival = survival_space(S, distribution, sample)
+\end{jllisting}
+
+What if you used CRN and a direct method? I don't know.
+
+
+\section{Importance Sampling}
+
+Why would you calculate a likelihood? So that you can artificially increase the likelihood of trajectories with desired outcomes in order to improve their statistics.
+
+\subsection{Splitting}
+
+This version of importance sampling is simple to implement. When a trajectory is in the right direction, split it into multiple trajectories. Then, when counting results, down-weight those trajectories by the split. If one trajectory splits into 10, count the results by 1/10th.
+
+A good example of splitting is a simulation that takes place on an energy landscape. Picture two valleys and a mountain pass between them. The simulation starts in one valley and rarely crosses the pass to the next valley. For those simulations that approach the pass, you could split the trajectories in order to increase the quality of statistics for the likelihood of reaching the other valley.
+
+Splitting is implemented not in the sampler but in the driver of the simulation. You would copy the simulation state and the sampler state $N$ times and then down-weight the contribution of each.
+
+How would we implement that?
+
+
+\subsection{Exclusion}
+
+Here, we choose a transition and disallow it from firing. For instance, it's common in disease modeling to ask how large an outbreak would be, were there an outbreak. That's a conditional probability, conditioned on the disease never reaching extinction. 
+
+There are two ways to calculate an exclusion-sampled trajectory. Picture a herd of animals with only one infectious. It could either recover or infect another in the herd, and we'll exclude recovery, but we have to account for the decreased likelihood of the trajectory given that it excludes recovery.
+
+One approach is to calculate the marginal probability of recovery and discount the ensuing draw. This works for sure.
+
+The other approach is to leave recovery in the draws and use the draws themselves to do the downweighting. (Maybe?)
+
+
+\subsection{Weighting Probability}
+
+This is the most difficult version to do. You have to take the core matrix, aka the XXX. Then adjust each $c_\alpha(t)$ with a multiplicative weight. Then reconstitute the total survival, taking the hazard from the reweighted core matrix. Now draw from this distribution.
+
+
+\subsection{Examples}
+Example: Preventing extinction in disease simulation.
+
+Example: Estimation of energy barrier.
+
+
+\section{Hamiltonian Monte Carlo}
+
+My favorite housing spread example.
+
+
+\section{Piecewise Deterministic Markov Processes}
+
+As long as the sampler can sample the distribution using the given methods, that distribution can be determined by any equation, including an ODE. In one version, the distribution is a delta function, and these completely work. You have to re-enable the distribution each time the ODE changes its prediction. In another version, there is still a continuous distribution, but it's determined by the ODE.
+
+Show that a delta-function can be included in Fleck.
 
 \end{document}
