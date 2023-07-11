@@ -1,31 +1,11 @@
 \documentclass{article}
 \usepackage{hyperref}
-\usepackage{jlcode}
+\usepackage{jlcode} % https://github.com/wg030/jlcode
 \usepackage{listings}
-\usepackage{sourcecodepro}
+%\usepackage{sourcecodepro}
 % \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage[T1]{fontenc}
 
-% \lstdefinelanguage{Julia}%
-%   {morekeywords={abstract,break,case,catch,const,continue,do,else,elseif,%
-%       end,export,false,for,function,immutable,import,importall,if,in,%
-%       macro,module,otherwise,quote,return,switch,true,try,type,typealias,%
-%       using,while},%
-%    sensitive=true,%
-%    alsoother={$},%
-%    morecomment=[l]\#,%
-%    morecomment=[n]{\#=}{=\#},%
-%    morestring=[s]{"}{"},%
-%    morestring=[m]{'}{'},%
-% }[keywords,comments,strings]%
-
-% \lstset{language=Julia,
-% 	basicstyle=\ttfamily\tiny,
-% 	keywordstyle=\color{blue}\ttfamily\tiny,
-% 	stringstyle=\color{red}\ttfamily\tiny,
-% 	commentstyle=\color{ForestGreen}\ttfamily\tiny,
-% 	morecomment=[l][\color{purple}]{\#}
-% }
 
 \title{Sampling Distributions in Julia}
 \author{Andrew Dolgert}
@@ -37,10 +17,11 @@
 In order to write a continuous-time simulation, we need to sample distributions. There are many ways to sample these distributions, and they involve different mathematical manipulations of those distributions. This document looks at the functions defined by Julia for manipulating distributions, in order to figure out how to write samplers.
 
 
-\section{Notation for Distributions}
+\section{Notation for Distributions}\label{sec:notation}%
+
 We need to use some accepted notation for a statistical distribution. Let's choose some variable names to use.
 
-A \emph{cumulative distribution} is the probability of an event before a given time. The random variate is $T$ and $t$ is a parameter. $P$ denotes a probability, and $F$ is the name we choose for a general cumulative distribution.
+A \emph{cumulative distribution} is the probability of an event before a given time. The random variate is $T$ and $t$ is a parameter. $P$ denotes a probability, and $F$ is the name we choose for a general cumulative distribution, or cdf.
 \begin{equation}
   P(T \le t) = F(t)
 \end{equation}
@@ -70,14 +51,54 @@ f(t) = \lambda(t)e^{-\int_0^t\lambda(s)ds}
 \end{equation}
 The survival, in terms of the hazard rate, is one term.
 \begin{equation}
-G(t)=e^{-\int_0^t\lambda(s)ds}
+S(t)=e^{-\int_0^t\lambda(s)ds}
+\end{equation}
+Because the survival has this form, where it's an integral in the exponential, we can think of intermediate waypoints in time.
+\begin{equation}
+	S(t)=e^{-\int_0^{t_1}\lambda(s)ds}e^{-\int_{t_1}^t\lambda(s)ds}
+\end{equation}
+Each of the terms is a conditional survival, written $S(t_1,t_2)$. In other words,
+\begin{equation}
+	S(t) = S(0, t) = S(0, t_1)S(t_1,t),
+\end{equation}
+so people say the conditional survival is multiplicative. Going back to the powerful probability language the conditional survival can be written in terms of the marginal survival.
+\begin{equation}
+	P(T>t|T>t_1) = \frac{P(T>t)}{P(T>t_1)}.
+\end{equation}
+Multiplying both sides shows that conditional survival is multiplicative.
+\begin{equation}
+	P(T>t)=P(T>t_1)P(T>t|T>t_1)
+\end{equation}
+Another way to look at a conditional survival is in the cdf space, where it becomes a fraction.
+\begin{equation}
+	S(t_1,t) = \frac{S(t)}{S(t_1)} = \frac{1-F(t)}{1-F(t_1)}
+\end{equation}
+Writing the survival in terms of the hazard also makes it easier to see how it relates to the pdf.
+\begin{equation}
+	f(t)=-\frac{d}{dt}S(t)
 \end{equation}
 The log of the survival is called the integrated hazard.
 \begin{equation}
-\ln G(t) = -\int_0^t\lambda(s)ds = -\Lambda(t)
+\ln S(t) = -\int_0^t\lambda(s)ds = -\Lambda(t)
 \end{equation}
+You can get the hazard directly from survival and the pdf.
+\begin{equation}
+	\lambda(t) = \frac{f(t)}{S(t)}
+\end{equation}
+Rearranging slightly shows us a form we'll see later, $f(t)=\lambda(t)S(t)$.
 
-\section{Julia Distributions}
+What if we had a distribution described by $\lambda(t)$ and wanted to define a new distribution that started later. For instance, a Gamma distribution fits our data, but only if it starts after $t_0=0.1$? For such a distribution, the new survival would be
+\begin{equation}
+	S'(t)=e^{-\int_{t_0}^{t_0+t}\lambda(s)ds} = \frac{S(t_0,t_0+t)}{S(0, t_0)}.
+\end{equation}
+An even easier way to think about how the distribution changes is to consider changes not to the exponential but to the integral inside the exponential.
+\begin{equation}
+	\Lambda'(t) = \int_{t_0}^{t_0+t}\lambda(s)ds = \int_0^{t_0+t}\lambda(s)ds - \int_0^{t_0}\lambda(s)ds = \Lambda(t_0+t) - \Lambda(t_0)
+\end{equation}
+If, for some reason, we need to think about shifting distributions, and if we can work in this space of survivals and integrated hazards, then there are concise ways to recalculate a shifted distribution from its original form.
+
+
+\section{Julia Distributions}\label{sec:juliadist}
 Julia has a \texttt{Distributions.jl} library that contains univariate distributions, which are what we want. Let's walk through the functions this package offers for working with those distributions. We can write each function's mathematical equivalent.
 
 \subsection{Parameters}
@@ -112,42 +133,93 @@ Julia has one function to retrieve all parameters of a distribution and a few fu
 the shortest path to our calculation in code.\label{julia-translation}}
 \end{table}
 
-\texttt{insupport(d::UnivariateDistribution, x::Any)}---Whether $t$ is in the domain of $f(t)$.
+Later we will use two pairs of functions from \texttt{Distributions.jl} to implement Next Reaction method. The first pair is the survival and its inverse: \texttt{ccdf()} and \texttt{cquantile()}. You can see in Tab.~\ref{julia-translation} that these are inverses of each other. The second pair is the same, but in the log-space.
 
-\texttt{pdf(d::UnivariateDistribution, x::Real)}---This is $f(t)$.
-
-\texttt{logpdf(d::UnivariateDistribution, x::Real)}---It's $\ln(f(t))$. This is important because the pdf is a likelihood, so you get the log-likelihood.
-
-\texttt{cdf(d::UnivariateDistribution, x::Real)}---$F(t)$.
-
-\texttt{logcdf(d::UnivariateDistribution, x::Real)}---$\ln(F(t))$.
-
-\texttt{logdiffcdf(d::UnivariateDistribution, x::Real, y::Real)}---$\ln(F(x))-\ln(F(y))$.
-
-\texttt{ccdf(d::UnivariateDistribution, x::Real)}---Survival, $G(t) = 1-F(t)$.
-
-\texttt{logccdf(d::UnivariateDistribution, x::Real)}---The log of the survival, which is called the integrated hazard, $\Lambda(t)$.
-
-\texttt{invlogcdf(d::UnivariateDistribution, x::Real)}---The inverse function of log-CDF. That's
+\texttt{invlogccdf(d::UnivariateDistribution, x::Real)} can be translated into
 \begin{equation}
-x = \ln F(y)
-\end{equation}
-so
-\begin{equation}
-e^x = F(y) = 1 - e^{\int_0^y\lambda(s)ds}.
-\end{equation}
-
-\texttt{invlogccdf(d::UnivariateDistribution, x::Real)}---This inverse is one I've used.
-\begin{equation}
-e^x = G(y) = e^{\int_0^y\lambda(s)ds}
+e^x = G(y) = e^{\int_0^y\lambda(s)ds}.
 \end{equation}
 That means this function is the inverse of the integrated hazard.
 \begin{equation}
 x = \Lambda(y)
 \end{equation}
+In this package, the integrated hazard is called \texttt{logccdf}.
 
 
-\section{Next Reaction for Non-Markov Processes}
+\section{Next Reaction for Non-Markov Processes}\label{sec:nextreaction}
+
+Many of the calculations below rely on fluency with shifted distributions. Shifted distributions are the basis of the Next Reaction method and Modified Next Reaction method, so we will derive those methods here, but the further goal is to be comfortable with calculation of shifted distributions.
+
+A sampler's main goal is to sample. Using the notation from Sec.~\ref{sec:notation}, we write sampling as two steps. First, draw a random number from $0\le U<1$. Then invert the cdf to find the sampled relative time $t$.
+\begin{equation}
+	U = F(t)
+\end{equation}
+However, since the survival is one minus the cdf, we can also write this as
+\begin{equation}
+	U = S(t)\label{eqn:basesample}
+\end{equation}
+with the same result.
+
+Because simulations move through time and transitions are enabled and disabled, we have to agree on notation for time relative to the start of a transition and how it relates to absolute time within the simulation.
+
+\begin{itemize}
+\item $t$---Time relative to the zero-point of the distribution, as implemented in \texttt{Distributions.jl}. If you look up a gamma distribution in Wikipedia, it is relative to some implied start time at $t=0$, and we denote its pdf with $f(t)$, as you saw in Sec.~\ref{sec:notation}.
+
+\item $t_0$---Absolute time at which the transition is enabled.
+
+\item $t_e$---Absolute time at which to place the zero-point of the distribution. If $t_e < t_0$, it's equivalent to saying that we are cutting off the left side of the distribution, up to $t=t_0-t_e$. If $t_e>t_0$, it's equivalent to saying the transition cannot possibly fire until after time absolute time $t_e$.
+
+\item $t_n$---We'll use this to represent some later absolute time at which the distribution changes its parameters in some way.
+\end{itemize}
+
+Let's start with the simplifying assumption that $t_e=t_0$. Use Eq.~\ref{eqn:basesample} to write sampling in absolute time.
+\begin{equation}
+	u = S(\tau - t_0)
+\end{equation}
+When we invert it, this is
+\begin{equation}
+	\tau = t_0 + S^{-1}(u).
+\end{equation}
+Another way to write this is to expand the exponential.
+\begin{equation}
+u=\exp\left(-\int_{t_0}^{\tau}\lambda(s-t_0)ds\right)\label{eqn:exponentialform}
+\end{equation}
+This shows that there is a linear integration inside the exponent. We can use this in the Next Reaction scheme.
+
+Suppose there were a time $t_0$ at which a transition was enabled. Then, at a later time, $t_n$, a change in simulation state changed the parameters of the transition. Could we figure out what the drawn time, $\tau$, would have been had we known that the parameters would change?
+
+During the draw in Eq.~\ref{eqn:exponentialform}, the distribution we draw from is described by its hazard, $\lambda$, so let's label the initial hazard $\lambda_0$ and the subsequent hazard $\lambda_n$.
+\begin{eqnarray}
+	u&=&\exp\left(-\int_{t_0}^{\tau}\lambda_0(s-t_0)ds\right) \\
+	&=& \exp\left(-\int_{t_0}^{t_n}\lambda_0(s-t_0)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_0)ds\right)\label{eqn:expequivalence}
+\end{eqnarray}
+We can think of the new draw, $\tau'$ as coming from the same element of the uniform random variate, $u$.
+
+The algorithm of Gibson and Bruck starts with the draw from Eq.~\ref{eqn:exponentialform}.
+\begin{enumerate}
+	\item Draw an element $u$ from a uniform random variate $U$.
+
+	\item Solve for a putative firing time $\tau$ by inverting the survival equation, Eq.~\ref{eqn:exponentialform}.
+
+	\item If, at some later time $t_n$, there is a change to the parameters of the distribution, then calculate the conditional survival up to $t_n$ and update the element $u$.
+	\begin{equation}
+		u'=u\exp\left(\int_{t_0}^{t_n}\lambda_0(s-t_0)ds\right)
+	\end{equation}
+
+	\item Since you were able to invert the survival before, you can do it again, this time with $u'$ and the updated hazard rate.
+	\begin{equation}
+		u'=\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_0)ds\right)
+	\end{equation}
+	Solving this gives the new draw, $\tau'$ from the old uniform variate, $u$.
+\end{enumerate}
+
+If we return to Eq.~\ref{eqn:expequivalence}, wouldn't it be easier to compute if we could take the logarithm of both sides?
+\begin{equation}
+	\ln u=-\int_{t_0}^{\tau}\lambda_0(s-t_0)ds = -\int_{t_0}^{t_n}\lambda_0(s-t_0)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_0)ds\label{eqn:logequivalence}
+\end{equation}
+This log-space calculation is what Anderson's modified next reaction recommends. It turns out that calculations in this space are both faster and more precise for most of the distributions commonly used in simulation, such as the Exponential, Gamma, and Erlang distributions.
+
+XXX Working from here down.
 
 Gibson and Bruck describe the Next Reaction Method for non-Markov processes by focusing on one step of the algorithm. Identify the transitions with $a$ and the time points as $T_n$. Assuming there was a draw for some time $\tau$ when the distribution $F_{a,n}$ would fire, and there is now a change to create distribution $F_{a,n+1}$, the new draw should be
 \begin{equation}
@@ -161,7 +233,7 @@ I suspect this equation will make a lot of sense if we write it in terms of surv
 \begin{equation}
 	1-F_{a,n+1}(\tau')=\frac{1-F_{a,n}(\tau)}{1-F_{a,n}(t_n)}.
 \end{equation}
-Multiplying both sides by the denonminator shows a known rule about survival functions. The rule is that \emph{conditional survival is multiplicative.}
+Multiplying both sides by the denominator shows a known rule about survival functions. The rule is that \emph{conditional survival is multiplicative.}
 \begin{equation}
 	\left(1-F_{a,n}(t_n)\right)\left(1-F_{a,n+1}(\tau')\right)=1-F_{a,n}(\tau).\label{eqn:survivalrule}
 \end{equation}
@@ -203,6 +275,7 @@ Let's walk through the cases because they clarify what we need to store within t
 \begin{itemize}
 	\item First time enabling the transition. Sample any way possible from $S(t_n-t_e, \tau-t_n)$, but then calculate and store $U=S(t_n-t_e, \tau-t_n)$.
 	\item Enabling a transition that fired. Sample any way possible from $S(t_n-t_e, \tau-t_n)$, but then calculate and store $U=S(t_n-t_e, \tau-t_n)$.
+
 	\item Enabling a transition that was disabled before it fired.
 	\begin{itemize}
 		\item General case. Sample by inversion $U=S(t_n-t_e, \tau-t_n)$.
