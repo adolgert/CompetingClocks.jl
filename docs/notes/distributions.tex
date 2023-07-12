@@ -165,33 +165,33 @@ Because simulations move through time and transitions are enabled and disabled, 
 \begin{itemize}
 \item $t$---Time relative to the zero-point of the distribution, as implemented in \texttt{Distributions.jl}. If you look up a gamma distribution in Wikipedia, it is relative to some implied start time at $t=0$, and we denote its pdf with $f(t)$, as you saw in Sec.~\ref{sec:notation}.
 
-\item $t_0$---Absolute time at which the transition is enabled.
+\item $t_e$---Absolute time at which the transition is enabled.
 
-\item $t_e$---Absolute time at which to place the zero-point of the distribution. If $t_e < t_0$, it's equivalent to saying that we are cutting off the left side of the distribution, up to $t=t_0-t_e$. If $t_e>t_0$, it's equivalent to saying the transition cannot possibly fire until after time absolute time $t_e$.
+\item $t_0$---Absolute time at which to place the zero-point of the distribution. If $t_0 < t_e$, it's equivalent to saying that we are cutting off the left side of the distribution, up to $t=t_e-t_0$. If $t_0>t_e$, it's equivalent to saying the transition cannot possibly fire until after time absolute time $t_0$.
 
 \item $t_n$---We'll use this to represent some later absolute time at which the distribution changes its parameters in some way.
 \end{itemize}
 
-Let's start with the simplifying assumption that $t_e=t_0$. Use Eq.~\ref{eqn:basesample} to write sampling in absolute time.
+Let's start with the simplifying assumption that $t_0=t_e$. Use Eq.~\ref{eqn:basesample} to write sampling in absolute time.
 \begin{equation}
-	u = S(\tau - t_0)
+	u = S(\tau - t_e)
 \end{equation}
 When we invert it, this is
 \begin{equation}
-	\tau = t_0 + S^{-1}(u).
+	\tau = t_e + S^{-1}(u).
 \end{equation}
 Another way to write this is to expand the exponential.
 \begin{equation}
-u=\exp\left(-\int_{t_0}^{\tau}\lambda(s-t_0)ds\right)\label{eqn:exponentialform}
+u=\exp\left(-\int_{t_e}^{\tau}\lambda(s-t_e)ds\right)\label{eqn:exponentialform}
 \end{equation}
 This shows that there is a linear integration inside the exponent. We can use this in the Next Reaction scheme.
 
-Suppose there were a time $t_0$ at which a transition was enabled. Then, at a later time, $t_n$, a change in simulation state changed the parameters of the transition. Could we figure out what the drawn time, $\tau$, would have been had we known that the parameters would change?
+Suppose there were a time $t_e$ at which a transition was enabled. Then, at a later time, $t_n$, a change in simulation state changed the parameters of the transition. Could we figure out what the drawn time, $\tau$, would have been had we known that the parameters would change?
 
 During the draw in Eq.~\ref{eqn:exponentialform}, the distribution we draw from is described by its hazard, $\lambda$, so let's label the initial hazard $\lambda_0$ and the subsequent hazard $\lambda_n$.
 \begin{eqnarray}
-	u&=&\exp\left(-\int_{t_0}^{\tau}\lambda_0(s-t_0)ds\right) \\
-	&=& \exp\left(-\int_{t_0}^{t_n}\lambda_0(s-t_0)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_0)ds\right)\label{eqn:expequivalence}
+	u&=&\exp\left(-\int_{t_e}^{\tau}\lambda_0(s-t_e)ds\right) \\
+	&=& \exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)\label{eqn:expequivalence}
 \end{eqnarray}
 We can think of the new draw, $\tau'$ as coming from the same element of the uniform random variate, $u$.
 
@@ -203,73 +203,23 @@ The algorithm of Gibson and Bruck starts with the draw from Eq.~\ref{eqn:exponen
 
 	\item If, at some later time $t_n$, there is a change to the parameters of the distribution, then calculate the conditional survival up to $t_n$ and update the element $u$.
 	\begin{equation}
-		u'=u\exp\left(\int_{t_0}^{t_n}\lambda_0(s-t_0)ds\right)
+		u'=u\exp\left(\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)
 	\end{equation}
 
 	\item Since you were able to invert the survival before, you can do it again, this time with $u'$ and the updated hazard rate.
 	\begin{equation}
-		u'=\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_0)ds\right)
+		u'=\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)
 	\end{equation}
 	Solving this gives the new draw, $\tau'$ from the old uniform variate, $u$.
 \end{enumerate}
 
 If we return to Eq.~\ref{eqn:expequivalence}, wouldn't it be easier to compute if we could take the logarithm of both sides?
 \begin{equation}
-	\ln u=-\int_{t_0}^{\tau}\lambda_0(s-t_0)ds = -\int_{t_0}^{t_n}\lambda_0(s-t_0)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_0)ds\label{eqn:logequivalence}
+	\ln u=-\int_{t_e}^{\tau}\lambda_0(s-t_e)ds = -\int_{t_e}^{t_n}\lambda_0(s-t_e)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\label{eqn:logequivalence}
 \end{equation}
 This log-space calculation is what Anderson's modified next reaction recommends. It turns out that calculations in this space are both faster and more precise for most of the distributions commonly used in simulation, such as the Exponential, Gamma, and Erlang distributions.
 
-XXX Working from here down.
-
-Gibson and Bruck describe the Next Reaction Method for non-Markov processes by focusing on one step of the algorithm. Identify the transitions with $a$ and the time points as $T_n$. Assuming there was a draw for some time $\tau$ when the distribution $F_{a,n}$ would fire, and there is now a change to create distribution $F_{a,n+1}$, the new draw should be
-\begin{equation}
-	\tau'=F_{a,n+1}^{-1}\left(\frac{F_{a,n}(\tau) - F_{a,n}(t_n)}{1-F_{a,n}(t_n)}\right).
-\end{equation}
-Shifting to get rid of the inverse, this becomes
-\begin{equation}
-	F_{a,n+1}(\tau')=\frac{F_{a,n}(\tau) - F_{a,n}(t_n)}{1-F_{a,n}(t_n)}.
-\end{equation}
-I suspect this equation will make a lot of sense if we write it in terms of survivals. Start by writing it as $S=1-F$
-\begin{equation}
-	1-F_{a,n+1}(\tau')=\frac{1-F_{a,n}(\tau)}{1-F_{a,n}(t_n)}.
-\end{equation}
-Multiplying both sides by the denominator shows a known rule about survival functions. The rule is that \emph{conditional survival is multiplicative.}
-\begin{equation}
-	\left(1-F_{a,n}(t_n)\right)\left(1-F_{a,n+1}(\tau')\right)=1-F_{a,n}(\tau).\label{eqn:survivalrule}
-\end{equation}
-The equation says that we expect the proposed survival of this process to time $\tau$ to be the same as the survival to from start to $t_n$ and the survival from $t_n$ to $\tau'$.
-
-Have you been anxious about the notation? The Gibson and Bruck paper failed with the notation, and we just copied it. The problem is how they annotated the zero-time for distributions. We can clarify it by writing the equation in terms of hazards.
-\begin{equation}
-	\exp\left(-\int_{t_0}^{\tau}\lambda_n(s)ds\right) = \exp\left(-\int_{t_0}^{t_n}\lambda_n(s)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n+1}(s)ds\right)
-\end{equation}
-The integrals cover the relevant durations and the hazards are the hazards of those distributions during those durations. This equation also leads to an observation. Anderson's method is the Next Reaction method in log space. Who knew? Everybody. Everybody knew.
-
-We can make our notation in a way that will have an echo in the code. All software libraries treat distributions as starting at time zero and leave it to the client to shift their absolute time. Therefore, let's think about distributions as an enabling time that defines the zero, a current time, and the distribution, $(t_e, t_n, f)$.
-
-If we think of the first draw as a draw by inversion, we can write it as inversion of a conditional survival.
-\begin{equation}
-	U = S(t_n - t_e, \tau - t_n)
-\end{equation}
-Because $0<U<1$, this could equally well be $U=F(t_n-t_e, \tau-t_n)$ equally well. If the enabling time is in the future, that's fine, but it changes the draw to use a marginal survival.
-\begin{equation}
-	U = S(0, \tau - t_e) = S(\tau - t_e)
-\end{equation}
-This $U$ is the right-hand side of \ref{eqn:survivalrule}.
-
-When Gibson and Bruck discuss an update rule, it requires storing the remaining $U$.
-\begin{enumerate}
-	\item When we make the first draw, we save $U$.
-	\item Each time, $t_n$, a transition is disabled, we calculate
-		\begin{equation}
-			U'=\frac{U}{S(t_n-t_e, \tau - t_n)}
-		\end{equation}
-	\item When the transition is enabled or changed, we calculate its draw by inversion with the saved $U'$,
-	\begin{equation}
-		U'=S(t_n-t_e, \tau' - t_n).
-	\end{equation}
-\end{enumerate}
-While the first draw of $\tau$ can be done using appropriate, non-inversion, methods for any distribution, it is a weakness of this method that later enabling of the transition requires using inversion, which can be much slower and more error-prone.
+Now is a good time to return to the assumption that every distribution's zero-point is the same as when the transition is enabled, $t_0=t_e$. Remember that the goal of differentiating the two is to allow a subject-matter expert to declare that, for instance, a process will take at least 10~minutes and then be exponentially-distributed after that. Or, they can tell you that it looks like the last third of a Gaussian distribution. Because the Next Reaction method's central calculation is how to shift a distribution, a user-specified shift in the specification can be handled within the algorithm. When $t_0\ne t_e$, the algorithm respects the difference the first time it samples but then saves only $t_e$ for later use.
 
 Let's walk through the cases because they clarify what we need to store within the sampler.
 \begin{itemize}
@@ -348,18 +298,31 @@ Start by asking the cumulative distribution function of a single step of a traje
 \end{eqnarray}
 If the next time step is at time $t=T_{n+1}-T_n$, then the joint cumulative distribution function is $F_n(t)=\prod_a F_a(t).$
 
-Now that we have the cumulative distribution function, it may be easier to see the likelihood of a single step of the trajectory. Given competing processes, the likelihood is the probability that one particular trajectory, called $\alpha$, fires between time $t$ and $t+\delta t$, and all other transitions fire later. We'll use $S(t)$ for the survival and $h(t)$ for the hazard.
+Now that we have the cumulative distribution function, it may be easier to see the likelihood of a single step of the trajectory. In probability language, it's $P(t\le T_\alpha<t+dt,T_{a\ne\alpha} > t)$. Given competing processes, the likelihood is the probability that one particular trajectory, called $\alpha$, fires between time $t$ and $t+\delta t$, and all other transitions fire later. We'll use $S(t)$ for the survival and $\lambda(t)$ for the hazard.
 \begin{eqnarray}
 	c_{\alpha}(t)dt &=& f_{\alpha}(t)\prod_{a\ne\alpha}\left[\int_{t}^\infty f_a(\xi_a)dx_a\right] \\
 	&=& f_{\alpha}(t)\prod_{a\ne\alpha}S_a(t) \\
 	&=& \frac{f_{\alpha}(t)}{S_\alpha(t)}\prod_{a}S_a(t) \\
-	&=& h_{\alpha}(t)\prod_{a}S_a(t)
+	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)
 \end{eqnarray}
 At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. If we think about the sequence of $\left\{T_n\right\}$, the $c_\alpha(t)$ form a matrix called the core matrix.
 
+The core matrix makes more sense if you look at its normalization. Add the core matrix terms for each transition, and write it in terms of hazards.
+\begin{eqnarray}
+	\sum_a c_a(t)dt = \left(\sum_a \lambda_a(t)\right)\mbox{exp}\left(-\sum_a \lambda_a(t)\right)
+\end{eqnarray}
+This is the probability density function for a distribution whose hazard is the sum of all of the hazards. It's called the waiting time distribution because it is the probability for any transition to fire and move to the next state.
+
+We actually deal with the waiting time when using a Direct method. For a transition $a$ in the space of transitions $A$, the direct method breaks the marginal for next transition and time into a marginal for time and conditional for which transition fires at that time.
+\begin{eqnarray*}
+	P(A=a, t\le T_{n+1}-T_n<t+dt) &=& P(A=a|t\le T_{n+1}-T_n<t+dt) \\
+	& & \qquad P(t\le T_{n+1}-T_n<t+dt)
+\end{eqnarray*}
+The last factor, $P(t\le T_{n+1}-T_n<t+dt)$, is the waiting time for the competing processes. In particular, the Direct method samples the waiting time using the usual method of inverting its survival with $u=P(\tau<T)$. In order to calculate the likelihood of a particular trajectory, we would need only to multiply $u$ by the hazard rate of the drawn transition.
+
 We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
 
-Look, these values are remarkably similar to those computed for the Next Reaction method. And here's how they relate to Gillespie's method.
+In the case of Next Reaction method, we already have the machinery to calculate survival for every enabled transition, excepting the one that fires. We need only multiply that by the pdf of the transition that fires, and we have the likelihood of the trajectory.
 
 
 \section{Common random numbers}
@@ -398,7 +361,19 @@ Here, we choose a transition and disallow it from firing. For instance, it's com
 
 There are two ways to calculate an exclusion-sampled trajectory. Picture a herd of animals with only one infectious. It could either recover or infect another in the herd, and we'll exclude recovery, but we have to account for the decreased likelihood of the trajectory given that it excludes recovery.
 
-One approach is to calculate the marginal probability of recovery and discount the ensuing draw. This works for sure.
+Let's say there are two transitions, A for 1/3 of the time, B for 1/3 of the time, C for 1/3 of the time. We exclude A, so B goes all the time. We should reweight B's and C's trajectories by 2/3.
+
+One approach is to calculate the marginal probability of recovery and discount the ensuing draw. This works for sure. If we're using the Direct method, then we've already calculated a draw from the waiting time in order to get the time of the next event. We can exclude transitions by calculating their marginal probability.
+\begin{equation}
+	P(A=\alpha|T=t) = \frac{\lambda_\alpha(t)}{\sum_a \lambda_a(t)}
+\end{equation}
+That's painless, assuming the painful work of calculating the waiting time has been done. We can use just this conditional to downweight the trajectory. If $e$ is the excluded trajectory, then the downweighting for others is $1-P(A=e|T=t)$.
+
+For a Next Reaction method, the marginal probability of the transition to exclude is the integral over all future times of its core matrix entry.
+\begin{equation}
+	P(A=\alpha) = \int_{t_n}^\infty c_\alpha(t)dt
+\end{equation}
+That's tougher to calculate because it requires numerical integration of a product of functions.
 
 The other approach is to leave recovery in the draws and use the draws themselves to do the downweighting. (Maybe?)
 
@@ -406,6 +381,10 @@ The other approach is to leave recovery in the draws and use the draws themselve
 \subsection{Weighting Probability}
 
 This is the most difficult version to do. You have to take the core matrix, aka the XXX. Then adjust each $c_\alpha(t)$ with a multiplicative weight. Then reconstitute the total survival, taking the hazard from the reweighted core matrix. Now draw from this distribution.
+
+Let's say we have three probabilities, $(p_1, p_2, p_3)$ such that $\sum_i p_i=1$. How can we modify these probabilities such that the new sum is still one? Let's pick some $k$ such that $kp_1<1$. The result must be that $kp_1 + y(p_2+p_3)=1$, so $y=kp_1/(p_2+p_3)$ ensures this works. What does this mean for reweighting draws?
+
+If we want to boost the likelihood of a trajectory, we need to know the marginal probability of that trajectory, the one you find by integrating its core matrix entry.
 
 
 \subsection{Examples}
