@@ -203,7 +203,7 @@ The algorithm of Gibson and Bruck starts with the draw from Eq.~\ref{eqn:exponen
 
 	\item If, at some later time $t_n$, there is a change to the parameters of the distribution, then calculate the conditional survival up to $t_n$ and update the element $u$.
 	\begin{equation}
-		u'=u\exp\left(\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)
+		u'=u\exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)
 	\end{equation}
 
 	\item Since you were able to invert the survival before, you can do it again, this time with $u'$ and the updated hazard rate.
