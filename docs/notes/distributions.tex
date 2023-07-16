@@ -309,9 +309,16 @@ At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\i
 
 The core matrix makes more sense if you look at its normalization. Add the core matrix terms for each transition, and write it in terms of hazards.
 \begin{eqnarray}
-	\sum_a c_a(t)dt = \left(\sum_a \lambda_a(t)\right)\mbox{exp}\left(-\sum_a \lambda_a(t)\right)
+	\sum_a c_a(t)dt = \left(\sum_a \lambda_a(t)\right)\mbox{exp}\left(-\int_{t_0}^t\sum_a \lambda_a(s)ds \right)dt
 \end{eqnarray}
 This is the probability density function for a distribution whose hazard is the sum of all of the hazards. It's called the waiting time distribution because it is the probability for any transition to fire and move to the next state.
+
+We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
+
+In the case of Next Reaction method, we already have the machinery to calculate survival for every enabled transition, excepting the one that fires. We need only multiply that by the pdf of the transition that fires, and we have the likelihood of the trajectory.
+
+
+\section{Gillespie's Direct Method}
 
 We actually deal with the waiting time when using a Direct method. For a transition $a$ in the space of transitions $A$, the direct method breaks the marginal for next transition and time into a marginal for time and conditional for which transition fires at that time.
 \begin{eqnarray*}
@@ -320,12 +327,16 @@ We actually deal with the waiting time when using a Direct method. For a transit
 \end{eqnarray*}
 The last factor, $P(t\le T_{n+1}-T_n<t+dt)$, is the waiting time for the competing processes. In particular, the Direct method samples the waiting time using the usual method of inverting its survival with $u=P(\tau<T)$. In order to calculate the likelihood of a particular trajectory, we would need only to multiply $u$ by the hazard rate of the drawn transition.
 
-We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
-
-In the case of Next Reaction method, we already have the machinery to calculate survival for every enabled transition, excepting the one that fires. We need only multiply that by the pdf of the transition that fires, and we have the likelihood of the trajectory.
+We usually think of the direct method as sampling by inversion. If we write the direct method in terms of hazards a draw for time $T=\tau$, inversion sampling requires solving an inverse equation for the cumulative survival across competing processes.
+\begin{equation}
+	u = \mbox{exp}\left(-\int_{t_i}^\tau\sum_a \lambda_a(t)dt\right)
+\end{equation}
+There is, however, no reason that we can't use something like rejection sampling, where we sample in a two-dimensional space and keep samples that fall within the region under the density function. The efficiency of such rejection methods depends on choice of proposal distributions, so it's artful, but it should be much faster than direct integration.
 
 
 \section{Common random numbers}
+
+\subsection{Introduction}
 
 Instead of calling \texttt{rand(rng, distribution)}, change it to \texttt{rand(rng, distribution, clock)}. Then keep track of a) the clock b) its $n$-th call and c) the survival associated with that call. Record choices and replay.
 
@@ -337,12 +348,53 @@ tau = te + sample
 survival = survival_space(S, distribution, sample)
 \end{jllisting}
 
-What if you used CRN and a direct method? I don't know.
+What if you used CRN and a direct method? It doesn't seem like it would be very effective. Direct methods have two draws, one for the waiting time and one for the transition, conditional on the waiting time draw. I could see this working if the transitions were ordered in a meaningful way. The draw for which transition fires is a discrete choice, found by inverting this to find the largest transition $\alpha$ for which
+\begin{equation}
+	u \le \sum_{0}^{\alpha}\lambda_i(t).
+\end{equation}
+Subsequent runs of the simulation would pick values with the same $u$, and if nearby values were meaningfully similar, that would be an interesting constraint.
+
+\subsection{Julia Implementation}
+
+In Julia, when you draw from a distribution, it constructs a Sampler for that distribution. For instance, if a Gamma distribution is most easily sampled with one sampler for typical parameters and another sampler for smaller shape values. The sampler for the distribution will rely on capabilities of the random number generator and may construct a second type of Sampler for the random number generator. For instance, it may choose to draw 128-bit unsigned integers or it may choose to draw doubles. Julia's sampling architecture is therefore highly configurable for optimization.
+
+CRN traditionally stores a draw from a uniform variate, and that's it. It assumes you will sample by inversion. We could do that, or we could hook into Julia's system in more depth. Let's list some possibilities, not in order of preference but numbered for reference.
+\begin{enumerate}
+	\item Save a uniform variate.
+	\item Save the state of the random number generator, either to support multiple draws or support draws of specific values, such as 128-bit unsigned integers. The state of the Xoshiro generator is only 256 bits of storage, but Mersenne twister state is much, much larger.
+	\item Figure out which particular values are drawn from the RNG and save those.
+\end{enumerate}
+Maybe we could try both the first and second options.
+
+The random variates need to be stored in order to reuse them. We already have the notion of a clock ID, so we're storing a value for each (clock ID, ordinal). A simulation may have only one clock and a million calls, or it may have a million clocks called once each. We won't know going into a run which one will happen, so I suppose it would make sense to record everything in some simple way and then repack it for replaying later.
 
 
 \section{Importance Sampling}
 
 Why would you calculate a likelihood? So that you can artificially increase the likelihood of trajectories with desired outcomes in order to improve their statistics.
+
+For a simulation with a likelihood $f_a(t)$, the importance sampling technique samples instead from a likelihood $g_a(t)$. We weight the ensuing trajectory by $f_a(t)/g_a(t)$. The likelihood ratio consists of quantities we've already discussed calculating.
+\begin{equation}
+	\frac{f_a(t)}{g_a(t)} = \frac{\lambda_{\alpha}(t)\prod_{a}S_a(t)}{\lambda'_{\alpha}(t)\prod_{b}S'_b(t)}\label{eqn:likelihoodratio}
+\end{equation}
+If we can draw from $g$, then we only need to calculate hazards and survivals, or pdf and survivals, to calculate the ratio.
+
+We have our three basic ways to draw: transition first, time first, or competing processes.
+\begin{eqnarray}
+	P[A,T]&=&P[A]P[T|A]\qquad\mbox{(nobody)} \\
+	&=&P[A|T]P[T]\qquad\mbox{(direct)}\\
+	&=&\mbox{min}(P[T_a])\ \forall a\qquad\mbox{(competing)}
+\end{eqnarray}
+We know what those pieces are, too, and the first equation explains why nobody draws the transition first, then the time given the transition.
+\begin{eqnarray}
+	P[A] & = & \int_{t_0}^\infty \lambda_{\alpha}(t)\prod_{a}S_a(t)dt\label{eqn:marginaltransition} \\
+	P[t\le T<t+dt|A] & = & \lambda_{\alpha}(t)\prod_{a}S_a(t)dt \\
+	P[A|T] & = & \frac{\lambda_\alpha(t)}{\sum_a\lambda_a(t)} \\
+	P[T] & = & 1-\exp(-\sum_a\int_{t_0}^t\lambda_a(s)ds) \\
+	P[T_a] & = & 1-\exp(-\int_{t_0}^t \lambda_a(s)ds)
+\end{eqnarray}
+The good news is that there is no reason to calculate Eq.~\ref{eqn:marginaltransition} in order to use importance sampling. We can draw from some $g$ and then evaluate the likelihood of the draw for both the proposal distribution and the target distribution.
+
 
 \subsection{Splitting}
 
@@ -352,7 +404,7 @@ A good example of splitting is a simulation that takes place on an energy landsc
 
 Splitting is implemented not in the sampler but in the driver of the simulation. You would copy the simulation state and the sampler state $N$ times and then down-weight the contribution of each.
 
-How would we implement that?
+For someone who wants to use this kind of splitting, they will define a trigger for splitting. This is a stopping time where the simulation is at or near a desired set of outcomes. It's a condition on the state of the simulation, not a condition on the sampler. The act of splitting creates multiple trajectories, each with its own sampler. Fleck can support this by making it easy to copy a sampler so that a simulation can spawn a new trajectory. These new trajectories may run simultaneously or one after the other, but that wouldn't matter as long as the system state and samplers were separate copies.
 
 
 \subsection{Exclusion}
@@ -363,28 +415,25 @@ There are two ways to calculate an exclusion-sampled trajectory. Picture a herd 
 
 Let's say there are two transitions, A for 1/3 of the time, B for 1/3 of the time, C for 1/3 of the time. We exclude A, so B goes all the time. We should reweight B's and C's trajectories by 2/3.
 
-One approach is to calculate the marginal probability of recovery and discount the ensuing draw. This works for sure. If we're using the Direct method, then we've already calculated a draw from the waiting time in order to get the time of the next event. We can exclude transitions by calculating their marginal probability.
+If we go back to Eq.~\ref{eqn:likelihoodratio}, then importance sampling with exclusion leaves out one survival. Call that $A=\beta$.
 \begin{equation}
-	P(A=\alpha|T=t) = \frac{\lambda_\alpha(t)}{\sum_a \lambda_a(t)}
+	\frac{f_\alpha(t)}{g_\alpha(t)} = \frac{\lambda_{\alpha}(t)S_\beta(t)\prod_{a}S_a(t)}{\lambda_{\alpha}(t)\prod_{a}S_a(t)} = S_\beta(t)
 \end{equation}
-That's painless, assuming the painful work of calculating the waiting time has been done. We can use just this conditional to downweight the trajectory. If $e$ is the excluded trajectory, then the downweighting for others is $1-P(A=e|T=t)$.
-
-For a Next Reaction method, the marginal probability of the transition to exclude is the integral over all future times of its core matrix entry.
-\begin{equation}
-	P(A=\alpha) = \int_{t_n}^\infty c_\alpha(t)dt
-\end{equation}
-That's tougher to calculate because it requires numerical integration of a product of functions.
-
-The other approach is to leave recovery in the draws and use the draws themselves to do the downweighting. (Maybe?)
-
+The algorithm then is to keep the transition you want to exclude updated, as with any other transition.
+\begin{enumerate}
+	\item Draw from all transitions except the excluded one. Ignore it.
+	\item Calculate the survival of the excluded transition.
+	\item Weight the ensuing trajectory by the survival of the excluded transition.
+\end{enumerate}
+In other words, you're weighting the trajectory by the probability the excluded transition would already have fired.
 
 \subsection{Weighting Probability}
 
-This is the most difficult version to do. You have to take the core matrix, aka the XXX. Then adjust each $c_\alpha(t)$ with a multiplicative weight. Then reconstitute the total survival, taking the hazard from the reweighted core matrix. Now draw from this distribution.
+We could implement a simulation where all of the individual distribution functions differ from the target functions. At each step, we would reweight the trajectory likelihood. You would have to keep two samplers around, one to calculate likelihood of the target distributions and one to both draw from and calculate likelihood of proposal distributions.
 
-Let's say we have three probabilities, $(p_1, p_2, p_3)$ such that $\sum_i p_i=1$. How can we modify these probabilities such that the new sum is still one? Let's pick some $k$ such that $kp_1<1$. The result must be that $kp_1 + y(p_2+p_3)=1$, so $y=kp_1/(p_2+p_3)$ ensures this works. What does this mean for reweighting draws?
+\subsection{Tools for Importance Sampling}
 
-If we want to boost the likelihood of a trajectory, we need to know the marginal probability of that trajectory, the one you find by integrating its core matrix entry.
+The hardest part of importance sampling is figuring out how to make the estimates better and not worse. You need to calculate the change in variance of estimates with and without importance sampling. We might need to think about tooling to help calculate the best weights to use.
 
 
 \subsection{Examples}
