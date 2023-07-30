@@ -3,29 +3,29 @@ using DataStructures
 export FirstToFire
 
 """
-    FirstToFire(KeyType::Type)
+    FirstToFire{KeyType,TimeType}()
 
 Construct a FirstToFire.
 As soon as a distribution is enabled, this draws a value from the distribution.
 The soonest to fire wins. When a clock is disabled, its future firing time is
 removed from the list. There is no memory of previous firing times.
 """
-struct FirstToFire{T}
-    firing_queue::MutableBinaryMinHeap{OrderedSample{T}}
+struct FirstToFire{K,T} <: SSA{K,T}
+    firing_queue::MutableBinaryMinHeap{OrderedSample{K}}
     # This maps from transition to entry in the firing queue.
-    transition_entry::Dict{T,Int}
+    transition_entry::Dict{K,Int}
 end
 
 
-function FirstToFire{T}() where {T}
-    heap = MutableBinaryMinHeap{OrderedSample{T}}()
-    state = Dict{T,Int}()
-    FirstToFire{T}(heap, state)
+function FirstToFire{K,T}() where {K,T}
+    heap = MutableBinaryMinHeap{OrderedSample{K}}()
+    state = Dict{K,Int}()
+    FirstToFire{K,T}(heap, state)
 end
 
 
 # Finds the next one without removing it from the queue.
-function next(propagator::FirstToFire, when::Float64, rng::AbstractRNG)
+function next(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,T}
     least = if !isempty(propagator.firing_queue)
         top(propagator.firing_queue)
     else
@@ -38,8 +38,8 @@ end
 
 
 function enable!(
-    propagator::FirstToFire{T}, clock::T, distribution::UnivariateDistribution,
-    te::Float64, when::Float64, rng::AbstractRNG) where {T}
+    propagator::FirstToFire{K,T}, clock::K, distribution::UnivariateDistribution,
+    te::T, when::T, rng::AbstractRNG) where {K,T}
 
     if te < when
         when_fire = te + rand(rng, truncated(distribution, when - te, Inf))
@@ -48,15 +48,15 @@ function enable!(
     end
     if haskey(propagator.transition_entry, clock)
         heap_handle = propagator.transition_entry[clock]
-        update!(propagator.firing_queue, heap_handle, OrderedSample{T}(clock, when_fire))
+        update!(propagator.firing_queue, heap_handle, OrderedSample{K}(clock, when_fire))
     else
-        heap_handle = push!(propagator.firing_queue, OrderedSample{T}(clock, when_fire))
+        heap_handle = push!(propagator.firing_queue, OrderedSample{K}(clock, when_fire))
         propagator.transition_entry[clock] = heap_handle
     end
 end
 
 
-function disable!(propagator::FirstToFire{T}, clock::T, when::Float64) where {T}
+function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
     heap_handle = propagator.transition_entry[clock]
     delete!(propagator.firing_queue, heap_handle)
     delete!(propagator.transition_entry, clock)
