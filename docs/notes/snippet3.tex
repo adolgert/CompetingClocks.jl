@@ -1,0 +1,57 @@
+\begin{tabular}{|llrrrrr|} \hline
+& Space & $\mbox{log}_{10}|\epsilon|_1$ & $\mbox{log}_{10}\langle\epsilon\rangle$ & forward [s] & backward [s] & both [s]\\ \hline
+\multicolumn{7}{|l|}{Gumbel\{Float64\}($\mu$=0.0, $\theta$=1.0)}\\ \hline
+& Linear & {\color{blue}-15.8} & {\color{blue}-16.9} & {\color{blue}9.47e-05} & 3.05e-04 & {\color{blue}4.00e-04}\\
+& Log & Inf & Inf & 3.64e-04 & {\color{blue}1.48e-04} & 5.12e-04\\
+\hline
+\multicolumn{7}{|l|}{Truncated(Gumbel\{Float64\}($\mu$=0.0, $\theta$=1.0); lower=0.01, upper=Inf)}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.0} & {\color{blue}1.15e-04} & {\color{blue}1.62e-04} & {\color{blue}2.77e-04}\\
+& Log & -11.5 & -13.3 & 4.97e-04 & 2.04e-04 & 7.02e-04\\
+\hline
+\multicolumn{7}{|l|}{InverseGamma\{Float64\}(
+invd: Gamma\{Float64\}($\alpha$=1.0, $\theta$=1.0)
+$\theta$: 1.0
+)
+}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.8} & {\color{blue}1.34e-03} & {\color{blue}3.37e-03} & {\color{blue}4.71e-03}\\
+& Log & -3.0 & -15.2 & 7.87e-03 & 4.89e-03 & 1.28e-02\\
+\hline
+\multicolumn{7}{|l|}{Truncated(InverseGamma\{Float64\}(
+invd: Gamma\{Float64\}($\alpha$=1.0, $\theta$=1.0)
+$\theta$: 1.}\\ \hline
+& Linear & {\color{blue}-15.5} & {\color{blue}-16.6} & {\color{blue}1.41e-03} & {\color{blue}3.47e-03} & {\color{blue}4.87e-03}\\
+& Log & -13.8 & -15.0 & 8.03e-03 & 5.59e-03 & 1.36e-02\\
+\hline
+\multicolumn{7}{|l|}{InverseGaussian\{Float64\}($\mu$=1.0, $\lambda$=1.0)}\\ \hline
+& Linear & {\color{blue}-15.3} & {\color{blue}-16.2} & {\color{blue}3.32e-04} & {\color{blue}3.31e-03} & {\color{blue}3.64e-03}\\
+& Log & -13.3 & -14.6 & 6.10e-04 & 1.44e-02 & 1.50e-02\\
+\hline
+\multicolumn{7}{|l|}{Truncated(InverseGaussian\{Float64\}($\mu$=1.0, $\lambda$=1.0); lower=0.01, upper=Inf)}\\ \hline
+& Linear & {\color{blue}-15.3} & {\color{blue}-16.3} & {\color{blue}3.37e-04} & {\color{blue}3.28e-03} & {\color{blue}3.62e-03}\\
+& Log & -12.2 & -13.8 & 8.69e-04 & 7.41e-03 & 8.27e-03\\
+\hline
+\multicolumn{7}{|l|}{JohnsonSU\{Int64\}($\xi$=0, $\lambda$=1, $\gamma$=0, $\delta$=1)}\\ \hline
+& Linear & {\color{blue}-15.4} & {\color{blue}-16.6} & {\color{blue}2.37e-04} & 3.82e-04 & {\color{blue}6.19e-04}\\
+& Log & -13.8 & -14.9 & 6.70e-04 & {\color{blue}2.95e-04} & 9.65e-04\\
+\hline
+\multicolumn{7}{|l|}{Truncated(JohnsonSU\{Int64\}($\xi$=0, $\lambda$=1, $\gamma$=0, $\delta$=1); lower=0.01, upper=Inf)}\\ \hline
+& Linear & {\color{blue}-15.1} & {\color{blue}-16.1} & {\color{blue}2.84e-04} & {\color{blue}2.46e-04} & {\color{blue}5.31e-04}\\
+& Log & -12.5 & -13.7 & 6.94e-04 & 4.55e-04 & 1.15e-03\\
+\hline
+\multicolumn{7}{|l|}{Kolmogorov()}\\ \hline
+& Linear & {\color{blue}-15.3} & -16.4 & {\color{blue}1.45e-04} & {\color{blue}9.54e-03} & {\color{blue}9.69e-03}\\
+& Log & -0.8 & {\color{blue}-Inf} & 2.21e-04 & 1.06e-01 & 1.06e-01\\
+\hline
+\multicolumn{7}{|l|}{Truncated(Kolmogorov(); lower=0.01, upper=Inf)}\\ \hline
+& Linear & {\color{blue}-15.2} & {\color{blue}-16.3} & {\color{blue}1.88e-04} & {\color{blue}9.45e-03} & {\color{blue}9.64e-03}\\
+& Log & Inf & Inf & 3.29e-04 & 1.09e-02 & 1.12e-02\\
+\hline
+\multicolumn{7}{|l|}{Kumaraswamy\{Float64\}(a=1.0, b=1.0)}\\ \hline
+& Linear & {\color{blue}-16.3} & {\color{blue}-16.9} & {\color{blue}8.06e-05} & {\color{blue}7.82e-05} & {\color{blue}1.59e-04}\\
+& Log & -16.0 & -16.9 & 1.17e-04 & 1.19e-04 & 2.36e-04\\
+\hline
+\multicolumn{7}{|l|}{Truncated(Kumaraswamy\{Float64\}(a=1.0, b=1.0); lower=0.01, upper=Inf)}\\ \hline
+& Linear & -16.0 & -16.5 & {\color{blue}8.19e-05} & {\color{blue}9.56e-05} & {\color{blue}1.78e-04}\\
+& Log & {\color{blue}-16.0} & {\color{blue}-16.5} & 2.99e-04 & 1.34e-04 & 4.33e-04\\
+\hline
+\end{tabular}

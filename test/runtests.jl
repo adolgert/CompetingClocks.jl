@@ -10,6 +10,11 @@ include("test_utility.jl")
 end
 
 
+@testset "test_combinednr.jl" begin
+    include("test_combinednr.jl")
+end
+
+
 @testset "test_firstreaction.jl" begin
     include("test_firstreaction.jl")
 end
@@ -25,19 +30,20 @@ end
 end
 
 
-@testset "test_nextreaction.jl" begin
-    include("test_nextreaction.jl")
+@testset "test_firsttofire.jl" begin
+    include("test_firsttofire.jl")
 end
 
 
-@testset "test_firsttofire.jl" begin
-    include("test_firsttofire.jl")
+@testset "test_sampler.jl" begin
+    include("test_sampler.jl")
 end
 
 
 @testset "test_vas.jl" begin
     include("test_vas.jl")
 end
+
 
 @testset "test_vas_integrate.jl" begin
     include("test_vas_integrate.jl")

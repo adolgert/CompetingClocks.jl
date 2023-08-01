@@ -1,5 +1,11 @@
 \documentclass{article}
 \usepackage{hyperref}
+\usepackage{jlcode} % https://github.com/wg030/jlcode
+\usepackage{listings}
+%\usepackage{sourcecodepro}
+% \usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[T1]{fontenc}
+
 
 \title{Sampling Distributions in Julia}
 \author{Andrew Dolgert}
@@ -11,10 +17,11 @@
 In order to write a continuous-time simulation, we need to sample distributions. There are many ways to sample these distributions, and they involve different mathematical manipulations of those distributions. This document looks at the functions defined by Julia for manipulating distributions, in order to figure out how to write samplers.
 
 
-\section{Notation for Distributions}
+\section{Notation for Distributions}\label{sec:notation}%
+
 We need to use some accepted notation for a statistical distribution. Let's choose some variable names to use.
 
-A \emph{cumulative distribution} is the probability of an event before a given time. The random variate is $T$ and $t$ is a parameter. $P$ denotes a probability, and $F$ is the name we choose for a general cumulative distribution.
+A \emph{cumulative distribution} is the probability of an event before a given time. The random variate is $T$ and $t$ is a parameter. $P$ denotes a probability, and $F$ is the name we choose for a general cumulative distribution, or cdf.
 \begin{equation}
   P(T \le t) = F(t)
 \end{equation}
@@ -44,14 +51,54 @@ f(t) = \lambda(t)e^{-\int_0^t\lambda(s)ds}
 \end{equation}
 The survival, in terms of the hazard rate, is one term.
 \begin{equation}
-G(t)=e^{-\int_0^t\lambda(s)ds}
+S(t)=e^{-\int_0^t\lambda(s)ds}
+\end{equation}
+Because the survival has this form, where it's an integral in the exponential, we can think of intermediate waypoints in time.
+\begin{equation}
+	S(t)=e^{-\int_0^{t_1}\lambda(s)ds}e^{-\int_{t_1}^t\lambda(s)ds}
+\end{equation}
+Each of the terms is a conditional survival, written $S(t_1,t_2)$. In other words,
+\begin{equation}
+	S(t) = S(0, t) = S(0, t_1)S(t_1,t),
+\end{equation}
+so people say the conditional survival is multiplicative. Going back to the powerful probability language the conditional survival can be written in terms of the marginal survival.
+\begin{equation}
+	P(T>t|T>t_1) = \frac{P(T>t)}{P(T>t_1)}.
+\end{equation}
+Multiplying both sides shows that conditional survival is multiplicative.
+\begin{equation}
+	P(T>t)=P(T>t_1)P(T>t|T>t_1)
+\end{equation}
+Another way to look at a conditional survival is in the cdf space, where it becomes a fraction.
+\begin{equation}
+	S(t_1,t) = \frac{S(t)}{S(t_1)} = \frac{1-F(t)}{1-F(t_1)}
+\end{equation}
+Writing the survival in terms of the hazard also makes it easier to see how it relates to the pdf.
+\begin{equation}
+	f(t)=-\frac{d}{dt}S(t)
 \end{equation}
 The log of the survival is called the integrated hazard.
 \begin{equation}
-\ln G(t) = -\int_0^t\lambda(s)ds = -\Lambda(t)
+\ln S(t) = -\int_0^t\lambda(s)ds = -\Lambda(t)
 \end{equation}
+You can get the hazard directly from survival and the pdf.
+\begin{equation}
+	\lambda(t) = \frac{f(t)}{S(t)}
+\end{equation}
+Rearranging slightly shows us a form we'll see later, $f(t)=\lambda(t)S(t)$.
 
-\section{Julia Distributions}
+What if we had a distribution described by $\lambda(t)$ and wanted to define a new distribution that started later. For instance, a Gamma distribution fits our data, but only if it starts after $t_0=0.1$? For such a distribution, the new survival would be
+\begin{equation}
+	S'(t)=e^{-\int_{t_0}^{t_0+t}\lambda(s)ds} = \frac{S(t_0,t_0+t)}{S(0, t_0)}.
+\end{equation}
+An even easier way to think about how the distribution changes is to consider changes not to the exponential but to the integral inside the exponential.
+\begin{equation}
+	\Lambda'(t) = \int_{t_0}^{t_0+t}\lambda(s)ds = \int_0^{t_0+t}\lambda(s)ds - \int_0^{t_0}\lambda(s)ds = \Lambda(t_0+t) - \Lambda(t_0)
+\end{equation}
+If, for some reason, we need to think about shifting distributions, and if we can work in this space of survivals and integrated hazards, then there are concise ways to recalculate a shifted distribution from its original form.
+
+
+\section{Julia Distributions}\label{sec:juliadist}
 Julia has a \texttt{Distributions.jl} library that contains univariate distributions, which are what we want. Let's walk through the functions this package offers for working with those distributions. We can write each function's mathematical equivalent.
 
 \subsection{Parameters}
@@ -86,97 +133,99 @@ Julia has one function to retrieve all parameters of a distribution and a few fu
 the shortest path to our calculation in code.\label{julia-translation}}
 \end{table}
 
-\texttt{insupport(d::UnivariateDistribution, x::Any)}---Whether $t$ is in the domain of $f(t)$.
+Later we will use two pairs of functions from \texttt{Distributions.jl} to implement Next Reaction method. The first pair is the survival and its inverse: \texttt{ccdf()} and \texttt{cquantile()}. You can see in Tab.~\ref{julia-translation} that these are inverses of each other. The second pair is the same, but in the log-space.
 
-\texttt{pdf(d::UnivariateDistribution, x::Real)}---This is $f(t)$.
-
-\texttt{logpdf(d::UnivariateDistribution, x::Real)}---It's $\ln(f(t))$. This is important because the pdf is a likelihood, so you get the log-likelihood.
-
-\texttt{cdf(d::UnivariateDistribution, x::Real)}---$F(t)$.
-
-\texttt{logcdf(d::UnivariateDistribution, x::Real)}---$\ln(F(t))$.
-
-\texttt{logdiffcdf(d::UnivariateDistribution, x::Real, y::Real)}---$\ln(F(x))-\ln(F(y))$.
-
-\texttt{ccdf(d::UnivariateDistribution, x::Real)}---Survival, $G(t) = 1-F(t)$.
-
-\texttt{logccdf(d::UnivariateDistribution, x::Real)}---The log of the survival, which is called the integrated hazard, $\Lambda(t)$.
-
-\texttt{invlogcdf(d::UnivariateDistribution, x::Real)}---The inverse function of log-CDF. That's
+\texttt{invlogccdf(d::UnivariateDistribution, x::Real)} can be translated into
 \begin{equation}
-x = \ln F(y)
-\end{equation}
-so
-\begin{equation}
-e^x = F(y) = 1 - e^{\int_0^y\lambda(s)ds}.
-\end{equation}
-
-\texttt{invlogccdf(d::UnivariateDistribution, x::Real)}---This inverse is one I've used.
-\begin{equation}
-e^x = G(y) = e^{\int_0^y\lambda(s)ds}
+e^x = G(y) = e^{\int_0^y\lambda(s)ds}.
 \end{equation}
 That means this function is the inverse of the integrated hazard.
 \begin{equation}
 x = \Lambda(y)
 \end{equation}
+In this package, the integrated hazard is called \texttt{logccdf}.
 
 
-\section{Next Reaction for Non-Markov Processes}
+\section{Next Reaction for Non-Markov Processes}\label{sec:nextreaction}
 
-Gibson and Bruck describe the Next Reaction Method for non-Markov processes by focusing on one step of the algorithm. Assuming there was a draw for some time $\tau$ when the distribution $F_{a_n}$ would fire, and there is now a change to create distribution $F_{a,n+1}$, the new draw should be
-\begin{equation}
-	\tau'=F_{a,n+1}^{-1}\left(\frac{F_{a,n}(\tau) - F_{a,n}(t_n)}{1-F_{a,n}(t_n)}\right).
-\end{equation}
-Shifting to get rid of the inverse, this becomes
-\begin{equation}
-	F_{a,n+1}(\tau')=\frac{F_{a,n}(\tau) - F_{a,n}(t_n)}{1-F_{a,n}(t_n)}.
-\end{equation}
-I suspect this equation will make a lot of sense if we write it in terms of survivals. Start by writing it as $S=1-F$
-\begin{equation}
-	1-F_{a,n+1}(\tau')=\frac{1-F_{a,n}(\tau)}{1-F_{a,n}(t_n)}.
-\end{equation}
-Multiplying both sides by the denonminator shows a known rule about survival functions. The rule is that \emph{conditional survival is multiplicative.}
-\begin{equation}
-	\left(1-F_{a,n}(t_n)\right)\left(1-F_{a,n+1}(\tau')\right)=1-F_{a,n}(\tau).\label{eqn:survivalrule}
-\end{equation}
-The equation says that we expect the proposed survival of this process to time $\tau$ to be the same as the survival to from start to $t_n$ and the survival from $t_n$ to $\tau'$.
+Many of the calculations below rely on fluency with shifted distributions. Shifted distributions are the basis of the Next Reaction method and Modified Next Reaction method, so we will derive those methods here, but the further goal is to be comfortable with calculation of shifted distributions.
 
-Have you been anxious about the notation? The Gibson and Bruck paper failed with the notation, and we just copied it. The problem is how they annotated the zero-time for distributions. We can clarify it by writing the equation in terms of hazards.
+A sampler's main goal is to sample. Using the notation from Sec.~\ref{sec:notation}, we write sampling as two steps. First, draw a random number from $0\le U<1$. Then invert the cdf to find the sampled relative time $t$.
 \begin{equation}
-	\exp\left(-\int_{t_0}^{\tau}\lambda_n(s)ds\right) = \exp\left(-\int_{t_0}^{t_n}\lambda_n(s)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n+1}(s)ds\right)
+	U = F(t)
 \end{equation}
-The integrals cover the relevant durations and the hazards are the hazards of those distributions during those durations. This equation also leads to an observation. Anderson's method is the Next Reaction method in log space. Who knew? Everybody. Everybody knew.
-
-We can make our notation in a way that will have an echo in the code. All software libraries treat distributions as starting at time zero and leave it to the client to shift their absolute time. Therefore, let's think about distributions as an enabling time that defines the zero, a current time, and the distribution, $(t_e, t_n, f)$.
-
-If we think of the first draw as a draw by inversion, we can write it as inversion of a conditional survival.
+However, since the survival is one minus the cdf, we can also write this as
 \begin{equation}
-	U = S(t_n - t_e, \tau - t_n)
+	U = S(t)\label{eqn:basesample}
 \end{equation}
-Because $0<U<1$, this could equally well be $U=F(t_n-t_e, \tau-t_n)$ equally well. If the enabling time is in the future, that's fine, but it changes the draw to use a marginal survival.
-\begin{equation}
-	U = S(0, \tau - t_e) = S(\tau - t_e)
-\end{equation}
-This $U$ is the right-hand side of \ref{eqn:survivalrule}.
+with the same result.
 
-When Gibson and Bruck discuss an update rule, it requires storing the remaining $U$.
+Because simulations move through time and transitions are enabled and disabled, we have to agree on notation for time relative to the start of a transition and how it relates to absolute time within the simulation.
+
+\begin{itemize}
+\item $t$---Time relative to the zero-point of the distribution, as implemented in \texttt{Distributions.jl}. If you look up a gamma distribution in Wikipedia, it is relative to some implied start time at $t=0$, and we denote its pdf with $f(t)$, as you saw in Sec.~\ref{sec:notation}.
+
+\item $t_e$---Absolute time at which the transition is enabled.
+
+\item $t_0$---Absolute time at which to place the zero-point of the distribution. If $t_0 < t_e$, it's equivalent to saying that we are cutting off the left side of the distribution, up to $t=t_e-t_0$. If $t_0>t_e$, it's equivalent to saying the transition cannot possibly fire until after time absolute time $t_0$.
+
+\item $t_n$---We'll use this to represent some later absolute time at which the distribution changes its parameters in some way.
+\end{itemize}
+
+Let's start with the simplifying assumption that $t_0=t_e$. Use Eq.~\ref{eqn:basesample} to write sampling in absolute time.
+\begin{equation}
+	u = S(\tau - t_e)
+\end{equation}
+When we invert it, this is
+\begin{equation}
+	\tau = t_e + S^{-1}(u).
+\end{equation}
+Another way to write this is to expand the exponential.
+\begin{equation}
+u=\exp\left(-\int_{t_e}^{\tau}\lambda(s-t_e)ds\right)\label{eqn:exponentialform}
+\end{equation}
+This shows that there is a linear integration inside the exponent. We can use this in the Next Reaction scheme.
+
+Suppose there were a time $t_e$ at which a transition was enabled. Then, at a later time, $t_n$, a change in simulation state changed the parameters of the transition. Could we figure out what the drawn time, $\tau$, would have been had we known that the parameters would change?
+
+During the draw in Eq.~\ref{eqn:exponentialform}, the distribution we draw from is described by its hazard, $\lambda$, so let's label the initial hazard $\lambda_0$ and the subsequent hazard $\lambda_n$.
+\begin{eqnarray}
+	u&=&\exp\left(-\int_{t_e}^{\tau}\lambda_0(s-t_e)ds\right) \\
+	&=& \exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)\label{eqn:expequivalence}
+\end{eqnarray}
+We can think of the new draw, $\tau'$ as coming from the same element of the uniform random variate, $u$.
+
+The algorithm of Gibson and Bruck starts with the draw from Eq.~\ref{eqn:exponentialform}.
 \begin{enumerate}
-	\item When we make the first draw, we save $U$.
-	\item Each time, $t_n$, a transition is disabled, we calculate
-		\begin{equation}
-			U'=\frac{U}{S(t_n-t_e, \tau - t_n)}
-		\end{equation}
-	\item When the transition is enabled or changed, we calculate its draw by inversion with the saved $U'$,
+	\item Draw an element $u$ from a uniform random variate $U$.
+
+	\item Solve for a putative firing time $\tau$ by inverting the survival equation, Eq.~\ref{eqn:exponentialform}.
+
+	\item If, at some later time $t_n$, there is a change to the parameters of the distribution, then calculate the conditional survival up to $t_n$ and update the element $u$.
 	\begin{equation}
-		U'=S(t_n-t_e, \tau' - t_n).
+		u'=u\exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)
 	\end{equation}
+
+	\item Since you were able to invert the survival before, you can do it again, this time with $u'$ and the updated hazard rate.
+	\begin{equation}
+		u'=\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)
+	\end{equation}
+	Solving this gives the new draw, $\tau'$ from the old uniform variate, $u$.
 \end{enumerate}
-While the first draw of $\tau$ can be done using appropriate, non-inversion, methods for any distribution, it is a weakness of this method that later enabling of the transition requires using inversion, which can be much slower and more error-prone.
+
+If we return to Eq.~\ref{eqn:expequivalence}, wouldn't it be easier to compute if we could take the logarithm of both sides?
+\begin{equation}
+	\ln u=-\int_{t_e}^{\tau}\lambda_0(s-t_e)ds = -\int_{t_e}^{t_n}\lambda_0(s-t_e)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\label{eqn:logequivalence}
+\end{equation}
+This log-space calculation is what Anderson's modified next reaction recommends. It turns out that calculations in this space are both faster and more precise for most of the distributions commonly used in simulation, such as the Exponential, Gamma, and Erlang distributions.
+
+Now is a good time to return to the assumption that every distribution's zero-point is the same as when the transition is enabled, $t_0=t_e$. Remember that the goal of differentiating the two is to allow a subject-matter expert to declare that, for instance, a process will take at least 10~minutes and then be exponentially-distributed after that. Or, they can tell you that it looks like the last third of a Gaussian distribution. Because the Next Reaction method's central calculation is how to shift a distribution, a user-specified shift in the specification can be handled within the algorithm. When $t_0\ne t_e$, the algorithm respects the difference the first time it samples but then saves only $t_e$ for later use.
 
 Let's walk through the cases because they clarify what we need to store within the sampler.
 \begin{itemize}
 	\item First time enabling the transition. Sample any way possible from $S(t_n-t_e, \tau-t_n)$, but then calculate and store $U=S(t_n-t_e, \tau-t_n)$.
 	\item Enabling a transition that fired. Sample any way possible from $S(t_n-t_e, \tau-t_n)$, but then calculate and store $U=S(t_n-t_e, \tau-t_n)$.
+
 	\item Enabling a transition that was disabled before it fired.
 	\begin{itemize}
 		\item General case. Sample by inversion $U=S(t_n-t_e, \tau-t_n)$.
@@ -196,5 +245,212 @@ There are a couple of challenges. One is how to know when two floating-point val
 Another challenge is how to figure out which disabled transition is the one that fired. If the caller specifies it is disabling the transition that fired, then it's clear. If the caller doesn't specify, can we know? The transitions are in a heap where the soonest is on top. If the first transition that's disabled was the one on top and the next transition becomes the one on top, it could look like it was next to fire. We could check the times on those transitions in order to see whether the time of disabling matches the time of the top transition, but that's prone to error because it requires equality of floating-point numbers. There will definitely be some time when two numbers in a continuous time simulation are very close to each other.
 
 On the other hand, there isn't a good way to use a Next Reaction sampler except to always choose the transition it sampled to be next. Let's store the response from the next() function and assume that's the one that fired when it gets disabled.
+
+\section{Timing Sampling Methods}
+
+The Next Reaction method (Gibson and Bruck) and the Modified Next Reaction method (Anderson) are essentially the same algorithm except that one samples in a linear space and one samples in a logarithmic space. Which one is better depends on the distribution we're sampling and the parameter ranges for that distribution. This section looks at tests of the distributions defined in Julia in order to classify which one goes in which category, linear or logarithmic sampling.
+
+Below is a table that comes from a test in \texttt{test/nrmetric.jl}. The distributions come from \texttt{Distributions.jl}. Each distribution appears twice, once with default parameters and once as a truncated distribution, which is Julia's way of limiting the distribution's support so that we can sample values that are later than a given time. Each distribution is tested on 10,000 values. The table will have the following values.
+
+\begin{enumerate}
+	\item The space for the test, which is linear or logarithmic.
+
+	\item Error, as the log base-10 of the maximum error after sampling a survival and then inverting that back to get the sample. When the number is -16, that means the error is $10^{-16}$.
+
+	\item Average error in log base-10, which is the trimmed mean over all runs of the error in the previous column.
+
+	\item Forward timing in seconds. For the linear space, this is the time to perform the \texttt{ccdf} call. For the logarithmic space, this is the time to perform the \texttt{logccdf} call, both 10,000 times. A time of 6e-4 seconds means each iteration took, on average, 6e-8 seconds.
+
+	\item Backward timing in seconds. For the linear space, this is the time to perform the \texttt{cquantile} call. For the logarithmic space, this is the time to perform the \texttt{invlogccdf} call, both 10,000 times.
+\end{enumerate}
+
+\pagebreak
+\input{snippet1}
+
+\pagebreak
+\input{snippet2}
+
+\pagebreak
+\input{snippet3}
+
+The tables highlight which sampling method is more accurate and which is faster. Sometimes these two are at odds. Here's how I made choices.
+
+\begin{itemize}
+	\item Some distributions have trouble with log-space sampling in the tails. The Gumbel distribution is a good example. It works fine for values in between -2 and 2, but linear sampling remains stable outside that region, so we take the safer bet.
+
+	\item If the accuracy is great for either choice, but one is much faster, let's go with the faster one. The Laplace distribution is a good example. The worst accuracy is $10^{-15}$, but the log-space sampling is ten times faster. Another example is Cosine, where the log-space sampling gets an accuracy of $10^{-5.4}$ but the linear-space sampling accuracy is $10^{-10.9}$. While log-space is faster, we should surely use the linear sampling.
+\end{itemize}
+
+The Laplace distribution is the only one I can see going either way. You can either get ten times the accuracy or ten times the speed.
+
+The Exponential distribution has a problem with truncation. This should be fast and accurate but fails on both counts.
+
+
+\section{Competing Processes}
+
+In this section, we ask how to calculate the likelihood of a trajectory. A trajectory is a single element of the joint random variables $\left\{X_n,T_n\right\}$ where $X_n$ is the state at time $n$ and $T_n$ is the time at time $n$. The curly-braces denote the set of all times $n$. Our goal is to be able to calculate this quantity numerically using a simulation.
+
+Start by asking the cumulative distribution function of a single step of a trajectory. Think of distributions, defined relative to a start time at $T_n$. Each is set to fire at some next time $x_a$. The joint cumulative density function from one time $T_n$ to the next, $T_{n+1}$ can be decomposed into independent density functions.
+\begin{eqnarray}
+	F_n(x_1, x_2,\ldots,x_m) &= &\int_0^{x_1}\cdots\int_0^{x_m}f(\xi_1,\xi_2,\ldots,\xi_m)d\xi_m\ldots d\xi_1 \\
+	&= &\int_0^{x_1}\cdots\int_0^{x_m}\prod_a f_a(\xi_a)d\xi_m\ldots d\xi_1\ \\
+	&= &\prod_a \left[\int_0^{\xi_a}f_a(\xi_a)d\xi_m\ldots d\xi_1\right]
+\end{eqnarray}
+If the next time step is at time $t=T_{n+1}-T_n$, then the joint cumulative distribution function is $F_n(t)=\prod_a F_a(t).$
+
+Now that we have the cumulative distribution function, it may be easier to see the likelihood of a single step of the trajectory. In probability language, it's $P(t\le T_\alpha<t+dt,T_{a\ne\alpha} > t)$. Given competing processes, the likelihood is the probability that one particular trajectory, called $\alpha$, fires between time $t$ and $t+\delta t$, and all other transitions fire later. We'll use $S(t)$ for the survival and $\lambda(t)$ for the hazard.
+\begin{eqnarray}
+	c_{\alpha}(t)dt &=& f_{\alpha}(t)\prod_{a\ne\alpha}\left[\int_{t}^\infty f_a(\xi_a)dx_a\right] \\
+	&=& f_{\alpha}(t)\prod_{a\ne\alpha}S_a(t) \\
+	&=& \frac{f_{\alpha}(t)}{S_\alpha(t)}\prod_{a}S_a(t) \\
+	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)
+\end{eqnarray}
+At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. If we think about the sequence of $\left\{T_n\right\}$, the $c_\alpha(t)$ form a matrix called the core matrix.
+
+The core matrix makes more sense if you look at its normalization. Add the core matrix terms for each transition, and write it in terms of hazards.
+\begin{eqnarray}
+	\sum_a c_a(t)dt = \left(\sum_a \lambda_a(t)\right)\mbox{exp}\left(-\int_{t_0}^t\sum_a \lambda_a(s)ds \right)dt
+\end{eqnarray}
+This is the probability density function for a distribution whose hazard is the sum of all of the hazards. It's called the waiting time distribution because it is the probability for any transition to fire and move to the next state.
+
+We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
+
+In the case of Next Reaction method, we already have the machinery to calculate survival for every enabled transition, excepting the one that fires. We need only multiply that by the pdf of the transition that fires, and we have the likelihood of the trajectory.
+
+
+\section{Gillespie's Direct Method}
+
+We actually deal with the waiting time when using a Direct method. For a transition $a$ in the space of transitions $A$, the direct method breaks the marginal for next transition and time into a marginal for time and conditional for which transition fires at that time.
+\begin{eqnarray*}
+	P(A=a, t\le T_{n+1}-T_n<t+dt) &=& P(A=a|t\le T_{n+1}-T_n<t+dt) \\
+	& & \qquad P(t\le T_{n+1}-T_n<t+dt)
+\end{eqnarray*}
+The last factor, $P(t\le T_{n+1}-T_n<t+dt)$, is the waiting time for the competing processes. In particular, the Direct method samples the waiting time using the usual method of inverting its survival with $u=P(\tau<T)$. In order to calculate the likelihood of a particular trajectory, we would need only to multiply $u$ by the hazard rate of the drawn transition.
+
+We usually think of the direct method as sampling by inversion. If we write the direct method in terms of hazards a draw for time $T=\tau$, inversion sampling requires solving an inverse equation for the cumulative survival across competing processes.
+\begin{equation}
+	u = \mbox{exp}\left(-\int_{t_i}^\tau\sum_a \lambda_a(t)dt\right)
+\end{equation}
+There is, however, no reason that we can't use something like rejection sampling, where we sample in a two-dimensional space and keep samples that fall within the region under the density function. The efficiency of such rejection methods depends on choice of proposal distributions, so it's artful, but it should be much faster than direct integration.
+
+
+\section{Common random numbers}
+
+\subsection{Introduction}
+
+Instead of calling \texttt{rand(rng, distribution)}, change it to \texttt{rand(rng, distribution, clock)}. Then keep track of a) the clock b) its $n$-th call and c) the survival associated with that call. Record choices and replay.
+
+This works best with samplers that use fewer random numbers, such as the Next Reaction method. It's these lines we would want to replace. In the case of CRN, the input wouldn't be a random sample but would be a survival from which to determine the sample.
+
+\begin{jllisting}
+sample = rand(rng, distribution)
+tau = te + sample
+survival = survival_space(S, distribution, sample)
+\end{jllisting}
+
+What if you used CRN and a direct method? It doesn't seem like it would be very effective. Direct methods have two draws, one for the waiting time and one for the transition, conditional on the waiting time draw. I could see this working if the transitions were ordered in a meaningful way. The draw for which transition fires is a discrete choice, found by inverting this to find the largest transition $\alpha$ for which
+\begin{equation}
+	u \le \sum_{0}^{\alpha}\lambda_i(t).
+\end{equation}
+Subsequent runs of the simulation would pick values with the same $u$, and if nearby values were meaningfully similar, that would be an interesting constraint.
+
+\subsection{Julia Implementation}
+
+In Julia, when you draw from a distribution, it constructs a Sampler for that distribution. For instance, if a Gamma distribution is most easily sampled with one sampler for typical parameters and another sampler for smaller shape values. The sampler for the distribution will rely on capabilities of the random number generator and may construct a second type of Sampler for the random number generator. For instance, it may choose to draw 128-bit unsigned integers or it may choose to draw doubles. Julia's sampling architecture is therefore highly configurable for optimization.
+
+CRN traditionally stores a draw from a uniform variate, and that's it. It assumes you will sample by inversion. We could do that, or we could hook into Julia's system in more depth. Let's list some possibilities, not in order of preference but numbered for reference.
+\begin{enumerate}
+	\item Save a uniform variate.
+	\item Save the state of the random number generator, either to support multiple draws or support draws of specific values, such as 128-bit unsigned integers. The state of the Xoshiro generator is only 256 bits of storage, but Mersenne twister state is much, much larger.
+	\item Figure out which particular values are drawn from the RNG and save those.
+\end{enumerate}
+Maybe we could try both the first and second options.
+
+The random variates need to be stored in order to reuse them. We already have the notion of a clock ID, so we're storing a value for each (clock ID, ordinal). A simulation may have only one clock and a million calls, or it may have a million clocks called once each. We won't know going into a run which one will happen, so I suppose it would make sense to record everything in some simple way and then repack it for replaying later.
+
+
+\section{Importance Sampling}
+
+Why would you calculate a likelihood? So that you can artificially increase the likelihood of trajectories with desired outcomes in order to improve their statistics.
+
+For a simulation with a likelihood $f_a(t)$, the importance sampling technique samples instead from a likelihood $g_a(t)$. We weight the ensuing trajectory by $f_a(t)/g_a(t)$. The likelihood ratio consists of quantities we've already discussed calculating.
+\begin{equation}
+	\frac{f_a(t)}{g_a(t)} = \frac{\lambda_{\alpha}(t)\prod_{a}S_a(t)}{\lambda'_{\alpha}(t)\prod_{b}S'_b(t)}\label{eqn:likelihoodratio}
+\end{equation}
+If we can draw from $g$, then we only need to calculate hazards and survivals, or pdf and survivals, to calculate the ratio.
+
+We have our three basic ways to draw: transition first, time first, or competing processes.
+\begin{eqnarray}
+	P[A,T]&=&P[A]P[T|A]\qquad\mbox{(nobody)} \\
+	&=&P[A|T]P[T]\qquad\mbox{(direct)}\\
+	&=&\mbox{min}(P[T_a])\ \forall a\qquad\mbox{(competing)}
+\end{eqnarray}
+We know what those pieces are, too, and the first equation explains why nobody draws the transition first, then the time given the transition.
+\begin{eqnarray}
+	P[A] & = & \int_{t_0}^\infty \lambda_{\alpha}(t)\prod_{a}S_a(t)dt\label{eqn:marginaltransition} \\
+	P[t\le T<t+dt|A] & = & \lambda_{\alpha}(t)\prod_{a}S_a(t)dt \\
+	P[A|T] & = & \frac{\lambda_\alpha(t)}{\sum_a\lambda_a(t)} \\
+	P[T] & = & 1-\exp(-\sum_a\int_{t_0}^t\lambda_a(s)ds) \\
+	P[T_a] & = & 1-\exp(-\int_{t_0}^t \lambda_a(s)ds)
+\end{eqnarray}
+The good news is that there is no reason to calculate Eq.~\ref{eqn:marginaltransition} in order to use importance sampling. We can draw from some $g$ and then evaluate the likelihood of the draw for both the proposal distribution and the target distribution.
+
+
+\subsection{Splitting}
+
+This version of importance sampling is simple to implement. When a trajectory is in the right direction, split it into multiple trajectories. Then, when counting results, down-weight those trajectories by the split. If one trajectory splits into 10, count the results by 1/10th.
+
+A good example of splitting is a simulation that takes place on an energy landscape. Picture two valleys and a mountain pass between them. The simulation starts in one valley and rarely crosses the pass to the next valley. For those simulations that approach the pass, you could split the trajectories in order to increase the quality of statistics for the likelihood of reaching the other valley.
+
+Splitting is implemented not in the sampler but in the driver of the simulation. You would copy the simulation state and the sampler state $N$ times and then down-weight the contribution of each.
+
+For someone who wants to use this kind of splitting, they will define a trigger for splitting. This is a stopping time where the simulation is at or near a desired set of outcomes. It's a condition on the state of the simulation, not a condition on the sampler. The act of splitting creates multiple trajectories, each with its own sampler. Fleck can support this by making it easy to copy a sampler so that a simulation can spawn a new trajectory. These new trajectories may run simultaneously or one after the other, but that wouldn't matter as long as the system state and samplers were separate copies.
+
+
+\subsection{Exclusion}
+
+Here, we choose a transition and disallow it from firing. For instance, it's common in disease modeling to ask how large an outbreak would be, were there an outbreak. That's a conditional probability, conditioned on the disease never reaching extinction. 
+
+There are two ways to calculate an exclusion-sampled trajectory. Picture a herd of animals with only one infectious. It could either recover or infect another in the herd, and we'll exclude recovery, but we have to account for the decreased likelihood of the trajectory given that it excludes recovery.
+
+Let's say there are two transitions, A for 1/3 of the time, B for 1/3 of the time, C for 1/3 of the time. We exclude A, so B goes all the time. We should reweight B's and C's trajectories by 2/3.
+
+If we go back to Eq.~\ref{eqn:likelihoodratio}, then importance sampling with exclusion leaves out one survival. Call that $A=\beta$.
+\begin{equation}
+	\frac{f_\alpha(t)}{g_\alpha(t)} = \frac{\lambda_{\alpha}(t)S_\beta(t)\prod_{a}S_a(t)}{\lambda_{\alpha}(t)\prod_{a}S_a(t)} = S_\beta(t)
+\end{equation}
+The algorithm then is to keep the transition you want to exclude updated, as with any other transition.
+\begin{enumerate}
+	\item Draw from all transitions except the excluded one. Ignore it.
+	\item Calculate the survival of the excluded transition.
+	\item Weight the ensuing trajectory by the survival of the excluded transition.
+\end{enumerate}
+In other words, you're weighting the trajectory by the probability the excluded transition would already have fired.
+
+\subsection{Weighting Probability}
+
+We could implement a simulation where all of the individual distribution functions differ from the target functions. At each step, we would reweight the trajectory likelihood. You would have to keep two samplers around, one to calculate likelihood of the target distributions and one to both draw from and calculate likelihood of proposal distributions.
+
+\subsection{Tools for Importance Sampling}
+
+The hardest part of importance sampling is figuring out how to make the estimates better and not worse. You need to calculate the change in variance of estimates with and without importance sampling. We might need to think about tooling to help calculate the best weights to use.
+
+
+\subsection{Examples}
+Example: Preventing extinction in disease simulation.
+
+Example: Estimation of energy barrier.
+
+
+\section{Hamiltonian Monte Carlo}
+
+My favorite housing spread example.
+
+
+\section{Piecewise Deterministic Markov Processes}
+
+As long as the sampler can sample the distribution using the given methods, that distribution can be determined by any equation, including an ODE. In one version, the distribution is a delta function, and these completely work. You have to re-enable the distribution each time the ODE changes its prediction. In another version, there is still a continuous distribution, but it's determined by the ODE.
+
+Show that a delta-function can be included in Fleck.
 
 \end{document}
