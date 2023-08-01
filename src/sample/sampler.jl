@@ -51,6 +51,17 @@ function disable!(sampler::SingleSampler, clock)
 end
 
 
+abstract type SamplerChoice{Key,SamplerKey} end
+
+function choose_sampler(
+    chooser::SamplerChoice{Key,SamplerKey}, clock::Key, distribution::UnivariateDistribution
+    )::SamplerKey where {Key,SamplerKey}
+    throw(MissingException("No sampler choice given to the MultiSampler"))
+end
+
+export SamplerChoice
+export choose_sampler
+
 """
     MultiSampler{SamplerKey,Key,Time}(which_sampler::Function)
 
@@ -59,19 +70,53 @@ determine the next transition to fire. It returns the soonest transition of all
 of the algorithms. The `which_sampler` function looks at the clock ID, or key,
 and chooses which sampler should sample this clock. Add algorithms to this
 sampler like you would add them to a dictionary.
+
+# Examples
+Let's make one sampler for exponential distributions and one for the rest.
+We can name them with symbols. The trick is that we need to direct each kind
+of distribution to the correct sampler. Use a Float64 for time and each clock
+can be identified with an Int64.
+```
+using Fleck
+using Distributions: Exponential, UnivariateDistribution
+
+struct ByDistribution <: SamplerChoice{Int64,Symbol} end
+
+function Fleck.choose_sampler(
+    chooser::ByDistribution, clock::Int64, distribution::Exponential
+    )::Symbol
+    return :direct
+end
+function Fleck.choose_sampler(
+    chooser::ByDistribution, clock::Int64, distribution::UnivariateDistribution
+    )::Symbol
+    return :otherone
+end
+sampler = MultiSampler{Symbol,Int64,Float64}(ByDistribution())
+sampler[:direct] = OptimizedDirect{Int64,Float64}()
+sampler[:otherone] = FirstToFire{Int64,Float64}()
+```
+Why don't we choose samplers by passing a function into the `MultiSampler`?
+This is an effort to ensure type safety, because if you're going to the trouble
+of using a hierarchical sampler, you clearly care about speed.
 """
 mutable struct MultiSampler{SamplerKey,Key,Time}
     propagator::Dict{SamplerKey,SSA{Key,Time}}
     when::Time
-    which_sampler::Function
+    chooser::SamplerChoice{Key,SamplerKey}
+    chosen::Dict{Key,SamplerKey}
 end
 
 
-function MultiSampler{SamplerKey,Key,Time}(which_sampler::Function) where {SamplerKey,Key,Time}
+function MultiSampler{SamplerKey,Key,Time}(
+    which_sampler::SamplerChoice{Key,SamplerKey}
+    ) where {SamplerKey,Key,Time}
+
     MultiSampler{SamplerKey,Key,Time}(
         Dict{SamplerKey,SSA{Key,Time}}(),
         zero(Time),
-        which_sampler
+        which_sampler,
+        Dict{Key,SamplerKey}()
         )
 end
 
@@ -91,12 +136,12 @@ function sample!(
     least_when::Time = typemax(Time)
     least_transition::Union{Nothing,Key} = nothing
     least_source::Union{Nothing,SamplerKey} = nothing
-    for i in eachindex(sampler.propagator)
-        when, transition = next(sampler.propagator[i], sampler.when, rng)
+    for (sample_key, propagator) in sampler.propagator
+        when, transition = next(propagator, sampler.when, rng)
         if when < least_when
             least_when = when
             least_transition = transition
-            least_source = i
+            least_source = sample_key
         end
     end
     if least_transition !== nothing
@@ -110,11 +155,13 @@ end
 function enable!(
     sampler::MultiSampler, clock, distribution::UnivariateDistribution, te, rng::AbstractRNG
     )
-    propagator = sampler.propagator[sampler.which_sampler(clock)]
+    this_clock_sampler = choose_sampler(sampler.chooser, clock, distribution)
+    sampler.chosen[clock] = this_clock_sampler
+    propagator = sampler.propagator[this_clock_sampler]
     enable!(propagator, clock, distribution, te, sampler.when, rng)
 end
 
 
 function disable!(sampler::MultiSampler, clock)
-    disable!(sampler.propagator[sampler.which_sampler(clock)], clock, sampler.when)
+    disable!(sampler.propagator[sampler.chosen[clock]], clock, sampler.when)
 end
