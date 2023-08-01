@@ -5,7 +5,7 @@ export enable!, disable!, sample!
 """
     SSA{Key,Time}
 
-This abstract type represents a stochastic simulation algorithm. It is
+This abstract type represents a stochastic simulation algorithm (SSA). It is
 parametrized by the clock ID, or key, and the type used for the time, which
 is typically a Float64.
 """
@@ -72,6 +72,7 @@ and chooses which sampler should sample this clock. Add algorithms to this
 sampler like you would add them to a dictionary.
 
 # Examples
+
 Let's make one sampler for exponential distributions and one for the rest.
 We can name them with symbols. The trick is that we need to direct each kind
 of distribution to the correct sampler. Use a Float64 for time and each clock
@@ -100,19 +101,19 @@ Why don't we choose samplers by passing a function into the `MultiSampler`?
 This is an effort to ensure type safety, because if you're going to the trouble
 of using a hierarchical sampler, you clearly care about speed.
 """
-mutable struct MultiSampler{SamplerKey,Key,Time}
+mutable struct MultiSampler{SamplerKey,Key,Time,Chooser}
     propagator::Dict{SamplerKey,SSA{Key,Time}}
     when::Time
-    chooser::SamplerChoice{Key,SamplerKey}
+    chooser::Chooser
     chosen::Dict{Key,SamplerKey}
 end
 
 
 function MultiSampler{SamplerKey,Key,Time}(
-    which_sampler::SamplerChoice{Key,SamplerKey}
-    ) where {SamplerKey,Key,Time}
+    which_sampler::Chooser
+    ) where {SamplerKey,Key,Time,Chooser <: SamplerChoice{Key,SamplerKey}}
 
-    MultiSampler{SamplerKey,Key,Time}(
+    MultiSampler{SamplerKey,Key,Time,Chooser}(
         Dict{SamplerKey,SSA{Key,Time}}(),
         zero(Time),
         which_sampler,
