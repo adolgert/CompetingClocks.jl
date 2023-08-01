@@ -35,9 +35,15 @@ end
 end
 
 
+@testset "test_sampler.jl" begin
+    include("test_sampler.jl")
+end
+
+
 @testset "test_vas.jl" begin
     include("test_vas.jl")
 end
+
 
 @testset "test_vas_integrate.jl" begin
     include("test_vas_integrate.jl")

@@ -63,7 +63,7 @@ end
 
     cnt = 30
     vas = VectorAdditionSystem(sample_sir(cnt)...)
-    sampler = FirstToFire{Int}()
+    sampler = FirstToFire{Int64,Float64}()
 
     starting = zeros(Int, 3 * cnt)
     starting[2:cnt] .= 1
