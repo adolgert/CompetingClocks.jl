@@ -69,6 +69,9 @@ end
 get_survival_zero(::Type{LinearSampling}) = 0.0::Float64
 get_survival_zero(::Type{LogSampling}) = -Inf::Float64
 
+draw_space(::Type{LinearSampling}, rng) = rand(rng, Uniform())
+draw_space(::Type{LogSampling}, rng) = rand(rng, Exponential())
+
 function survival_space(::Type{T}, dist, sample) where {T <: UnivariateDistribution}
     survival_space(sampling_space(T), dist, sample)
 end

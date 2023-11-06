@@ -28,14 +28,18 @@ struct CommonRandomRecorder{Sampler,T,RNG}
     sampler::Sampler
     record::Dict{T,Array{RNG,1}}
 end
-
+export CommonRandomRecorder
 
 function CommonRandomRecorder(sampler::Sampler, clock_type::Type, rng_type::Type) where {Sampler}
-    storage = Dict{T,Array{rng_type,1}}()
+    storage = Dict{clock_type,Array{rng_type,1}}()
     CommonRandomRecorder{Sampler,clock_type,rng_type}(sampler, storage)
 end
 
 
+# If you weren't using clock IDs and were instead using a direct method
+# it would be better to instrument the next function and record every draw
+# in a vector. So it makes sense to have different CRN implementations
+# for different purposes.
 function next(cr::CommonRandomRecorder{Sampler}, when::Float64, rng::AbstractRNG) where {Sampler}
     return next(cr.sampler, when, rng)
 end
@@ -46,12 +50,12 @@ function enable!(
     te::Float64, when::Float64, rng::AbstractRNG) where {Sampler, T}
 
     rng_save = copy(rng)
-    enable!(nr.sampler, clock, distribution, te, when, rng)
+    enable!(cr.sampler, clock, distribution, te, when, rng)
     if rng != rng_save
-        if clock ∈ record
-            push!(record[clock], rng_save)
+        if clock ∈ keys(cr.record)
+            push!(cr.record[clock], rng_save)
         else
-            record[clock] = [rng_save]
+            cr.record[clock] = [rng_save]
         end
     end
 end
@@ -70,7 +74,7 @@ end
 
 
 function replay(recorder::CommonRandomRecorder{Sampler,T,RNG}) where {Sampler,T,RNG}
-    index = {clock: 1 for clock in keys(recorder.record)}
+    index = Dict(clock => 1 for clock in keys(recorder.record))
     CommonRandomReplay{CommonRandomRecorder{Sampler,T,RNG},T}(recorder, index, Dict{T,Int}())
 end
 
@@ -89,11 +93,7 @@ function with_generator(fn::Function, crr::CommonRandomReplay, clock, rng)
         end
     end
     fn(rng)
-    if clock ∈ keys(crr.miss)
-        crr.miss[clock] += 1
-    else
-        crr.miss[clock] = 1
-    end
+    crr.miss[clock] = get(crr.miss, clock, 0) + 1
 end
 
 
