@@ -66,23 +66,28 @@ function disable!(cr::CommonRandomRecorder{Sampler}, clock::T, when::Float64) wh
 end
 
 
-struct CommonRandomReplay{CommonRandomRecorder,T}
-    recorder::CommonRandomRecorder
+struct CommonRandomReplay{Sampler,T,RNG}
+    sampler::Sampler
+    record::Dict{T,Array{RNG,1}}
     sample_index::Dict{T,Int}
     miss::Dict{T,Int}
 end
 
 
 function replay(recorder::CommonRandomRecorder{Sampler,T,RNG}) where {Sampler,T,RNG}
+    sampler = clone(recorder.sampler)
     index = Dict(clock => 1 for clock in keys(recorder.record))
-    CommonRandomReplay{CommonRandomRecorder{Sampler,T,RNG},T}(recorder, index, Dict{T,Int}())
+    CommonRandomReplay{Sampler,T,RNG}(
+        sampler, recorder.record, index, Dict{T,Int}()
+        )
 end
+export replay
 
 
 function with_generator(fn::Function, crr::CommonRandomReplay, clock, rng)
     clock_index = get(crr.sample_index, clock, 0)
     if clock_index > 0
-        samples = crr.recorder.record[clock]
+        samples = crr.record[clock]
         if clock_index <= length(samples)
             use_rng = copy(samples[clock_index])
             fn(use_rng)
@@ -97,14 +102,14 @@ function with_generator(fn::Function, crr::CommonRandomReplay, clock, rng)
 end
 
 
-function next(crr::CommonRandomReplay{Sampler}, when::Float64, rng::AbstractRNG) where {Sampler}
+function next(crr::CommonRandomReplay, when::Float64, rng::AbstractRNG)
     return next(crr.sampler, when, rng)
 end
 
 
 function enable!(
-    crr::CommonRandomReplay{Sampler}, clock::T, distribution::UnivariateDistribution,
-    te::Float64, when::Float64, rng::AbstractRNG) where {Sampler, T}
+    crr::CommonRandomReplay, clock, distribution::UnivariateDistribution,
+    te::Float64, when::Float64, rng::AbstractRNG)
 
     with_generator(crr, clock, rng) do use_rng
         enable!(crr.sampler, clock, distribution, te, when, use_rng)
@@ -112,6 +117,6 @@ function enable!(
 end
 
 
-function disable!(cr::CommonRandomReplay{Sampler}, clock::T, when::Float64) where {Sampler, T}
+function disable!(cr, clock, when::Float64)
     disable!(crr.sampler, clock, when)
 end

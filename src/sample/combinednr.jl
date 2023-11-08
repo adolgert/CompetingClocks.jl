@@ -139,6 +139,9 @@ function CombinedNextReaction{T}() where {T}
     CombinedNextReaction{T}(heap, Dict{T,NRTransition}())
 end
 
+clone(nr::CombinedNextReaction{T}) where {T} = CombinedNextReaction{T}()
+export clone
+
 
 function next(nr::CombinedNextReaction, when::Float64, rng::AbstractRNG)
     if !isempty(nr.firing_queue)

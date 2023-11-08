@@ -2,7 +2,7 @@ using Fleck
 using SafeTestsets
 
 module CRNHelper
-    export FakeSampler, next, enable!, disable!
+    export FakeSampler, next, enable!, disable!, clone
     using Random
     using Fleck
     using Distributions
@@ -18,9 +18,13 @@ module CRNHelper
 
 
     function Fleck.next(cr::FakeSampler, when::Float64, rng::AbstractRNG) where {Sampler}
-        ((time, clock_id), element) = findmin(cr.draws)
-        deleteat!(cr.draws, element)
-        return (time, clock_id)
+        if length(cr.draws) > 0
+            ((time, clock_id), element) = findmin(cr.draws)
+            deleteat!(cr.draws, element)
+            return (time, clock_id)
+        else
+            return (Inf, nothing)
+        end
     end
 
 
@@ -37,6 +41,8 @@ module CRNHelper
             deleteat!(cr.draws, toremove)
         end
     end
+
+    Fleck.clone(cr::FakeSampler) = FakeSampler()
 end
 
 
@@ -83,24 +89,38 @@ end
 end
 
 
-@safetestset crn_replay = "Common random numbers replay" begin
+@safetestset crn_replay = "Common random numbers exact replay" begin
     using Fleck
     using Random
-    using ..CRNHelper
+    using ..CRNHelper: FakeSampler
     using Distributions
 
     rng = Xoshiro(2934723)
     sampler = FakeSampler()
     record_sampler = CommonRandomRecorder(sampler, Int, Xoshiro)
-
+    current_time::Float64 = 0
+    trace = Dict{Int,Float64}()
     enabled = Set(1:5)
     for startup in enabled
-       enable!(record_sampler, startup, Exponential(), 0.0, 0.0, rng)
+       enable!(record_sampler, startup, Exponential(), current_time, current_time, rng)
     end
-    @test length(sampler.draws) == 5
     for out in 1:5
-        (when, which) = next(record_sampler, 0.0, rng)
+        (when, which) = next(record_sampler, current_time, rng)
+        trace[which] = when
         pop!(enabled, which)
+        current_time = when
     end
-    @test length(sampler.draws) == 0
+
+    replay_sampler = replay(record_sampler)
+    current_time = 0.0
+    for startup in Set(1:5)
+       enable!(replay_sampler, startup, Exponential(), current_time, current_time, rng)
+    end
+    total_diff::Float64 = 0
+    for out in 1:5
+        (when, which) = next(replay_sampler, current_time, rng)
+        total_diff += abs(when - trace[which])
+        current_time = when
+    end
+    @test total_diff < 1e-10
 end
