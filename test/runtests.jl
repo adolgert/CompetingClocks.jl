@@ -5,6 +5,11 @@ using Test
 # Not tests. These are helper functions for tests.
 include("test_utility.jl")
 
+@testset "test_commonrandom.jl" begin
+    include("test_commonrandom.jl")
+end
+
+
 @testset "test_prefixsearch.jl" begin
     include("test_prefixsearch.jl")
 end

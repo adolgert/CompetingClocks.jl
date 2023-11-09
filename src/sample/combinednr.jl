@@ -69,6 +69,9 @@ end
 get_survival_zero(::Type{LinearSampling}) = 0.0::Float64
 get_survival_zero(::Type{LogSampling}) = -Inf::Float64
 
+draw_space(::Type{LinearSampling}, rng) = rand(rng, Uniform())
+draw_space(::Type{LogSampling}, rng) = rand(rng, Exponential())
+
 function survival_space(::Type{T}, dist, sample) where {T <: UnivariateDistribution}
     survival_space(sampling_space(T), dist, sample)
 end
@@ -136,10 +139,13 @@ function CombinedNextReaction{T}() where {T}
     CombinedNextReaction{T}(heap, Dict{T,NRTransition}())
 end
 
+clone(nr::CombinedNextReaction{T}) where {T} = CombinedNextReaction{T}()
+export clone
+
 
 function next(nr::CombinedNextReaction, when::Float64, rng::AbstractRNG)
     if !isempty(nr.firing_queue)
-        least = top(nr.firing_queue)
+        least = first(nr.firing_queue)
         # For this sampler, mark this transition as the one that will fire
         # by marking its remaining cumulative time as 0.0.
         entry = nr.transition_entry[least.key]

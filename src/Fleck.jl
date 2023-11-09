@@ -12,6 +12,7 @@ include("sample/firsttofire.jl")
 # include("sample/fixeddirect.jl")
 include("sample/direct.jl")
 include("sample/combinednr.jl")
+include("sample/common_random.jl")
 include("vas.jl")
 
 export Never
