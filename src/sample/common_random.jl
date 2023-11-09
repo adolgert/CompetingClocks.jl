@@ -55,14 +55,14 @@ end
 # it would be better to instrument the next function and record every draw
 # in a vector. So it makes sense to have different CRN implementations
 # for different purposes.
-function next(cr::CommonRandomRecorder{Sampler}, when::Float64, rng::AbstractRNG) where {Sampler}
+function next(cr::CommonRandomRecorder{Sampler}, when, rng::AbstractRNG) where {Sampler}
     return next(cr.sampler, when, rng)
 end
 
 
 function enable!(
     cr::CommonRandomRecorder{Sampler}, clock::T, distribution::UnivariateDistribution,
-    te::Float64, when::Float64, rng::AbstractRNG) where {Sampler, T}
+    te, when, rng::AbstractRNG) where {Sampler, T}
 
     rng_save = copy(rng)
     enable!(cr.sampler, clock, distribution, te, when, rng)
@@ -76,7 +76,7 @@ function enable!(
 end
 
 
-function disable!(cr::CommonRandomRecorder{Sampler}, clock::T, when::Float64) where {Sampler, T}
+function disable!(cr::CommonRandomRecorder{Sampler}, clock::T, when) where {Sampler, T}
     disable!(cr.sampler, clock, when)
 end
 
@@ -117,14 +117,14 @@ function with_generator(fn::Function, crr::CommonRandomReplay, clock, rng)
 end
 
 
-function next(crr::CommonRandomReplay, when::Float64, rng::AbstractRNG)
+function next(crr::CommonRandomReplay, when, rng::AbstractRNG)
     return next(crr.sampler, when, rng)
 end
 
 
 function enable!(
     crr::CommonRandomReplay, clock, distribution::UnivariateDistribution,
-    te::Float64, when::Float64, rng::AbstractRNG)
+    te, when, rng::AbstractRNG)
 
     with_generator(crr, clock, rng) do use_rng
         enable!(crr.sampler, clock, distribution, te, when, use_rng)
@@ -132,6 +132,6 @@ function enable!(
 end
 
 
-function disable!(cr, clock, when::Float64)
+function disable!(cr, clock, when)
     disable!(crr.sampler, clock, when)
 end

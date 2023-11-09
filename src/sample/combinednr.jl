@@ -145,7 +145,7 @@ export clone
 
 function next(nr::CombinedNextReaction, when::Float64, rng::AbstractRNG)
     if !isempty(nr.firing_queue)
-        least = top(nr.firing_queue)
+        least = first(nr.firing_queue)
         # For this sampler, mark this transition as the one that will fire
         # by marking its remaining cumulative time as 0.0.
         entry = nr.transition_entry[least.key]
