@@ -37,7 +37,8 @@ end
 
 
 function choose(ps::CumSumPrefixSearch{T}, variate::T) where {T}
-    searchsortedfirst(ps.cumulant, variate)
+    index = searchsortedfirst(ps.cumulant, variate)
+    return (index, ps.array[index])
 end
 
 

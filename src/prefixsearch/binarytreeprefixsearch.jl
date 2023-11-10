@@ -1,4 +1,7 @@
-import Base: sum, push!
+import Base: sum!, push!, length, setindex!
+using Random
+using Distributions: Uniform
+using Logging
 
 """
 This is a binary tree where the leaves are values
@@ -6,20 +9,21 @@ and the nodes are sums of those values. It is meant to make it
 easier to find the leaf such that the sum of it and all previous
 leaves is greater than a given value.
 """
-struct BinaryTreePrefixSearch{T<:Real}
+mutable struct BinaryTreePrefixSearch{T<:Real}
 	array::Array{T,1}
-	depth::Int
-	offset::Int
+	depth::Int64
+	offset::Int64
+	cnt::Int64
 end
 
 
 """
     BinaryTreePrefixSearch(ElementType::DataType, count::Int)
 
-Constructor for an empty tree of type ElementType and length count.
+Constructor for an empty tree of type ElementType and allocated size.
 """
-function BinaryTreePrefixSearch(ElementType::DataType, count::Int)
-	new(zeros(ElementType, count), 0, 0)
+function BinaryTreePrefixSearch(ElementType::DataType)
+	BinaryTreePrefixSearch(ElementType::DataType, 1)
 end
 
 
@@ -28,18 +32,39 @@ end
 
 Constructor of a prefix search tree from an iterable list of real numbers.
 """
-function BinaryTreePrefixSearch(summables)
-	a = Array(summables)
-	@assert length(a) > 0
-	depth = Int(ceil(log(2, length(a)))) + 1
-	offset = 2^(depth - 1)
-	b = zeros(eltype(summables), 2^depth - 1)
-	b[offset:(length(a) + offset - 1)] = a
-	#print("depth $depth offset $offset length $(length(b))\n")
-	pst = BinaryTreePrefixSearch{eltype(summables)}(b, depth, offset)
-	calculate_prefix!(pst)
-	pst
+function BinaryTreePrefixSearch(ElementType::DataType, N)
+	depth, offset, array_cnt = _btps_sizes(N)
+	b = zeros(ElementType, array_cnt)
+	BinaryTreePrefixSearch{ElementType}(b, depth, offset, 0)
 end
+
+
+function _btps_sizes(allocation)
+	@assert allocation > 0
+	depth = Int(ceil(log2(allocation))) + 1
+	offset = 2^(depth - 1)
+	array_cnt = 2^depth - 1
+	@assert allocation <= offset + 1
+	return (depth, offset, array_cnt)
+end
+
+
+# newsize is the desired number of entries. It will allocate more than this.
+function resize!(pst::BinaryTreePrefixSearch{T}, newsize) where {T}
+	depth, offset, array_cnt = _btps_sizes(newsize)
+	b = zeros(T, array_cnt)
+	will_fit = min(offset, pst.offset)
+	b[offset:(offset + will_fit - 1)] = pst.array[pst.offset:(pst.offset + will_fit - 1)]
+	pst.array = b
+	pst.depth = depth
+	pst.offset = offset
+	pst.cnt = newsize
+	calculate_prefix!(pst)
+end
+
+
+Base.length(ps::BinaryTreePrefixSearch) = ps.cnt
+allocated(ps::BinaryTreePrefixSearch) = ps.offset
 
 
 """
@@ -56,9 +81,8 @@ function choose(pst::BinaryTreePrefixSearch{T}, value) where {T}
 		error("Value $value not less than total $(pst.array[1])")
 	end
 
-	requested_value = value
     index = 1
-    for level = 0:(pst.depth - 2)
+    for _ = 0:(pst.depth - 2)
         left_child = 2 * index
         if pst.array[left_child] > value
             index = left_child
@@ -71,14 +95,14 @@ function choose(pst::BinaryTreePrefixSearch{T}, value) where {T}
 end
 
 
-sum(pst::BinaryTreePrefixSearch) = pst.array[1]
+Base.sum!(pst::BinaryTreePrefixSearch) = pst.array[1]
 
 
 """
 If there are multiple values to enter, then present them
 at once as pairs of tuples, (index, value).
 """
-function push!(pst::BinaryTreePrefixSearch, pairs)
+function update!(pst::BinaryTreePrefixSearch, pairs)
 	modify=Set{Int}()
 	for (pos, value) in pairs
 		index = pos + pst.offset - 1
@@ -90,7 +114,7 @@ function push!(pst::BinaryTreePrefixSearch, pairs)
     for depth = (pst.depth - 2):-1:0
         parents = Set{Int}()
         for node_idx in modify
-            pst.array[node_idx]=pst.array[2 * node_idx] + pst.array[2 * node_idx + 1]
+            pst.array[node_idx] = pst.array[2 * node_idx] + pst.array[2 * node_idx + 1]
             push!(parents, div(node_idx, 2))
         end
         modify = parents
@@ -98,8 +122,24 @@ function push!(pst::BinaryTreePrefixSearch, pairs)
 end
 
 
-function push!(pst::BinaryTreePrefixSearch{T}, index::Int, value::T) where T
-    push!(pst, [(index, value)])
+function Base.push!(pst::BinaryTreePrefixSearch{T}, value::T) where T
+	index = pst.cnt + 1
+	if index <= allocated(pst)
+		pst.cnt += 1
+	else
+		@debug "Pushing to binarytreeprefix $index $(allocated(pst))"
+		resize!(pst, index)
+	end
+	pst[index] = value
+	return value
+end
+
+
+"""
+    setindex!(A, X, inds...)
+"""
+function Base.setindex!(pst::BinaryTreePrefixSearch{T}, value::T, index::Int64) where T
+    update!(pst, [(index, value)])
 end
 
 
@@ -111,3 +151,13 @@ function calculate_prefix!(pst::BinaryTreePrefixSearch)
 		end
 	end
 end
+
+
+"""
+    rand(rng, sampler::SamplerTrivial{BinaryTreePrefixSearch})
+
+This method overload allows the machinery of Random to generate random variates
+from the BinaryTreePrefixSearch set of values.
+"""
+Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{BinaryTreePrefixSearch{T}}) where {T} =
+    choose(d[], rand(rng, Uniform{T}(zero(T), d[].array[1])))

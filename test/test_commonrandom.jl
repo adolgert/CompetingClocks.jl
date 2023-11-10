@@ -17,7 +17,7 @@ module CRNHelper
     end
 
 
-    function Fleck.next(cr::FakeSampler, when::Float64, rng::AbstractRNG) where {Sampler}
+    function Fleck.next(cr::FakeSampler, when::Float64, rng::AbstractRNG)
         if length(cr.draws) > 0
             ((time, clock_id), element) = findmin(cr.draws)
             deleteat!(cr.draws, element)
@@ -30,12 +30,12 @@ module CRNHelper
 
     function Fleck.enable!(
         cr::FakeSampler, clock::T, distribution::UnivariateDistribution,
-        te::Float64, when::Float64, rng::AbstractRNG) where {Sampler, T}
+        te::Float64, when::Float64, rng::AbstractRNG) where {T}
         push!(cr.draws, (when + rand(rng, distribution), clock))
     end
 
 
-    function Fleck.disable!(cr::FakeSampler, clock::T, when::Float64) where {Sampler, T}
+    function Fleck.disable!(cr::FakeSampler, clock::T, when::Float64) where { T}
         toremove = findnext(x->x[2]==clock, cr.draws, 1)
         if toremove !== nothing
             deleteat!(cr.draws, toremove)
