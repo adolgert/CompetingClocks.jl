@@ -51,7 +51,7 @@ value.
 Precondition: The value must be strictly less than the total for
 the tree.
 """
-function choose(pst::BinaryTreePrefixSearch, value)
+function choose(pst::BinaryTreePrefixSearch{T}, value) where {T}
 	if value >= pst.array[1]
 		error("Value $value not less than total $(pst.array[1])")
 	end

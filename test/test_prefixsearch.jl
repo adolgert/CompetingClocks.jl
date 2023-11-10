@@ -1,6 +1,40 @@
 using SafeTestsets
 
 
+@safetestset cumsumprefix_smoke = "cumsum prefix smoke" begin
+    using Fleck: CumSumPrefixSearch, choose
+    ps = CumSumPrefixSearch(Float64)
+    for idx in 1:20
+        push!(ps, 0.5)
+    end
+    @test length(ps) == 20
+    maximum = sum!(ps)
+    @test abs(maximum - 20 * 0.5) < 1e-13
+    for check in 1:200
+        variate = (check - 1) * maximum / 200
+        idx = choose(ps, variate)
+        @test idx >= 1
+        @test idx <= 20
+    end
+end
+
+
+@safetestset cumsumprefix_rand = "cumsum prefix has rand" begin
+    using Fleck: CumSumPrefixSearch, choose
+    using Random
+    rng = Xoshiro(23423)
+    ps = CumSumPrefixSearch(Float64)
+    for idx in 1:20
+        push!(ps, 0.5)
+    end
+    for i in 1:100
+        idx = rand(rng, ps)
+        @test idx >= 1
+        @test idx <= 20
+    end
+end
+
+
 @safetestset prefixsearch_single = "test single value" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum
 	t = BinaryTreePrefixSearch([3])
