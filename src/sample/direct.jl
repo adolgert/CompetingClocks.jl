@@ -31,7 +31,7 @@ end
 
 function DirectCall{T}() where {T}
     prefix_tree = BinaryTreePrefixSearch(Float64)
-    keyed_prefix_tree = KeyedPrefixSearch{T,typeof(prefix_tree)}(prefix_tree)
+    keyed_prefix_tree = KeyedRemovalPrefixSearch{T,typeof(prefix_tree)}(prefix_tree)
     DirectCall{T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 end
 

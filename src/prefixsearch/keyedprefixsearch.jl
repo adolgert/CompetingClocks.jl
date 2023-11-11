@@ -89,7 +89,7 @@ end
 
 function Base.delete!(kp::KeyedRemovalPrefixSearch, clock)
     idx = kp.index[clock]
-    kp.prefix[idx] = 0
+    kp.prefix[idx] = zero(Float64)
     delete!(kp.index, clock)
     # kp.key[idx] is now out of date.
     push!(kp.free, idx)
