@@ -18,19 +18,19 @@ is usually a nominal integer but can be a any key that identifies it, such as
 a string or tuple of integers. Instances of type `T` are used as keys in a
 dictionary.
 """
-struct DirectCall{T}
+struct DirectCall{T,P}
     # Map from clock name to index in propensity array.
     index::Dict{T, Int64}
     # Map from index in propensity array to clock name.
     key::Vector{T}
-    # The propensities themselves, where propensity = hazard.
-    propensity::Vector{Float64}
-    # A buffer to store the cumulant when we evaluate it.
-    cumulant::Vector{Float64}
-    DirectCall{T}() where {T} = new(
-        Dict{T, Int64}(), Vector{T}(), zeros(Float64, 0), zeros(Float64, 0)
+    prefix_tree::P
+    DirectCall{T,P}(tree::P) where {T,P} = new(
+        Dict{T, Int64}(), Vector{T}(), tree
         )
 end
+
+DirectCall{T}() where {T} =
+    DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
 
 
 """
@@ -51,11 +51,11 @@ function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
     hazard = rate(distribution)
     idx = get(dc.index, clock, 0)
     if idx == 0
-        dc.index[clock] = length(push!(dc.propensity, hazard))
+        push!(dc.prefix_tree, hazard)
+        dc.index[clock] = length(dc.prefix_tree)
         push!(dc.key, clock)
-        push!(dc.cumulant, zero(Float64))
     else
-        dc.propensity[idx] = hazard
+        dc.prefix_tree[idx] = hazard
     end
 end
 
@@ -68,7 +68,7 @@ an identifier for the clock. The `when` argument is the time at which this
 clock is enabled.
 """
 function disable!(dc::DirectCall{T}, clock::T, when::Float64) where {T}
-    dc.propensity[dc.index[clock]] = 0.0
+    dc.prefix_tree[dc.index[clock]] = 0.0
 end
 
 
@@ -82,14 +82,13 @@ to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
-    if length(dc.propensity) == 0
+    if length(dc.prefix_tree) == 0
         return (Inf, nothing)
     end
-    cumsum!(dc.cumulant, dc.propensity)
-    total = last(dc.cumulant)
+    total = sum!(dc.prefix_tree)
     if total > eps(Float64)
-        chosen = searchsortedfirst(dc.cumulant, rand(rng, Uniform(0, total)))
-        @assert chosen < length(dc.propensity) + 1
+        chosen, hazard_value = rand(rng, dc.prefix_tree)
+        @assert chosen < length(dc.prefix_tree) + 1
         tau = when + rand(rng, Exponential(1 / total))
         return (tau, dc.key[chosen])
     else

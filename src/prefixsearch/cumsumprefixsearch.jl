@@ -24,7 +24,7 @@ function Base.push!(ps::CumSumPrefixSearch{T}, value::T) where {T}
 end
 
 
-function Base.setindex!(ps::CumSumPrefixSearch{T}, index::UInt64, value::T) where {T}
+function Base.setindex!(ps::CumSumPrefixSearch{T}, value::T, index) where {T}
     ps.array[index] = value
     value
 end
