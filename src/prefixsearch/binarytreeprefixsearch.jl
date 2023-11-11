@@ -23,9 +23,8 @@ end
 Constructor for an empty tree of type ElementType and allocated size.
 """
 function BinaryTreePrefixSearch(ElementType::DataType)
-	BinaryTreePrefixSearch(ElementType::DataType, 1)
+	BinaryTreePrefixSearch(ElementType::DataType, 32)
 end
-
 
 """
     BinaryTreePrefixSearch(summables)
@@ -138,7 +137,7 @@ end
 """
     setindex!(A, X, inds...)
 """
-function Base.setindex!(pst::BinaryTreePrefixSearch{T}, value::T, index::Int64) where T
+function Base.setindex!(pst::BinaryTreePrefixSearch{T}, value::T, index) where T
     update!(pst, [(index, value)])
 end
 

@@ -60,7 +60,8 @@ end
 
 @safetestset prefixsearch_add_values = "binarytreeprefix add values" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!, allocated
-	t = BinaryTreePrefixSearch(Int64)
+    initial_allocation = 1
+	t = BinaryTreePrefixSearch(Int64, initial_allocation)
     push!(t, 3)
     @test t.cnt == 1
     @test length(t) == 1

@@ -29,9 +29,11 @@ struct DirectCall{T,P}
         )
 end
 
-DirectCall{T}() where {T} =
-    DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
+# DirectCall{T}() where {T} =
+#     DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
 
+DirectCall{T}() where {T} =
+    DirectCall{T,BinaryTreePrefixSearch{Float64}}(BinaryTreePrefixSearch(Float64))
 
 """
     enable!(dc::DirectCall, clock::T, distribution::Exponential, when, rng)
