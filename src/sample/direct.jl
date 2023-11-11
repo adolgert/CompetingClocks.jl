@@ -19,21 +19,22 @@ a string or tuple of integers. Instances of type `T` are used as keys in a
 dictionary.
 """
 struct DirectCall{T,P}
-    # Map from clock name to index in propensity array.
-    index::Dict{T, Int64}
-    # Map from index in propensity array to clock name.
-    key::Vector{T}
     prefix_tree::P
-    DirectCall{T,P}(tree::P) where {T,P} = new(
-        Dict{T, Int64}(), Vector{T}(), tree
-        )
+    DirectCall{T,P}(tree::P) where {T,P} = new(tree)
 end
 
 # DirectCall{T}() where {T} =
 #     DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
 
-DirectCall{T}() where {T} =
-    DirectCall{T,BinaryTreePrefixSearch{Float64}}(BinaryTreePrefixSearch(Float64))
+# DirectCall{T}() where {T} =
+#     DirectCall{T,BinaryTreePrefixSearch{Float64}}(BinaryTreePrefixSearch(Float64))
+
+function DirectCall{T}() where {T}
+    prefix_tree = BinaryTreePrefixSearch(Float64)
+    keyed_prefix_tree = KeyedPrefixSearch{T,typeof(prefix_tree)}(prefix_tree)
+    DirectCall{T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
+end
+
 
 """
     enable!(dc::DirectCall, clock::T, distribution::Exponential, when, rng)
@@ -50,15 +51,7 @@ after the event, call `enable!` to update the rate.
 """
 function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
         te::Float64, when::Float64, rng::AbstractRNG) where {T}
-    hazard = rate(distribution)
-    idx = get(dc.index, clock, 0)
-    if idx == 0
-        push!(dc.prefix_tree, hazard)
-        dc.index[clock] = length(dc.prefix_tree)
-        push!(dc.key, clock)
-    else
-        dc.prefix_tree[idx] = hazard
-    end
+    dc.prefix_tree[clock] = rate(distribution)
 end
 
 
@@ -70,7 +63,7 @@ an identifier for the clock. The `when` argument is the time at which this
 clock is enabled.
 """
 function disable!(dc::DirectCall{T}, clock::T, when::Float64) where {T}
-    dc.prefix_tree[dc.index[clock]] = 0.0
+    delete!(dc.prefix_tree, clock)
 end
 
 
@@ -84,15 +77,11 @@ to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
 function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
-    if length(dc.prefix_tree) == 0
-        return (Inf, nothing)
-    end
     total = sum!(dc.prefix_tree)
     if total > eps(Float64)
         chosen, hazard_value = rand(rng, dc.prefix_tree)
-        @assert chosen < length(dc.prefix_tree) + 1
         tau = when + rand(rng, Exponential(1 / total))
-        return (tau, dc.key[chosen])
+        return (tau, chosen)
     else
         return (Inf, nothing)
     end

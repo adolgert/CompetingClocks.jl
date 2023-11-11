@@ -47,3 +47,23 @@ Let's say there are two types of prefix search data structures, those that can r
 ### Different sizes of values
 
 If some propensities are very small and others very large, then adding the small to the large won't result in a change to the cumulant. This is a worse problem for 32-bit floating-point, so I don't think it's a large risk now for Float64, but historical solutions included sorting propensities, so that small is added to small (as in SortedDirect), or using tree structures that use multiple additions in order to mitigate the problem (as in OptimizedDirect).
+
+
+## Constructing an Interface
+
+I want to keep the core algorithms clear, so let's assemble this in layers.
+
+ 1. PrefixSearch - Whatever data structure underlies this, it looks to the client like a list of hazards. That means it has an integer index, from 1 to its length, and it can grow. We won't implement shrinking at this point.
+
+    * setindex! - Set value of a hazard
+    * push! - Add a new hazard
+    * length - Total number of hazards
+    * choose - Select a hazard by its cumulant
+    * sum! - Find total of all hazards
+
+ 2. KeyedPrefixSearch - To the client, this looks like a dictionary of hazards. It has an arbitrary type for the index. New keys can be added and keys can be deleted.
+
+    * setindex! - Set value of a hazard
+    * delete! - Disable a hazard
+    * choose - Select a hazard by its cumulant
+    * sum! - Find total of all hazards

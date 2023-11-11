@@ -26,6 +26,7 @@ function BinaryTreePrefixSearch(ElementType::DataType)
 	BinaryTreePrefixSearch(ElementType::DataType, 32)
 end
 
+
 """
     BinaryTreePrefixSearch(summables)
 
@@ -101,7 +102,7 @@ Base.sum!(pst::BinaryTreePrefixSearch) = pst.array[1]
 If there are multiple values to enter, then present them
 at once as pairs of tuples, (index, value).
 """
-function update!(pst::BinaryTreePrefixSearch, pairs)
+function set_multiple!(pst::BinaryTreePrefixSearch, pairs)
 	modify=Set{Int}()
 	for (pos, value) in pairs
 		index = pos + pst.offset - 1
@@ -138,7 +139,7 @@ end
     setindex!(A, X, inds...)
 """
 function Base.setindex!(pst::BinaryTreePrefixSearch{T}, value::T, index) where T
-    update!(pst, [(index, value)])
+    set_multiple!(pst, [(index, value)])
 end
 
 
