@@ -9,8 +9,8 @@ struct CumSumPrefixSearch{T<:Real}
 end
 
 
-function CumSumPrefixSearch(ElementType::DataType)
-    CumSumPrefixSearch{ElementType}(Vector{ElementType}(), Vector{ElementType}())
+function CumSumPrefixSearch{T}() where {T<:Real}
+    CumSumPrefixSearch{T}(Vector{T}(), Vector{T}())
 end
 
 

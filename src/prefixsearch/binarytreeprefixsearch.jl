@@ -18,24 +18,14 @@ end
 
 
 """
-    BinaryTreePrefixSearch(ElementType::DataType, count::Int)
-
-Constructor for an empty tree of type ElementType and allocated size.
-"""
-function BinaryTreePrefixSearch(ElementType::DataType)
-	BinaryTreePrefixSearch(ElementType::DataType, 32)
-end
-
-
-"""
-    BinaryTreePrefixSearch(summables)
+    BinaryTreePrefixSearch{T}()
 
 Constructor of a prefix search tree from an iterable list of real numbers.
 """
-function BinaryTreePrefixSearch(ElementType::DataType, N)
+function BinaryTreePrefixSearch{T}(N=32) where {T<:Real}
 	depth, offset, array_cnt = _btps_sizes(N)
-	b = zeros(ElementType, array_cnt)
-	BinaryTreePrefixSearch{ElementType}(b, depth, offset, 0)
+	b = zeros(T, array_cnt)
+	BinaryTreePrefixSearch{T}(b, depth, offset, 0)
 end
 
 

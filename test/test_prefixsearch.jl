@@ -3,7 +3,7 @@ using SafeTestsets
 
 @safetestset cumsumprefix_smoke = "cumsum prefix smoke" begin
     using Fleck: CumSumPrefixSearch, choose
-    ps = CumSumPrefixSearch(Float64)
+    ps = CumSumPrefixSearch{Float64}()
     for idx in 1:20
         push!(ps, 0.5)
     end
@@ -23,7 +23,7 @@ end
     using Fleck: CumSumPrefixSearch, choose
     using Random
     rng = Xoshiro(23423)
-    ps = CumSumPrefixSearch(Float64)
+    ps = CumSumPrefixSearch{Float64}()
     for idx in 1:20
         push!(ps, 0.5)
     end
@@ -48,7 +48,7 @@ end
 
 @safetestset prefixsearch_single = "test single value" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
-	t = BinaryTreePrefixSearch(Int64)
+	t = BinaryTreePrefixSearch{Int64}()
     push!(t, 3)
 	@test sum!(t) == 3
 	@test choose(t, 2)[1] == 1
@@ -61,7 +61,7 @@ end
 @safetestset prefixsearch_add_values = "binarytreeprefix add values" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!, allocated
     initial_allocation = 1
-	t = BinaryTreePrefixSearch(Int64, initial_allocation)
+	t = BinaryTreePrefixSearch{Int64}(initial_allocation)
     push!(t, 3)
     @test t.cnt == 1
     @test length(t) == 1
@@ -87,7 +87,7 @@ end
 
 @safetestset prefixsearch_double = "test double value" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
-    t = BinaryTreePrefixSearch(Int64, 2)
+    t = BinaryTreePrefixSearch{Int64}(2)
     push!(t, 3)
     push!(t, 1)
 	@test sum!(t) == 4
@@ -109,7 +109,7 @@ end
 
 @safetestset prefixsearch_three = "test three values" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
-    t = BinaryTreePrefixSearch(Int64, 3)
+    t = BinaryTreePrefixSearch{Int64}(3)
     for v in [3, 1, 2]
         push!(t, v)
     end
@@ -128,7 +128,7 @@ end
 
 @safetestset prefixsearch_three_floats = "three floats" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
-    t = BinaryTreePrefixSearch(Float64, 3)
+    t = BinaryTreePrefixSearch{Float64}(3)
     for v in [3.5, 1.5, 2.5]
         push!(t, v)
     end
@@ -149,7 +149,7 @@ end
 @safetestset prefixsearch_four_floats = "four floats" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
     vals = [3, 1, 2, 4]
-    t = BinaryTreePrefixSearch(Int64, 4)
+    t = BinaryTreePrefixSearch{Int64}(4)
     for v in vals
         push!(t, v)
     end
@@ -164,7 +164,7 @@ end
 @safetestset prefixsearch_five = "five values" begin
     using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
     vals = [3, 0, 2, 4, 1]
-    t = BinaryTreePrefixSearch(Int64, 5)
+    t = BinaryTreePrefixSearch{Int64}(5)
     for v in vals
         push!(t, v)
     end
