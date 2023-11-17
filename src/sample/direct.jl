@@ -17,17 +17,23 @@ The type `T` is the type of an identifier for each transition. This identifier
 is usually a nominal integer but can be a any key that identifies it, such as
 a string or tuple of integers. Instances of type `T` are used as keys in a
 dictionary.
+
+# Example
+
+```julia
+DirectCall{T}() where {T} =
+    DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
+
+DirectCall{T}() where {T} =
+    DirectCall{T,BinaryTreePrefixSearch{Float64}}(BinaryTreePrefixSearch(Float64))
+```
+
 """
 struct DirectCall{T,P}
     prefix_tree::P
     DirectCall{T,P}(tree::P) where {T,P} = new(tree)
 end
 
-# DirectCall{T}() where {T} =
-#     DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
-
-# DirectCall{T}() where {T} =
-#     DirectCall{T,BinaryTreePrefixSearch{Float64}}(BinaryTreePrefixSearch(Float64))
 
 function DirectCall{T}() where {T}
     prefix_tree = BinaryTreePrefixSearch{Float64}()
