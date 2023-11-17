@@ -1,6 +1,8 @@
 module Fleck
 
-include("prefixsearch.jl")
+include("prefixsearch/binarytreeprefixsearch.jl")
+include("prefixsearch/cumsumprefixsearch.jl")
+include("prefixsearch/keyedprefixsearch.jl")
 include("lefttrunc.jl")
 include("sample/neverdist.jl")
 include("sample/sampler.jl")
