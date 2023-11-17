@@ -30,7 +30,7 @@ function Base.setindex!(ps::CumSumPrefixSearch{T}, value::T, index) where {T}
 end
 
 
-function sum!(ps::CumSumPrefixSearch{T})::T where {T}
+function Base.sum!(ps::CumSumPrefixSearch{T})::T where {T}
     cumsum!(ps.cumulant, ps.array)
     ps.cumulant[end]
 end
