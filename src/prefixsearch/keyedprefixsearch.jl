@@ -10,22 +10,19 @@ arbitrary keys. This version only adds entries, so disabling a
 clock sets its hazard to zero without removing it. If a simulation
 re-enables the same set of clocks, this is the faster choice.
 """
-struct KeyedKeepPrefixSearch{T,P,F<:Function} <: KeyedPrefixSearch
+struct KeyedKeepPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
     index::Dict{T, Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
-    key_space::F
     prefix::P
     function KeyedKeepPrefixSearch{T,P}(prefix::P) where {T,P}
-        yes = _ -> true
-        new{T,P,typeof(yes)}(Dict{T,Int}(), Vector{T}(), yes, prefix)
+        new{T,P}(Dict{T,Int}(), Vector{T}(), prefix)
     end
 end
 
 
-Base.in(kp::KeyedKeepPrefixSearch, clock_id) = kp.key_space(clock_id)
-
+Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
 
 function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
     idx = get(kp.index, clock, 0)
@@ -53,8 +50,8 @@ end
 
 
 function Random.rand(
-    rng::AbstractRNG, d::Random.SamplerTrivial{KeyedKeepPrefixSearch{T,P,F}}
-    ) where {T,P,F}
+    rng::AbstractRNG, d::Random.SamplerTrivial{KeyedKeepPrefixSearch{T,P}}
+    ) where {T,P}
     total = sum!(d[])
     choose(d[], rand(rng, Uniform{Float64}(0, total)))
 end
@@ -66,23 +63,20 @@ arbitrary keys. This version reuses entries in the prefix search
 after their clocks have been disabled. If the simulation moves through
 a large key space, this will use less memory.
 """
-struct KeyedRemovalPrefixSearch{T,P,F} <: KeyedPrefixSearch
+struct KeyedRemovalPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
     index::Dict{T, Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     free::Set{Int}
-    key_space::F
     prefix::P
     function KeyedRemovalPrefixSearch{T,P}(prefix::P) where {T,P}
-        yes = _ -> true
-        new{T,P,typeof(yes)}(Dict{T,Int64}(), Vector{T}(), Set{Int}(), yes, prefix)
+        new{T,P}(Dict{T,Int64}(), Vector{T}(), Set{Int}(), prefix)
     end
 end
 
 
-Base.in(kp::KeyedRemovalPrefixSearch, clock_id) = kp.key_space(clock_id)
-
+Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
 
 function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
     idx = get(kp.index, clock, 0)
@@ -122,8 +116,8 @@ end
 
 
 function Random.rand(
-    rng::AbstractRNG, d::Random.SamplerTrivial{KeyedRemovalPrefixSearch{T,P,F}}
-    ) where {T,P,F}
+    rng::AbstractRNG, d::Random.SamplerTrivial{KeyedRemovalPrefixSearch{T,P}}
+    ) where {T,P}
     total = sum!(d[])
     choose(d[], rand(rng, Uniform{Float64}(0, total)))
 end

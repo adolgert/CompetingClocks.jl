@@ -71,9 +71,14 @@ of the algorithms. The `which_sampler` function looks at the clock ID, or key,
 and chooses which sampler should sample this clock. Add algorithms to this
 sampler like you would add them to a dictionary.
 
+Once a clock is first enabled, it will always go to the same sampler.
+This sampler remembers the associations, which could increase memory for
+simulations with semi-infinite clocks.
+
 # Examples
 
-Let's make one sampler for exponential distributions and one for the rest.
+Let's make one sampler for exponential distributions, one for a few
+clocks we know will be fast and one for slower clocks.
 We can name them with symbols. The trick is that we need to direct each kind
 of distribution to the correct sampler. Use a Float64 for time and each clock
 can be identified with an Int64.
@@ -91,15 +96,18 @@ end
 function Fleck.choose_sampler(
     chooser::ByDistribution, clock::Int64, distribution::UnivariateDistribution
     )::Symbol
-    return :otherone
+    if clock < 100
+        return :fast
+    else
+        return :slow
+    end
 end
 sampler = MultiSampler{Symbol,Int64,Float64}(ByDistribution())
 sampler[:direct] = OptimizedDirect{Int64,Float64}()
-sampler[:otherone] = FirstToFire{Int64,Float64}()
+sampler[:fast] = FirstToFire{Int64,Float64}()
+sampler[:slow] = FirstToFire{Int64,Float64}()
 ```
-Why don't we choose samplers by passing a function into the `MultiSampler`?
-This is an effort to ensure type safety, because if you're going to the trouble
-of using a hierarchical sampler, you clearly care about speed.
+
 """
 mutable struct MultiSampler{SamplerKey,Key,Time,Chooser}
     propagator::Dict{SamplerKey,SSA{Key,Time}}
