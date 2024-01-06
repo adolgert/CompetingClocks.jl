@@ -87,7 +87,7 @@ invert_space(::Type{LogSampling}, dist, survival) = invlogccdf(dist, survival)::
 
 struct NRTransition
     heap_handle::Int
-    survival::Float64 # value of S_{j}
+    survival::Float64 # value of S_j or Λ_j
     distribution::UnivariateDistribution
     te::Float64  # Enabling time of distribution
     t0::Float64  # Enabling time of transition
@@ -143,6 +143,13 @@ clone(nr::CombinedNextReaction{T}) where {T} = CombinedNextReaction{T}()
 export clone
 
 
+@doc raw"""
+For the first reaction sampler, you can call next() multiple times and get
+different, valid, answers. That isn't the case here. When you call next()
+on a CombinedNextReaction sampler, it returns the key associated with the
+clock that fires and marks that clock as fired. Calling next() again would
+return a nonsensical value.
+"""
 function next(nr::CombinedNextReaction, when::Float64, rng::AbstractRNG)
     if !isempty(nr.firing_queue)
         least = first(nr.firing_queue)
@@ -197,9 +204,16 @@ function sample_by_inversion(
 end
 
 
-# Transition was enabled between time record.t0 and tn.
-# Divide the survival by the conditional survival between t0 and tn.
-# te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
+@doc raw"""
+This updates the survival for a transition in the linear space, according to
+Gibson and Bruck.
+Transition was enabled between time record.t0 and tn.
+Divide the survival by the conditional survival between t0 and tn.
+te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
+
+``u=\exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)``
+
+"""
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::Float64
     ) where {S <: LinearSampling}
@@ -217,6 +231,13 @@ function consume_survival(
 end
 
 
+@doc raw"""
+This updates the survival for a transition in the exponential space, according to
+Anderson's method.
+
+``\ln u=-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds``
+
+"""
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::Float64
     ) where {S <: LogSampling}

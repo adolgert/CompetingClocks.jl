@@ -2,20 +2,31 @@
 \usepackage{hyperref}
 \usepackage{jlcode} % https://github.com/wg030/jlcode
 \usepackage{listings}
+\usepackage{amsfonts}
 %\usepackage{sourcecodepro}
 % \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage[T1]{fontenc}
+\usepackage{xspace}
 
 
-\title{Sampling Distributions in Julia}
+\newcommand{\gsmp}{\textsc{gsmp}\xspace}
+\newcommand{\gspn}{\textsc{gspn}\xspace}
+
+
+\title{Sampling Distributions for GSMP in Julia}
 \author{Andrew Dolgert}
 \begin{document}
 \maketitle
 
+\tableofcontents
+
 \section{Introduction}
 
-In order to write a continuous-time simulation, we need to sample distributions. There are many ways to sample these distributions, and they involve different mathematical manipulations of those distributions. This document looks at the functions defined by Julia for manipulating distributions, in order to figure out how to write samplers.
+Our goal is to write continuous-time simulation of a generalized semi-Markov process (\gsmp) or generalized stochastic Petri net (\gspn). They use the same samplers, as do chemical simulations, queuing theory, vector addition systems, and so on.  There are many ways to sample these distributions, and they involve different mathematical manipulations of those distributions. This document looks at the functions defined by Julia for manipulating distributions in order to figure out how to write samplers in Julia, so it's going to connect the math with the code, asking how to be efficient within the Julia framework.
 
+Because manipulating distributions for no reason is tedious, let's motivate ourselves with the goal. All of the kinds of simulation above have a common way to select the time for the next event. Anderson and Kurtz have a unified view which they call \emph{competing processes}. In the language of \gsmp, it's called \emph{competing clocks}, and I'll use the term ``clock'' in the code.
+
+These continuous-time simulations stop at time points $T_i$, indexed by $i$. At any time point, the next time point is determined by competion among a finite set of clocks. Each clock has an enabling time, which is one of the past $T_i$ time points, and each clock has a probability density that determines the next time it would fire. The first job of the sampler is to choose the next state and time among the currently-enabled clocks. The second job of the sampler is to account for clocks that are disabled and enabled at that time point in order to sample the next one, and to do it efficiently.
 
 \section{Notation for Distributions}\label{sec:notation}%
 
@@ -115,7 +126,7 @@ Julia has one function to retrieve all parameters of a distribution and a few fu
 \subsection{Probability Evaluation}
 
 \begin{table}
-\begin{tabular}{lll}
+\begin{tabular}{|lll|} \hline
 	Julia Function & Equation & Statistics name \\ \hline
 	\texttt{ccdf} & $S(x) = e^{-\int^x\lambda(s)ds}$ & Survival \\
 	\texttt{cdf} & $F(x) = 1 - S(x) = 1-e^{-\int^x\lambda(s)ds}$ & Cumulative distribution function \\
@@ -127,7 +138,7 @@ Julia has one function to retrieve all parameters of a distribution and a few fu
 	\texttt{quantile} & $y = F^{-1}(x)$ & Inverse cumulative distribution function \\
 	\texttt{cquantile} & $y = F^{-1}(1-x)$ so $x = S(y)$ & Inverse Survival \\
 	\texttt{invlogcdf} & $x = \ln\:F(y)$ so $e^x = F(y)$ & \\
-	\texttt{invlogccdf} & $x = -\int_0^y\lambda(s)ds$ & Inverse integrated hazard
+	\texttt{invlogccdf} & $x = -\int_0^y\lambda(s)ds$ & Inverse integrated hazard \\ \hline
 \end{tabular}
 \caption{This translates between Julia functions and hazard-based notation. We can use this to find
 the shortest path to our calculation in code.\label{julia-translation}}
@@ -150,7 +161,7 @@ In this package, the integrated hazard is called \texttt{logccdf}.
 
 Many of the calculations below rely on fluency with shifted distributions. Shifted distributions are the basis of the Next Reaction method and Modified Next Reaction method, so we will derive those methods here, but the further goal is to be comfortable with calculation of shifted distributions.
 
-A sampler's main goal is to sample. Using the notation from Sec.~\ref{sec:notation}, we write sampling as two steps. First, draw a random number from $0\le U<1$. Then invert the cdf to find the sampled relative time $t$.
+While the final code will rarely use sampling by inversion, it helps to start with in order to work out concepts. Using the notation from Sec.~\ref{sec:notation}, we write sampling by inversion as two steps. First, draw a random number from $0\le U<1$. Then invert the cdf to find the sampled relative time $t$.
 \begin{equation}
 	U = F(t)
 \end{equation}
@@ -158,21 +169,21 @@ However, since the survival is one minus the cdf, we can also write this as
 \begin{equation}
 	U = S(t)\label{eqn:basesample}
 \end{equation}
-with the same result.
+with the same resulting density function of the sampled random variable.
 
 Because simulations move through time and transitions are enabled and disabled, we have to agree on notation for time relative to the start of a transition and how it relates to absolute time within the simulation.
 
 \begin{itemize}
 \item $t$---Time relative to the zero-point of the distribution, as implemented in \texttt{Distributions.jl}. If you look up a gamma distribution in Wikipedia, it is relative to some implied start time at $t=0$, and we denote its pdf with $f(t)$, as you saw in Sec.~\ref{sec:notation}.
 
-\item $t_e$---Absolute time at which the transition is enabled.
+\item $t_e$---Absolute time at which the transition is enabled. This acts as a location parameter for distributions. It is traditionally handled outside of the internals of any distribution because so much of sampling competing processes is about shifting the location of whole sets of distributions efficiently.
 
 \item $t_0$---Absolute time at which to place the zero-point of the distribution. If $t_0 < t_e$, it's equivalent to saying that we are cutting off the left side of the distribution, up to $t=t_e-t_0$. If $t_0>t_e$, it's equivalent to saying the transition cannot possibly fire until after time absolute time $t_0$.
 
 \item $t_n$---We'll use this to represent some later absolute time at which the distribution changes its parameters in some way.
 \end{itemize}
 
-Let's start with the simplifying assumption that $t_0=t_e$. Use Eq.~\ref{eqn:basesample} to write sampling in absolute time.
+Let's start with the simplifying assumption that the distribution doesn't have a location shift, so $t_0=t_e$. Use Eq.~\ref{eqn:basesample} to write sampling in absolute time.
 \begin{equation}
 	u = S(\tau - t_e)
 \end{equation}
@@ -184,7 +195,7 @@ Another way to write this is to expand the exponential.
 \begin{equation}
 u=\exp\left(-\int_{t_e}^{\tau}\lambda(s-t_e)ds\right)\label{eqn:exponentialform}
 \end{equation}
-This shows that there is a linear integration inside the exponent. We can use this in the Next Reaction scheme.
+This shows that there is a integration inside the exponent. We can use this in the Next Reaction scheme.
 
 Suppose there were a time $t_e$ at which a transition was enabled. Then, at a later time, $t_n$, a change in simulation state changed the parameters of the transition. Could we figure out what the drawn time, $\tau$, would have been had we known that the parameters would change?
 
@@ -193,7 +204,7 @@ During the draw in Eq.~\ref{eqn:exponentialform}, the distribution we draw from 
 	u&=&\exp\left(-\int_{t_e}^{\tau}\lambda_0(s-t_e)ds\right) \\
 	&=& \exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)\label{eqn:expequivalence}
 \end{eqnarray}
-We can think of the new draw, $\tau'$ as coming from the same element of the uniform random variate, $u$.
+We can think of the new draw, $\tau'$ as coming from the same element of the uniform random variate, $u$. Gibson and Bruck make the point that integration is a linear operator, which is what makes the separation in Eq.~\ref{eqn:expequivalence} work.
 
 The algorithm of Gibson and Bruck starts with the draw from Eq.~\ref{eqn:exponentialform}.
 \begin{enumerate}
@@ -210,7 +221,7 @@ The algorithm of Gibson and Bruck starts with the draw from Eq.~\ref{eqn:exponen
 	\begin{equation}
 		u'=\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)
 	\end{equation}
-	Solving this gives the new draw, $\tau'$ from the old uniform variate, $u$.
+	Solving this gives for $\tau'$ gives the new draw, effectively from the old uniform variate, $u$.
 \end{enumerate}
 
 If we return to Eq.~\ref{eqn:expequivalence}, wouldn't it be easier to compute if we could take the logarithm of both sides?
@@ -361,7 +372,7 @@ In Julia, when you draw from a distribution, it constructs a Sampler for that di
 CRN traditionally stores a draw from a uniform variate, and that's it. It assumes you will sample by inversion. We could do that, or we could hook into Julia's system in more depth. Let's list some possibilities, not in order of preference but numbered for reference.
 \begin{enumerate}
 	\item Save a uniform variate.
-	\item Save the state of the random number generator, either to support multiple draws or support draws of specific values, such as 128-bit unsigned integers. The state of the Xoshiro generator is only 256 bits of storage, but Mersenne twister state is much, much larger.
+	\item Save the state of the random number generator, either to support multiple draws or support draws of specific values, such as 128-bit unsigned integers. The state of the Xoshiro generator is only 256 bits of storage, and linear congruential generators can have very small state, but Mersenne twister state is much, much larger.
 	\item Figure out which particular values are drawn from the RNG and save those.
 \end{enumerate}
 Maybe we could try both the first and second options.
