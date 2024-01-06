@@ -1,4 +1,5 @@
 module Fleck
+using Documenter
 
 include("prefixsearch/binarytreeprefixsearch.jl")
 include("prefixsearch/cumsumprefixsearch.jl")

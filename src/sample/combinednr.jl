@@ -143,7 +143,7 @@ clone(nr::CombinedNextReaction{T}) where {T} = CombinedNextReaction{T}()
 export clone
 
 
-doc"""
+@doc raw"""
 For the first reaction sampler, you can call next() multiple times and get
 different, valid, answers. That isn't the case here. When you call next()
 on a CombinedNextReaction sampler, it returns the key associated with the
@@ -204,15 +204,15 @@ function sample_by_inversion(
 end
 
 
-doc"""
+@doc raw"""
 This updates the survival for a transition in the linear space, according to
 Gibson and Bruck.
 Transition was enabled between time record.t0 and tn.
 Divide the survival by the conditional survival between t0 and tn.
 te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
-$$
-	u=\exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)
-$$
+
+``u=\exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)``
+
 """
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::Float64
@@ -231,10 +231,12 @@ function consume_survival(
 end
 
 
-doc"""
+@doc raw"""
 This updates the survival for a transition in the exponential space, according to
 Anderson's method.
-$$\ln u=-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds$$
+
+``\ln u=-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds``
+
 """
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::Float64
