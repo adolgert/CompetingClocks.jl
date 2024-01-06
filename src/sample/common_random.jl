@@ -132,6 +132,6 @@ function enable!(
 end
 
 
-function disable!(cr, clock, when)
+function disable!(crr::CommonRandomReplay, clock, when)
     disable!(crr.sampler, clock, when)
 end

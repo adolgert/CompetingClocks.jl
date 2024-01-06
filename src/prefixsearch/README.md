@@ -61,7 +61,7 @@ I want to keep the core algorithms clear, so let's assemble this in layers.
     * choose - Select a hazard by its cumulant
     * sum! - Find total of all hazards
 
- 2. KeyedPrefixSearch - To the client, this looks like a dictionary of hazards. It has an arbitrary type for the index. New keys can be added and keys can be deleted.
+ 2. KeyedKeepPrefixSearch - To the client, this looks like a dictionary of hazards. It has an arbitrary type for the index. New keys can be added and keys can be deleted.
 
     * setindex! - Set value of a hazard
     * delete! - Disable a hazard

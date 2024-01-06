@@ -1,5 +1,8 @@
+import Base: in, setindex!, delete!
 using Random
 
+
+abstract type KeyedPrefixSearch end
 
 """
 This decorator turns a Prefix Search algorithm into one that works for
@@ -7,18 +10,21 @@ arbitrary keys. This version only adds entries, so disabling a
 clock sets its hazard to zero without removing it. If a simulation
 re-enables the same set of clocks, this is the faster choice.
 """
-struct KeyedPrefixSearch{T,P}
+struct KeyedKeepPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
     index::Dict{T, Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     prefix::P
-    KeyedPrefixSearch{T,P}(prefix::P) where {T,P} =
+    function KeyedKeepPrefixSearch{T,P}(prefix::P) where {T,P}
         new{T,P}(Dict{T,Int}(), Vector{T}(), prefix)
+    end
 end
 
 
-function Base.setindex!(kp::KeyedPrefixSearch, val, clock)
+Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
+
+function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
     idx = get(kp.index, clock, 0)
     if idx != 0
         kp.prefix[idx] = val
@@ -31,20 +37,20 @@ function Base.setindex!(kp::KeyedPrefixSearch, val, clock)
 end
 
 
-Base.delete!(kp::KeyedPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(Float64)
-function Base.sum!(kp::KeyedPrefixSearch)
+Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(Float64)
+function Base.sum!(kp::KeyedKeepPrefixSearch)
     (length(kp.index) > 0) ? sum!(kp.prefix) : zero(Float64)
 end
 
 
-function choose(kp::KeyedPrefixSearch, value)
+function choose(kp::KeyedKeepPrefixSearch, value)
     idx, hazard = choose(kp.prefix, value)
     return (kp.key[idx], hazard)
 end
 
 
 function Random.rand(
-    rng::AbstractRNG, d::Random.SamplerTrivial{KeyedPrefixSearch{T,P}}
+    rng::AbstractRNG, d::Random.SamplerTrivial{KeyedKeepPrefixSearch{T,P}}
     ) where {T,P}
     total = sum!(d[])
     choose(d[], rand(rng, Uniform{Float64}(0, total)))
@@ -57,17 +63,20 @@ arbitrary keys. This version reuses entries in the prefix search
 after their clocks have been disabled. If the simulation moves through
 a large key space, this will use less memory.
 """
-struct KeyedRemovalPrefixSearch{T,P}
+struct KeyedRemovalPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
     index::Dict{T, Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     free::Set{Int}
     prefix::P
-    KeyedRemovalPrefixSearch{T,P}(prefix::P) where {T,P} =
+    function KeyedRemovalPrefixSearch{T,P}(prefix::P) where {T,P}
         new{T,P}(Dict{T,Int64}(), Vector{T}(), Set{Int}(), prefix)
+    end
 end
 
+
+Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
 
 function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
     idx = get(kp.index, clock, 0)

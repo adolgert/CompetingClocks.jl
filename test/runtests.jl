@@ -44,6 +44,9 @@ end
     include("test_sampler.jl")
 end
 
+@testset "test_multiple_direct.jl" begin
+    include("test_multiple_direct.jl")
+end
 
 @testset "test_vas.jl" begin
     include("test_vas.jl")
