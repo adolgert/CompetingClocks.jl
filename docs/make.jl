@@ -13,7 +13,9 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Structure" => "objects.md",
         "Develop" => "develop.md",
+        "Vector Addition Systems" => "vas.md"
     ],
 )
 
