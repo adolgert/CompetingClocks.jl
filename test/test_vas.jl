@@ -4,7 +4,7 @@ using Test
 
 
 @safetestset vas_creates = "VAS creates" begin
-using Fleck: VectorAdditionSystem
+using ..VectorAddition
 using ..SampleVAS: sample_transitions
     take, give, rates = sample_transitions()
     vas = VectorAdditionSystem(take, give, rates)
@@ -13,7 +13,7 @@ end
 
 
 @safetestset vas_intializes = "VAS initializes state" begin
-using Fleck: VectorAdditionSystem, vas_initial, zero_state
+using ..VectorAddition
 using ..SampleVAS: sample_transitions
     take, give, rates = sample_transitions()
     vas = VectorAdditionSystem(take, give, rates)
@@ -25,8 +25,8 @@ end
 
 
 @safetestset vas_reports_hazards = "VAS reports_hazards" begin
-using Fleck: VectorAdditionSystem, vas_initial
-using Fleck: zero_state, push!, fire!, DebugWatcher, enable!, disable!
+using Fleck: push!, DebugWatcher, enable!, disable!
+using ..VectorAddition
 using ..SampleVAS: sample_transitions
 take, give, rates = sample_transitions()
 vas = VectorAdditionSystem(take, give, rates)
@@ -43,8 +43,7 @@ end
 
 
 @safetestset vas_changes_state = "VAS hazards during state change" begin
-using Fleck: VectorAdditionSystem, vas_delta, vas_initial
-using Fleck: zero_state, push!, fire!
+using ..VectorAddition
 using ..SampleVAS: sample_transitions, DebugWatcher, enable!, disable!
 take, give, rates = sample_transitions()
 vas = VectorAdditionSystem(take, give, rates)
@@ -66,9 +65,9 @@ end
 @safetestset vas_loops = "VAS main loop" begin
 # This test takes apart the main loop in order to examine whether
 # the model works without a sampler. It watches VAS work.
-using Fleck: VectorAdditionSystem, vas_delta, vas_initial
-using Fleck: zero_state, push!, fire!, TrackWatcher, enable!, disable!
+using Fleck: TrackWatcher, enable!, disable!
 using Random: MersenneTwister
+using ..VectorAddition
 using ..SampleVAS: sample_transitions
     rng = MersenneTwister(2930472)
     take, give, rates = sample_transitions()
@@ -111,10 +110,9 @@ end
 
 
 @safetestset vas_fsm_init = "VAS finite state init" begin
-    using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
-    using Fleck: VectorAdditionFSM, zero_state
-    using Fleck: DirectCall, simstep!, vas_delta
+    using Fleck: DirectCall
     using Random: MersenneTwister
+    using ..VectorAddition
     using ..SampleVAS: sample_transitions
     rng = MersenneTwister(2930472)
     take, give, rates = sample_transitions()
@@ -131,10 +129,9 @@ end
 
 
 @safetestset vas_fsm_sir = "VAS runs SIR to completion" begin
-    using Fleck: VectorAdditionFSM, vas_initial, VectorAdditionSystem
-    using Fleck: VectorAdditionFSM, zero_state
-    using Fleck: DirectCall, simstep!, vas_delta
+    using Fleck: DirectCall
     using Random: MersenneTwister
+    using ..VectorAddition
     using ..SampleVAS: sample_sir
     rng = MersenneTwister(979797)
     cnt = 10
