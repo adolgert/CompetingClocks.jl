@@ -1,6 +1,9 @@
 # A Vector Addition System
+module VectorAddition
+
 import Distributions
 using Random: AbstractRNG
+using Fleck
 
 export VectorAdditionSystem, zero_state, vas_delta, vas_initial, fire!, simstep!,
     VectorAdditionModel, VectorAdditionFSM
@@ -173,3 +176,5 @@ function simstep!(fsm::VectorAdditionFSM)
         (when, what)
     end
 end
+
+end # module VectorAddition

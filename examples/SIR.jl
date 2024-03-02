@@ -2,6 +2,8 @@ using Random
 using Plots
 using Distributions
 using Fleck
+# This is in test/vas.jl
+using VectorAddition
 
 function sir_vas(β, c, γ)
     take = [

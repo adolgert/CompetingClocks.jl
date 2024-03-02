@@ -3,6 +3,7 @@ using SafeTestsets
 using Test
 
 # Not tests. These are helper functions for tests.
+include("vas.jl")
 include("test_utility.jl")
 
 @testset "test_commonrandom.jl" begin
