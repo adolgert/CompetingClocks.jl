@@ -64,7 +64,7 @@ end
     using Fleck: FirstReaction, enable!, disable!, next
     using Random: Xoshiro
     using HypothesisTests: pvalue, ExactOneSampleKSTest
-    using Distributions: Gamma, Exponential, Weibull, truncated
+    using Distributions: Gamma, Exponential, Weibull
     rng = Xoshiro(8367109004)
     rand(rng, 100)  # burn some early numbers
 
@@ -107,7 +107,7 @@ end
     using Fleck: FirstReaction, enable!, disable!, next
     using Random: Xoshiro
     using HypothesisTests: pvalue, ExactOneSampleKSTest, confint
-    using Distributions: Gamma, Exponential, Weibull, truncated
+    using Distributions: Gamma, Exponential, Weibull
     rng = Xoshiro(8367109004)
     rand(rng, 100)  # burn some early numbers
 

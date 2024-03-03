@@ -13,7 +13,10 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "Develop" => "develop.md"
+        "Structure" => "objects.md",
+        "Develop" => "develop.md",
+        "Vector Addition Systems" => "vas.md",
+        "Reference" => "reference.md"
     ],
 )
 

@@ -4,8 +4,8 @@ using Test
 
 @safetestset vas_sample = "VAS samples with direct" begin
 using Random: MersenneTwister
-using Fleck: VectorAdditionSystem, VectorAdditionFSM, DirectCall, vas_initial
-using Fleck: simstep!, FirstToFire
+using Fleck: DirectCall
+using ..VectorAddition
 using ..SampleVAS: sample_sir
 
     rng = MersenneTwister(2930472)
@@ -29,8 +29,8 @@ end
 
 @safetestset vas_sample = "VAS samples with first reaction" begin
     using Random: MersenneTwister
-    using Fleck: VectorAdditionSystem, VectorAdditionFSM, FirstReaction, vas_initial
-    using Fleck: simstep!
+    using Fleck: FirstReaction
+    using ..VectorAddition
     using ..SampleVAS: sample_sir
     
     rng = MersenneTwister(2930472)
@@ -55,15 +55,15 @@ end
 
 @safetestset vas_sample = "VAS samples with first to fire" begin
     using Random: MersenneTwister
-    using Fleck: VectorAdditionSystem, VectorAdditionFSM, FirstToFire, vas_initial
-    using Fleck: simstep!
+    using Fleck: FirstToFire
+    using ..VectorAddition
     using ..SampleVAS: sample_sir
     
     rng = MersenneTwister(2930472)
 
     cnt = 30
     vas = VectorAdditionSystem(sample_sir(cnt)...)
-    sampler = FirstToFire(Int)
+    sampler = FirstToFire{Int64,Float64}()
 
     starting = zeros(Int, 3 * cnt)
     starting[2:cnt] .= 1
