@@ -7,7 +7,7 @@ using SafeTestsets
 
     # The NextReaction algorithm relies on the heap handle always being positive
     # so this test checks that is the case.
-    heap = MutableBinaryMinHeap{OrderedSample{Int}}()
+    heap = MutableBinaryMinHeap{OrderedSample{Int,Float64}}()
     enabled = Set{Int}()
     for i in 1:10000
         if rand() < 0.2 && length(heap) > 0
@@ -16,9 +16,9 @@ using SafeTestsets
             delete!(enabled, handle)
         elseif rand() < 0.4 && length(heap) > 0 && length(enabled) > 0
             modify = rand(enabled)
-            update!(heap, modify, OrderedSample{Int}(i, rand()))
+            update!(heap, modify, OrderedSample{Int,Float64}(i, rand()))
         else
-            handle = push!(heap, OrderedSample{Int}(i, rand()))
+            handle = push!(heap, OrderedSample{Int,Float64}(i, rand()))
             push!(enabled, handle)
             @test(handle > 0)
         end

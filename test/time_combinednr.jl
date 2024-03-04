@@ -29,7 +29,7 @@ function compare_with_next_reaction()
     iter_cnt = 0
     while pure_result === nothing || dual_result === nothing
         pure_nr = NextReaction{Int}()
-        dual_nr = CombinedNextReaction{Int}()
+        dual_nr = CombinedNextReaction{Int,Float64}()
         pure_rng = Xoshiro(342432)
         dual_rng = Xoshiro(342432)
         pure_time = @timed sample_a_while(pure_nr, common_distribution, pure_rng)
@@ -55,7 +55,7 @@ function compare_with_modified_next_reaction()
     # We run a few iterations in order to account for compilation time.
     for burn_one in 1:4
         pure_nr = ModifiedNextReaction{Int}()
-        dual_nr = CombinedNextReaction{Int}()
+        dual_nr = CombinedNextReaction{Int,Float64}()
         pure_rng = Xoshiro(342432)
         dual_rng = Xoshiro(342432)
         pure_time = @timed sample_a_while(pure_nr, common_distribution, pure_rng)
