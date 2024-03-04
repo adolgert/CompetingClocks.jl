@@ -34,7 +34,10 @@ end
     propagator = FirstToFire{Int64,Float64}()
 
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
-        heap_handle = push!(propagator.firing_queue, Fleck.OrderedSample{Int64}(clock, when_fire))
+        heap_handle = push!(
+            propagator.firing_queue,
+            Fleck.OrderedSample{Int64,Float64}(clock, when_fire)
+            )
         propagator.transition_entry[clock] = heap_handle
     end
     rng = Xoshiro(39472)

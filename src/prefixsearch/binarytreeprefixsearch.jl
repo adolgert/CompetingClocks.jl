@@ -29,6 +29,10 @@ function BinaryTreePrefixSearch{T}(N=32) where {T<:Real}
 end
 
 
+time_type(ps::BinaryTreePrefixSearch{T}) where {T} = T
+time_type(::Type{BinaryTreePrefixSearch{T}}) where {T} = T
+
+
 function _btps_sizes(allocation)
 	@assert allocation > 0
 	depth = Int(ceil(log2(allocation))) + 1

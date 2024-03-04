@@ -15,6 +15,8 @@ end
 
 
 Base.length(ps::CumSumPrefixSearch) = length(ps.array)
+time_type(ps::CumSumPrefixSearch{T}) where {T} = T
+time_type(ps::Type{CumSumPrefixSearch{T}}) where {T} = T
 
 
 function Base.push!(ps::CumSumPrefixSearch{T}, value::T) where {T}

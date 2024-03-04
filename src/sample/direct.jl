@@ -6,39 +6,39 @@ export DirectCall, enable!, disable!, next
 
 
 """
-    DirectCall{T}
+    DirectCall{K,T}
 
 DirectCall is responsible for sampling among Exponential distributions. It
 samples using the Direct method. In this case, there is no optimization to
 that Direct method, so we call it DirectCall because it recalculates
 everything every time you call it.
 
-The type `T` is the type of an identifier for each transition. This identifier
+The type `K` is the type of an identifier for each transition. This identifier
 is usually a nominal integer but can be a any key that identifies it, such as
-a string or tuple of integers. Instances of type `T` are used as keys in a
+a string or tuple of integers. Instances of type `K` are used as keys in a
 dictionary.
 
 # Example
 
 ```julia
-DirectCall{T}() where {T} =
-    DirectCall{T,CumSumPrefixSearch{Float64}}(CumSumPrefixSearch(Float64))
+DirectCall{K,T}() where {K,T} =
+    DirectCall{K,CumSumPrefixSearch{T}}(CumSumPrefixSearch(T))
 
-DirectCall{T}() where {T} =
-    DirectCall{T,BinaryTreePrefixSearch{Float64}}(BinaryTreePrefixSearch(Float64))
+DirectCall{K,T}() where {K,T} =
+    DirectCall{K,BinaryTreePrefixSearch{T}}(BinaryTreePrefixSearch(T))
 ```
 
 """
-struct DirectCall{T,P}
+struct DirectCall{K,P}
     prefix_tree::P
-    DirectCall{T,P}(tree::P) where {T,P} = new(tree)
+    DirectCall{K,P}(tree::P) where {K,P} = new(tree)
 end
 
 
-function DirectCall{T}() where {T}
-    prefix_tree = BinaryTreePrefixSearch{Float64}()
-    keyed_prefix_tree = KeyedRemovalPrefixSearch{T,typeof(prefix_tree)}(prefix_tree)
-    DirectCall{T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
+function DirectCall{K,T}() where {K,T<:ContinuousTime}
+    prefix_tree = BinaryTreePrefixSearch{T}()
+    keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
+    DirectCall{K,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 end
 
 
@@ -55,8 +55,8 @@ later than when it was first enabled. The `rng` is a random number generator.
 If a particular clock had one rate before an event and it has another rate
 after the event, call `enable!` to update the rate.
 """
-function enable!(dc::DirectCall{T}, clock::T, distribution::Exponential,
-        te::Float64, when::Float64, rng::AbstractRNG) where {T}
+function enable!(dc::DirectCall{K,P}, clock::K, distribution::Exponential,
+        te, when, rng::AbstractRNG) where {K,P}
     dc.prefix_tree[clock] = rate(distribution)
 end
 
@@ -68,13 +68,13 @@ Tell the `DirectCall` sampler to disable this clock. The `clock` argument is
 an identifier for the clock. The `when` argument is the time at which this
 clock is enabled.
 """
-function disable!(dc::DirectCall{T}, clock::T, when::Float64) where {T}
+function disable!(dc::DirectCall{K,P}, clock::K, when) where {K,P}
     delete!(dc.prefix_tree, clock)
 end
 
 
 """
-    next(dc::DirectCall, when::Float64, rng::AbstractRNG)
+    next(dc::DirectCall, when::TimeType, rng::AbstractRNG)
 
 Ask the sampler what clock will be the next to fire and at what time. This does
 not change the sampler. You can call this multiple times and get multiple
@@ -82,13 +82,13 @@ answers. Each answer is a tuple of `(when, which clock)`. If there is no clock
 to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
-function next(dc::DirectCall, when::Float64, rng::AbstractRNG)
+function next(dc::DirectCall, when, rng::AbstractRNG)
     total = sum!(dc.prefix_tree)
-    if total > eps(Float64)
+    if total > eps(when)
         chosen, hazard_value = rand(rng, dc.prefix_tree)
-        tau = when + rand(rng, Exponential(1 / total))
+        tau = when + rand(rng, Exponential(inv(total)))
         return (tau, chosen)
     else
-        return (Inf, nothing)
+        return (typemax(when), nothing)
     end
 end

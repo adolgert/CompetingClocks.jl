@@ -8,7 +8,7 @@ using SafeTestsets
 
     rng = MersenneTwister(349827)
     for i in 1:100
-        sampler = CombinedNextReaction{String}()
+        sampler = CombinedNextReaction{String,Float64}()
         @test next(sampler, 3.0, rng)[2] === nothing
         enable!(sampler, "walk home", Exponential(1.5), 0.0, 0.0, rng)
         @test next(sampler, 3.0, rng)[2] == "walk home"

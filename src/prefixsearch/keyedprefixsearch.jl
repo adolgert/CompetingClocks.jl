@@ -23,6 +23,8 @@ end
 
 
 Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
+time_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = time_type(P)
+
 
 function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
     idx = get(kp.index, clock, 0)
@@ -37,9 +39,9 @@ function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
 end
 
 
-Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(Float64)
+Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(time_type(kp))
 function Base.sum!(kp::KeyedKeepPrefixSearch)
-    (length(kp.index) > 0) ? sum!(kp.prefix) : zero(Float64)
+    (length(kp.index) > 0) ? sum!(kp.prefix) : zero(time_type(kp))
 end
 
 
@@ -53,7 +55,8 @@ function Random.rand(
     rng::AbstractRNG, d::Random.SamplerTrivial{KeyedKeepPrefixSearch{T,P}}
     ) where {T,P}
     total = sum!(d[])
-    choose(d[], rand(rng, Uniform{Float64}(0, total)))
+    LocalTime = time_type(P)
+    choose(d[], rand(rng, Uniform{LocalTime}(zero(LocalTime), total)))
 end
 
 
@@ -96,17 +99,17 @@ function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
 end
 
 
-function Base.delete!(kp::KeyedRemovalPrefixSearch, clock)
+function Base.delete!(kp::KeyedRemovalPrefixSearch{T,P}, clock) where {T,P}
     idx = kp.index[clock]
-    kp.prefix[idx] = zero(Float64)
+    kp.prefix[idx] = zero(time_type(P))
     delete!(kp.index, clock)
     # kp.key[idx] is now out of date.
     push!(kp.free, idx)
 end
 
 
-function Base.sum!(kp::KeyedRemovalPrefixSearch)
-    (length(kp.index) > 0) ? sum!(kp.prefix) : zero(Float64)
+function Base.sum!(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P}
+    (length(kp.index) > 0) ? sum!(kp.prefix) : zero(time_type(P))
 end
 
 function choose(kp::KeyedRemovalPrefixSearch, value)
@@ -119,5 +122,6 @@ function Random.rand(
     rng::AbstractRNG, d::Random.SamplerTrivial{KeyedRemovalPrefixSearch{T,P}}
     ) where {T,P}
     total = sum!(d[])
-    choose(d[], rand(rng, Uniform{Float64}(0, total)))
+    LocalTime = time_type(P)
+    choose(d[], rand(rng, Uniform{LocalTime}(zero(LocalTime), total)))
 end

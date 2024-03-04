@@ -6,7 +6,7 @@ using SafeTestsets
     using Random: MersenneTwister
     using Distributions: Exponential
 
-    dc = DirectCall{Int}()
+    dc = DirectCall{Int,Float64}()
     rng = MersenneTwister(90422342)
     propensities = [0.3, 0.2, 0.7, 0.001, 0.25]
     for (i, p) in enumerate(propensities)
@@ -22,7 +22,7 @@ end
 @safetestset direct_call_empty = "DirectCall empty hazard" begin
     using Fleck: DirectCall, next, enable!
     using Random: MersenneTwister
-    md = DirectCall{Int}()
+    md = DirectCall{Int,Float64}()
     rng = MersenneTwister(90497979)
     current = 0.0
     when, which = next(md, current, rng)
@@ -41,7 +41,7 @@ end
     # Given 10 slow distributions and 10 fast, we can figure out
     # that the marginal probability of a low vs a high is 1 / (1 + 1.5) = 3/5.
     # Check that we get the correct marginal probability.
-    md = DirectCall{Int}()
+    md = DirectCall{Int,Float64}()
     for i in 1:10
         enable!(md, i, Exponential(1), 0.0, 0.0, rng)
     end
@@ -66,6 +66,6 @@ end
     using HypothesisTests: BinomialTest, confint
     using ..DirectFixture: test_exponential_binomial
     rng = MersenneTwister(223497123)
-    md = DirectCall{Int}()
+    md = DirectCall{Int,Float64}()
     test_exponential_binomial(md, rng)
 end

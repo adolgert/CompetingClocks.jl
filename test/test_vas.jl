@@ -33,7 +33,7 @@ vas = VectorAdditionSystem(take, give, rates)
 initializer = vas_initial(vas, [1, 1, 0])
 
 state = zero_state(vas)
-track_hazards = DebugWatcher{Int}()
+track_hazards = DebugWatcher{Int,Float64}()
 fire!(track_hazards, vas, state, initializer, 0.0, "rng")
 enabled = Set(entry.clock for entry in track_hazards.enabled)
 @test enabled == Set([1, 2, 3, 4])
@@ -51,7 +51,7 @@ initializer = vas_initial(vas, [1, 1, 0])
 
 state = zero_state(vas)
 initializer(state)
-track_hazards = DebugWatcher{Int}()
+track_hazards = DebugWatcher{Int,Float64}()
 fire_index = 2
 input_change = vas_delta(vas, fire_index)
 fire!(track_hazards, vas, state, input_change, 0.0, "rng")
@@ -77,7 +77,7 @@ using ..SampleVAS: sample_transitions
     disabled = zeros(Int, 0)
     enabled = zeros(Int, 0)
     newly_enabled = zeros(Int, 0)
-    track_hazards = TrackWatcher{Int}()
+    track_hazards = TrackWatcher{Int,Float64}()
     curtime = 0.0
     for i in 1:10
         if isnothing(next_transition)
@@ -118,7 +118,7 @@ end
     take, give, rates = sample_transitions()
     vas = VectorAdditionSystem(take, give, rates)
     initial_state = vas_initial(vas, [1, 1, 0])
-    fsm = VectorAdditionFSM(vas, initial_state, DirectCall{Int}(), rng)
+    fsm = VectorAdditionFSM(vas, initial_state, DirectCall{Int,Float64}(), rng)
     when, next_transition = simstep!(fsm)
     limit = 10
     while next_transition !== nothing && limit > 0
@@ -140,7 +140,7 @@ end
     starting[2:cnt] .= 1
     starting[cnt + 1] = 1  # Start with one infected.
     initial_state = vas_initial(vas, starting)
-    fsm = VectorAdditionFSM(vas, initial_state, DirectCall{Int}(), rng)
+    fsm = VectorAdditionFSM(vas, initial_state, DirectCall{Int,Float64}(), rng)
     when, next_transition = simstep!(fsm)
     event_cnt = 0
     while next_transition !== nothing
