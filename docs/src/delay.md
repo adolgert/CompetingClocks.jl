@@ -24,14 +24,14 @@ The chemical kinetics people have recently worked out recipes which teach people
 
 The DCME is given below:
 
-$$
+```math
 \begin{align*}
 \frac{\partial}{\partial t}P(X,t) &= -\sum_{R_{j}\in M_{0d}} a_{j}(X)P(X,t) + \sum_{R_{j}\in M_{0d}} a_{j}(X-\nu_{j})P(X-\nu_{j},t) \\
 &- \sum_{R_{j}\in M_{dn}} \sum_{X_{i}\in I(X)}a_{j}(X_{i})P(X,t;X_{i},t-\tau_{j}) + \sum_{R_{j}\in M_{dn}} \sum_{X_{i}\in I(X)} a_{j}(X_{i})P(X-\nu_{j},t;X_{i},t-\tau_{j}) \\
 &- \sum_{R_{j}\in M_{dc}}\sum_{X_{i}\in I(X)} a_{j}(X_{i})P(X,t;X_{i},t-\tau_{j}) + \sum_{R_{j}\in M_{dc}}\sum_{X_{i}\in I(X)} a_{j}(X_{i}) P(X-\nu_{j}^{p},t;X_{i},t-\tau_{j}) \\
 &- \sum_{R_{j}\in M_{dc}} a_{j}(X)P(X,t) + \sum_{R_{j}\in M_{dc}} a_{j}(X-\nu_{j}^{r}) P(X-\nu_{j}^{r},t)
 \end{align*}
-$$
+```
 
 The first two terms are for non-delayed reactions $M_{0d}$ and therefore are the same as the typical CME (chemical master equation). Namely they are the probability the system is in $X$ at $t$ and is pushed out by a reaction $R_{j}$, and the second is the probability the state is one reaction $R_{j}$ away from $X$ at time $t$.
 
