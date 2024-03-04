@@ -81,6 +81,6 @@ function next(md::MultipleDirect, when, rng::AbstractRNG)
         chosen, hazard_value = rand(rng, md.scan[chosen_idx])
         return (tau, chosen)
     else
-        return (Inf, nothing)
+        return (typemax(when), nothing)
     end
 end

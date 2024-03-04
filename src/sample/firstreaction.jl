@@ -31,7 +31,7 @@ end
 
 function next(fr::FirstReaction{K,T}, when::T, rng) where {K,T}
 	soonest_clock::Union{Nothing,K} = nothing
-	soonest_time = Inf
+	soonest_time = typemax(T)
 
     for entry::EnablingEntry{K,T} in fr.core_matrix
 		if entry.te < when
@@ -88,7 +88,7 @@ end
 
 function next(fr::ChatReaction{K,T}, when::T, rng) where {K,T}
 	soonest_clock = nothing
-	soonest_time = Inf
+	soonest_time = typemax(T)
 
 	if length(fr.enables) == 0
 		@warn "No transitions have ever been enabled. Sampler may not be initialized."

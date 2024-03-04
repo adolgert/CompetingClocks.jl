@@ -74,7 +74,7 @@ end
 
 
 """
-    next(dc::DirectCall, when::Float64, rng::AbstractRNG)
+    next(dc::DirectCall, when::TimeType, rng::AbstractRNG)
 
 Ask the sampler what clock will be the next to fire and at what time. This does
 not change the sampler. You can call this multiple times and get multiple

@@ -42,7 +42,7 @@ function enable!(
     te::T, when::T, rng::AbstractRNG) where {K,T}
 
     if te < when
-        when_fire = te + rand(rng, truncated(distribution, when - te, Inf))
+        when_fire = te + rand(rng, truncated(distribution, when - te, typemax(T)))
     else
         when_fire = te + rand(rng, distribution)
     end

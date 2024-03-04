@@ -43,7 +43,7 @@ function NextReaction{T}() where {T}
 end
 
 
-function next(nr::AbstractNextReaction{T}, when::Float64, rng::AbstractRNG) where {T}
+function next(nr::AbstractNextReaction{T}, when, rng::AbstractRNG) where {T}
     if !isempty(nr.firing_queue)
         least = top(nr.firing_queue)
         # For this sampler, mark this transition as the one that will fire
@@ -55,7 +55,7 @@ function next(nr::AbstractNextReaction{T}, when::Float64, rng::AbstractRNG) wher
         return (least.time, least.key)
     else
         # Return type is Tuple{Float64, Union{Nothing,T}} because T is not default-constructible.
-        return (Inf, nothing)
+        return (typemax(when), nothing)
     end
 end
 

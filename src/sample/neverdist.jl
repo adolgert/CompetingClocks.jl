@@ -13,21 +13,21 @@ Never() = Never{Float64}()
 
 params(d::Never) = ()
 partype(d::Never{T}) where {T<:Real} = T
-mean(d::Never) = Inf
-median(d::Never) = Inf
-mode(d::Never) = Inf
-var(d::Never) = Inf
+mean(d::Never{T}) where {T} = typemax(T)
+median(d::Never{T}) where {T}= typemax(T)
+mode(d::Never{T}) where {T} = typemax(T)
+var(d::Never{T}) where {T} = typemax(T)
 skewness(d::Never{T}) where {T<:Real} = zero(T)
 kurtosis(d::Never{T}) where {T<:Real} = zero(T)
 pdf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
-logpdf(d::Never{T}, x::Real) where {T<:Real} = -Inf
+logpdf(d::Never{T}, x::Real) where {T<:Real} = typemin(T)
 cdf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 ccdf(d::Never{T}, x::Real) where {T<:Real} = one(x)
-quantile(d::Never{T}, q::Real) where {T<:Real} = Inf
+quantile(d::Never{T}, q::Real) where {T<:Real} = typemax(T)
 mgf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 cf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
-rand(rng::Random.AbstractRNG, d::Never) = Inf
+rand(rng::Random.AbstractRNG, d::Never) = typemax(T)
 
 function rand!(rng::Random.AbstractRNG, d::Never, arr::AbstractArray)
-    arr .= Inf
+    arr .= typemax(T)
 end
