@@ -35,7 +35,7 @@ end
 
 
 function enable!(md::MultipleDirect, clock, distribution::Exponential,
-    te::Float64, when::Float64, rng::AbstractRNG)
+    te, when, rng::AbstractRNG)
     if clock ∉ keys(md.chosen)
         which_prefix_search = choose_sampler(md.chooser, clock, distribution)
         scan_idx = md.scanmap[which_prefix_search]
@@ -48,7 +48,7 @@ function enable!(md::MultipleDirect, clock, distribution::Exponential,
 end
 
 
-function disable!(md::MultipleDirect, clock, when::Float64)
+function disable!(md::MultipleDirect, clock, when)
     which_prefix_search = md.chosen[clock]
     delete!(md.scan[which_prefix_search], clock)
 end
@@ -69,12 +69,12 @@ it is possible that a random number generator will _never_ choose a particular
 value because there is no guarantee that a random number generator covers every
 combination of bits. Using more draws decreases the likelihood of this problem.
 """
-function next(md::MultipleDirect, when::Float64, rng::AbstractRNG)
+function next(md::MultipleDirect, when, rng::AbstractRNG)
     for scan_idx in eachindex(md.scan)
         md.totals[scan_idx] = sum!(md.scan[scan_idx])
     end
     total = sum(md.totals)
-    if total > eps(Float64)
+    if total > eps(when)
         tau = when + rand(rng, Exponential(1 / total))
         md.totals /= total
         chosen_idx = rand(rng, Categorical(md.totals))
