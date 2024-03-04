@@ -15,6 +15,7 @@ makedocs(;
         "Home" => "index.md",
         "Structure" => "objects.md",
         "Develop" => "develop.md",
+        "Delay Equations" => "delay.md",
         "Vector Addition Systems" => "vas.md",
         "Reference" => "reference.md"
     ],
