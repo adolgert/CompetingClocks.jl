@@ -134,7 +134,7 @@ struct CombinedNextReaction{K,T}
 end
 
 
-function CombinedNextReaction{K,T}() where {K,T <: AbstractFloat}
+function CombinedNextReaction{K,T}() where {K,T <: ContinuousTime}
     heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
     CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}())
 end
@@ -177,7 +177,7 @@ function sample_shifted(
     ::Type{S},
     te::T,
     when::T
-    ) where {S <: SamplingSpaceType, T <: AbstractFloat}
+    ) where {S <: SamplingSpaceType, T <: ContinuousTime}
     if te < when
         shifted_distribution = truncated(distribution, when - te, typemax(T))
         sample = rand(rng, shifted_distribution)
@@ -195,7 +195,7 @@ end
 
 function sample_by_inversion(
     distribution::UnivariateDistribution, ::Type{S}, te::T, when::T, survival::T
-    ) where {S <: SamplingSpaceType, T <: AbstractFloat}
+    ) where {S <: SamplingSpaceType, T <: ContinuousTime}
     if te < when
         te + invert_space(S, truncated(distribution, when - te, typemax(T)), survival)
     else   # te > when
@@ -216,7 +216,7 @@ te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
 """
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::T
-    ) where {S <: LinearSampling, T <: AbstractFloat}
+    ) where {S <: LinearSampling, T <: ContinuousTime}
     survive_te_tn = if record.te < tn
         ccdf(distribution, tn-record.te)::T
     else
@@ -240,7 +240,7 @@ Anderson's method.
 """
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::T
-    ) where {S <: LogSampling, T <: AbstractFloat}
+    ) where {S <: LogSampling, T <: ContinuousTime}
     log_survive_te_tn = if record.te < tn
         logccdf(distribution, tn-record.te)::T
     else
@@ -320,7 +320,7 @@ function enable!(
 end
 
 
-function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <: AbstractFloat}
+function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <: ContinuousTime}
     record = nr.transition_entry[clock]
     delete!(nr.firing_queue, record.heap_handle)
     nr.transition_entry[clock] = NRTransition{T}(

@@ -1,6 +1,8 @@
 module Fleck
 using Documenter
 
+const ContinuousTime = AbstractFloat
+
 include("prefixsearch/binarytreeprefixsearch.jl")
 include("prefixsearch/cumsumprefixsearch.jl")
 include("prefixsearch/keyedprefixsearch.jl")

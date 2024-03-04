@@ -12,7 +12,7 @@ using ..SampleVAS: sample_sir
 
     cnt = 30
     vas = VectorAdditionSystem(sample_sir(cnt)...)
-    sampler = DirectCall{Int}()
+    sampler = DirectCall{Int,Float64}()
 
     starting = zeros(Int, 3 * cnt)
     starting[2:cnt] .= 1
@@ -37,7 +37,7 @@ end
 
     cnt = 30
     vas = VectorAdditionSystem(sample_sir(cnt)...)
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
 
     starting = zeros(Int, 3 * cnt)
     starting[2:cnt] .= 1

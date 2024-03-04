@@ -6,22 +6,22 @@ export TrackWatcher, DebugWatcher, enable!, disable!
 # to a model in order to provide more information about active
 # clocks.
 
-struct EnablingEntry{T}
-    clock::T
+struct EnablingEntry{K,T}
+    clock::K
     distribution::UnivariateDistribution
-    te::Float64
-    when::Float64
+    te::T
+    when::T
 end
 
 
-struct DisablingEntry{T}
-    clock::T
-    when::Float64
+struct DisablingEntry{K,T}
+    clock::K
+    when::T
 end
 
 
 """
-    TrackWatcher()
+    TrackWatcher{K,T}()
 
 This Watcher doesn't sample. It records everything enabled.
 You can iterate over enabled clocks with a for-loop. If we think of the
@@ -39,9 +39,9 @@ for entry in tracker
 end
 ```
 """
-mutable struct TrackWatcher{T}
-    enabled::Dict{T,EnablingEntry{T}}
-    TrackWatcher{T}() where {T}=new(Dict{T,EnablingEntry{T}}())
+mutable struct TrackWatcher{K,T}
+    enabled::Dict{K,EnablingEntry{K,T}}
+    TrackWatcher{K,T}() where {K,T}=new(Dict{K,EnablingEntry{K,T}}())
 end
 
 
@@ -59,12 +59,12 @@ function Base.length(ts::TrackWatcher)
 end
 
 
-function enable!(ts::TrackWatcher{T}, clock::T, dist::UnivariateDistribution, te, when, rng) where {T}
-    ts.enabled[clock] = EnablingEntry{T}(clock, dist, te, when)
+function enable!(ts::TrackWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
+    ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
 
 
-function disable!(ts::TrackWatcher{T}, clock::T, when) where {T}
+function disable!(ts::TrackWatcher{K,T}, clock::K, when) where {K,T}
     if haskey(ts.enabled, clock)
         delete!(ts.enabled, clock)
     end
@@ -88,18 +88,18 @@ watcher.enabled[1].te,
 watcher.enabled[1].when)
 ```
 """
-mutable struct DebugWatcher{T}
-    enabled::Vector{EnablingEntry{T}}
-    disabled::Vector{DisablingEntry{T}}
-    DebugWatcher{T}() where {T}=new(Vector{EnablingEntry{T}}(), Vector{DisablingEntry{T}}())
+mutable struct DebugWatcher{K,T}
+    enabled::Vector{EnablingEntry{K,T}}
+    disabled::Vector{DisablingEntry{K,T}}
+    DebugWatcher{K,T}() where {K,T}=new(Vector{EnablingEntry{K,T}}(), Vector{DisablingEntry{K,T}}())
 end
 
 
-function enable!(ts::DebugWatcher{T}, clock::T, dist::UnivariateDistribution, te, when, rng) where {T}
+function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
     push!(ts.enabled, EnablingEntry(clock, dist, te, when))
 end
 
 
-function disable!(ts::DebugWatcher{T}, clock::T, when) where {T}
+function disable!(ts::DebugWatcher{K,T}, clock::K, when) where {K,T}
     push!(ts.disabled, DisablingEntry(clock, when))
 end

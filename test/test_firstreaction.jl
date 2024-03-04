@@ -11,7 +11,7 @@ using SafeTestsets
     seen = Set{Int}()
     sample_time = 0.5
     for i in 1:100
-        sampler = FirstReaction{Int}()
+        sampler = FirstReaction{Int,Float64}()
         enable!(sampler, 1, Exponential(1.7), 0.0, 0.0, rng)
         enable!(sampler, 2, Gamma(9, 0.5), 0.0, 0.0, rng)
         enable!(sampler, 3, Gamma(2, 2.0), 0.0, 0.0, rng)
@@ -31,7 +31,7 @@ end
     using Random: MersenneTwister
 
     rng = MersenneTwister(90422342)
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
     when, which = next(sampler, 5.7, rng)
     @test when == Inf
     @test which === nothing
@@ -44,7 +44,7 @@ end
     using ..DirectFixture: test_exponential_binomial
 
     rng = MersenneTwister(12349678)
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
     test_exponential_binomial(sampler, rng)
 end
 
@@ -55,7 +55,7 @@ end
     using ..DirectFixture: test_weibull_binomial
 
     rng = MersenneTwister(12967847)
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
     test_weibull_binomial(sampler, rng)
 end
 
@@ -68,7 +68,7 @@ end
     rng = Xoshiro(8367109004)
     rand(rng, 100)  # burn some early numbers
 
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
     dist = Weibull()
     sample_cnt = 1000
     enable!(sampler, 1, dist, 0.0, 0.0, rng)
@@ -88,7 +88,7 @@ end
     rng = Xoshiro(8367109004)
     rand(rng, 100)  # burn some early numbers
 
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
     dist = Weibull()
     sample_cnt = 1000
     enable!(sampler, 1, dist, 0.0, 0.0, rng)
@@ -111,7 +111,7 @@ end
     rng = Xoshiro(8367109004)
     rand(rng, 100)  # burn some early numbers
 
-    sampler = FirstReaction{Int}()
+    sampler = FirstReaction{Int,Float64}()
     dist = Weibull()
     future = 2.7
     sample_cnt = 1000
