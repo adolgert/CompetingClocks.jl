@@ -13,10 +13,15 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "Structure" => "objects.md",
-        "Develop" => "develop.md",
-        "Delay Equations" => "delay.md",
-        "Vector Addition Systems" => "vas.md",
+        "Guide" => [
+            "guide.md"
+        ],
+        "Manual" => [
+            "Structure" => "objects.md",
+            "Delay Equations" => "delay.md",
+            "Develop" => "develop.md",
+            "Vector Addition Systems" => "vas.md",
+        ],
         "Reference" => "reference.md"
     ],
 )
