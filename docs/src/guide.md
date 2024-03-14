@@ -1,6 +1,5 @@
 # Bag of Clocks
 
-## Gentle Introduction to Discrete Event Simulation
 
 We use the term discrete event simulation when code tracks the effects of individual events in time. We classify discrete event simulations by the pace of advances in time. If time advances in steps of the same size, it is a *discrete-time* simulation. If time advances to the next event, whenever that event might happen, it is *continuous-time* simulation. This library supports continuous-time simulation of discrete-event simulations.
 
@@ -15,10 +14,3 @@ An *event* is an observable change of state at a time. It is a function where th
 Given the current state of the system, there is a set of possible next events which could happen. We call the possible next events *enabled.* Think of the moment in time just after the simulation has begun or an event has just happened. At this moment, there are many enabled events. Which one is next depends on how often that event happens. If our simulation includes both the landing of a mosquito and the maturation of a young bat, the mosquito will usually land first. We describe the rates of these events using probability distributions in time. Each event has an associated continuous univariate distribution where the one variable is time.
 
 We can think of those event distributions as a *bag of clocks.* The next one to ring is the next event to occur. When that event occurs, the state changes. When the state changes, it will enable some events and disable others. Enabled events are added to the bag of clocks. Disabled ones are removed. This library holds the bag of clocks.
-
-
-## Later Points
-
- * Some simulations treat events as maybe changing state, maybe not changing state.
- * Some simulations think of an event as probabilistically changing state.
- * For a simulation in continuous time, only one event can happen at any time.

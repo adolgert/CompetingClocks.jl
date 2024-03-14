@@ -14,7 +14,9 @@ makedocs(;
     pages=[
         "Home" => "index.md",
         "Guide" => [
-            "guide.md"
+            "guide.md",
+            "mainloop.md",
+            "rules.md"
         ],
         "Manual" => [
             "Structure" => "objects.md",
