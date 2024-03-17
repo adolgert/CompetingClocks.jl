@@ -1,5 +1,4 @@
 using DataStructures
-import Base: getindex, keys, length, keytype
 
 export FirstToFire
 
