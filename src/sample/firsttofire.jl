@@ -1,4 +1,5 @@
 using DataStructures
+import Base: getindex, keys, length, keytype
 
 export FirstToFire
 
@@ -60,4 +61,21 @@ function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
     heap_handle = propagator.transition_entry[clock]
     delete!(propagator.firing_queue, heap_handle)
     delete!(propagator.transition_entry, clock)
+end
+
+function Base.getindex(propagator::FirstToFire{K,T}, clock::K) where {K,T}
+    if haskey(propagator.transition_entry, clock)
+        heap_handle = propagator.transition_entry[clock]
+        return getfield(propagator.firing_queue[heap_handle], :time)
+    else
+        throw(KeyError(clock))
+    end
+end
+
+function Base.keys(propagator::FirstToFire)
+    return collect(keys(propagator.transition_entry))
+end
+
+function Base.length(propagator::FirstToFire)
+    return length(propagator.transition_entry)
 end

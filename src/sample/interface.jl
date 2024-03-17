@@ -1,15 +1,16 @@
 using Random: AbstractRNG
 using Distributions: UnivariateDistribution
+import Base: getindex, keys, length, keytype
 
-export enable!, disable!, next
+export enable!, disable!, next, getindex, keys, length, keytype
 
 
 function enable!(
-    sampler,
+    sampler::SSA{K,T},
     clock,
     distribution::UnivariateDistribution,
-    te::Float64, # enabling time
-    when::Float64, # current simulation time
+    te::T, # enabling time
+    when::T, # current simulation time
     rng::AbstractRNG
     )
 end
@@ -17,3 +18,24 @@ end
 function disable!(sampler, clock, when::Float64) end
 
 function next(sampler, when::Float64, rng::AbstractRNG) end
+
+"""
+    Return the time associated with a clock. If the clock does not exist,
+a `KeyError` will be thrown.
+"""
+function Base.getindex(sampler::S, clock::K) where {S<:SSA{K,T}} end
+
+"""
+    Return all stored clocks as a vector.
+"""
+function Base.keys(sampler::S) where {S<:SSA} end
+
+"""
+    Return the number of stored clocks.
+"""
+function Base.length(sampler::S) where {S<:SSA} end
+
+"""
+    Return the type of clock keys.
+"""
+Base.keytype(::SSA{K,T}) where {K,T} = K

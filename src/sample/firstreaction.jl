@@ -10,7 +10,7 @@ Classic First Reaction method for Exponential and non-Exponential
 distributions. Every time you sample, go to each distribution and ask when it
 would fire. Then take the soonest and throw out the rest until the next sample.
 """
-struct FirstReaction{K,T}
+struct FirstReaction{K,T} <: SSA{K,T}
 	# This other class already stores the current set of distributions, so use it.
     core_matrix::TrackWatcher{K}
 	FirstReaction{K,T}() where {K,T <: ContinuousTime} = new(TrackWatcher{K,T}())
