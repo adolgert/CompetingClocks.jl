@@ -65,7 +65,7 @@ function run(event_count)
         0.0,
         Xoshiro(2947223)
     )
-    initialize!(sim.physical, sim.sampler, 9, sim.rng)
+    initialize!(sim.physical, 9, sim.rng)
     current_events = allowed_moves(sim.physical)
     for event_id in current_events
         enable!(sim.sampler, event_id, Weibull(1.0), 0.0, 0.0, sim.rng)
@@ -113,7 +113,7 @@ end
 # We set up the board with an initializer that places individuals at random.
 # We move one individual at a time, when their next event happens.
 
-function initialize!(physical::PhysicalState, sampler, individuals::Int, rng)
+function initialize!(physical::PhysicalState, individuals::Int, rng)
     physical.board .= 0
     dropzeros!(physical.board)
     locations = zeros(CartesianIndex{2}, individuals)

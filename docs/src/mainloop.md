@@ -75,7 +75,7 @@ function run(event_count)
         0.0,
         Xoshiro(2947223)
     )
-    initialize!(sim.physical, sim.sampler, 9, sim.rng)
+    initialize!(sim.physical, 9, sim.rng)
     current_events = allowed_moves(sim.physical)
     for event_id in current_events
         enable!(sim.sampler, event_id, Weibull(1.0), 0.0, 0.0, sim.rng)
@@ -135,7 +135,7 @@ We set up the board with an initializer that places individuals at random.
 We move one individual at a time, when their next event happens.
 
 ````julia
-function initialize!(physical::PhysicalState, sampler, individuals::Int, rng)
+function initialize!(physical::PhysicalState, individuals::Int, rng)
     physical.board .= 0
     dropzeros!(physical.board)
     locations = zeros(CartesianIndex{2}, individuals)
@@ -172,16 +172,16 @@ run(10)
 ````
 
 ````
-(when, what) = (0.07319364933011555, (8, CartesianIndex(2, 10), Main.var"##225".Up))
-(when, what) = (0.10866577949385807, (3, CartesianIndex(1, 8), Main.var"##225".Right))
-(when, what) = (0.16874877793434204, (4, CartesianIndex(9, 1), Main.var"##225".Up))
-(when, what) = (0.1951607095320235, (2, CartesianIndex(5, 10), Main.var"##225".Up))
-(when, what) = (0.20347320994043128, (6, CartesianIndex(8, 8), Main.var"##225".Down))
-(when, what) = (0.21087487174826575, (4, CartesianIndex(8, 1), Main.var"##225".Right))
-(when, what) = (0.2118081725791219, (1, CartesianIndex(7, 10), Main.var"##225".Left))
-(when, what) = (0.21262700127864034, (2, CartesianIndex(4, 10), Main.var"##225".Left))
-(when, what) = (0.26949661650175905, (6, CartesianIndex(9, 8), Main.var"##225".Left))
-(when, what) = (0.3035113012060176, (3, CartesianIndex(1, 9), Main.var"##225".Down))
+(when, what) = (0.07319364933011555, (7, CartesianIndex(7, 6), Main.var"##225".Left))
+(when, what) = (0.10866577949385807, (9, CartesianIndex(1, 3), Main.var"##225".Right))
+(when, what) = (0.15079187330778177, (9, CartesianIndex(1, 4), Main.var"##225".Left))
+(when, what) = (0.1682581650543986, (9, CartesianIndex(1, 3), Main.var"##225".Right))
+(when, what) = (0.16874877793434204, (3, CartesianIndex(1, 8), Main.var"##225".Left))
+(when, what) = (0.18888751327810988, (3, CartesianIndex(1, 7), Main.var"##225".Left))
+(when, what) = (0.20347320994043128, (4, CartesianIndex(9, 1), Main.var"##225".Down))
+(when, what) = (0.2118081725791219, (1, CartesianIndex(7, 10), Main.var"##225".Down))
+(when, what) = (0.25491091983943764, (3, CartesianIndex(1, 6), Main.var"##225".Left))
+(when, what) = (0.2634608206635203, (8, CartesianIndex(2, 10), Main.var"##225".Down))
 
 ````
 
