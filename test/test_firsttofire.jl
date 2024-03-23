@@ -32,7 +32,12 @@ end
     using Random: Xoshiro
 
     propagator = FirstToFire{Int64,Float64}()
-
+    
+    @test length(propagator) == 0
+    @test length(keys(propagator)) == 0
+    @test_throws KeyError propagator[1]
+    @test keytype(propagator) <: Int64
+    
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
         heap_handle = push!(
             propagator.firing_queue,
@@ -40,6 +45,11 @@ end
             )
         propagator.transition_entry[clock] = heap_handle
     end
+
+    @test length(propagator) == 5
+    @test length(keys(propagator)) == 5
+    @test propagator[1] == 7.9
+
     rng = Xoshiro(39472)
     for (key, fire_time) in [(4, 0.00013),(5, 0.2), (3, 3.7), (1, 7.9), (2, 12.3)]
         (t1, k1) = next(propagator, 0.0, rng)

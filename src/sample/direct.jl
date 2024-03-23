@@ -29,16 +29,15 @@ DirectCall{K,T}() where {K,T} =
 ```
 
 """
-struct DirectCall{K,P}
+struct DirectCall{K,T,P} <: SSA{K,T}
     prefix_tree::P
-    DirectCall{K,P}(tree::P) where {K,P} = new(tree)
 end
 
 
 function DirectCall{K,T}() where {K,T<:ContinuousTime}
     prefix_tree = BinaryTreePrefixSearch{T}()
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
-    DirectCall{K,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 end
 
 
@@ -55,9 +54,14 @@ later than when it was first enabled. The `rng` is a random number generator.
 If a particular clock had one rate before an event and it has another rate
 after the event, call `enable!` to update the rate.
 """
-function enable!(dc::DirectCall{K,P}, clock::K, distribution::Exponential,
-        te, when, rng::AbstractRNG) where {K,P}
+function enable!(dc::DirectCall{K,T,P}, clock::K, distribution::Exponential,
+        te::T, when::T, rng::AbstractRNG) where {K,T,P}
     dc.prefix_tree[clock] = rate(distribution)
+end
+
+function enable!(dc::DirectCall{K,T,P}, clock::K, distribution::D,
+    te::T, when::T, rng::AbstractRNG) where {K,T,P,D<:UnivariateDistribution}
+    error("DirectCall can only be used with Exponential type distributions")
 end
 
 
@@ -68,7 +72,7 @@ Tell the `DirectCall` sampler to disable this clock. The `clock` argument is
 an identifier for the clock. The `when` argument is the time at which this
 clock is enabled.
 """
-function disable!(dc::DirectCall{K,P}, clock::K, when) where {K,P}
+function disable!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
     delete!(dc.prefix_tree, clock)
 end
 
@@ -82,7 +86,7 @@ answers. Each answer is a tuple of `(when, which clock)`. If there is no clock
 to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
-function next(dc::DirectCall, when, rng::AbstractRNG)
+function next(dc::DirectCall{K,T,P}, when::T, rng::AbstractRNG) where {K,T,P}
     total = sum!(dc.prefix_tree)
     if total > eps(when)
         chosen, hazard_value = rand(rng, dc.prefix_tree)
@@ -91,4 +95,20 @@ function next(dc::DirectCall, when, rng::AbstractRNG)
     else
         return (typemax(when), nothing)
     end
+end
+
+"""
+    For the DirectCall sampler, this method will return the rate of the distribution associated
+with the given clock.
+"""
+function Base.getindex(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
+    return dc.prefix_tree[clock]
+end
+
+function Base.keys(dc::DirectCall)
+    return collect(keys(dc.prefix_tree.index))
+end
+
+function Base.length(dc::DirectCall)
+    return length(dc.prefix_tree)
 end

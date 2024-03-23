@@ -27,7 +27,7 @@ end
 # Finds the next one without removing it from the queue.
 function next(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,T}
     least = if !isempty(propagator.firing_queue)
-        top(propagator.firing_queue)
+        first(propagator.firing_queue)
     else
         OrderedSample(nothing, typemax(T))
     end

@@ -48,6 +48,26 @@ function next(fr::FirstReaction{K,T}, when::T, rng) where {K,T}
 	return (soonest_time, soonest_clock)
 end
 
+"""
+    For the FirstReaction sampler, this method will return the distribution associated
+with the given clock.
+"""
+function Base.getindex(fr::FirstReaction{K,T}, clock::K) where {K,T}
+    if haskey(fr.core_matrix.enabled, clock)
+        return getfield(fr.core_matrix.enabled[clock], :distribution)
+    else
+        throw(KeyError(clock))
+    end
+end
+
+function Base.keys(fr::FirstReaction)
+    return collect(keys(fr.core_matrix.enabled))
+end
+
+function Base.length(fr::FirstReaction)
+    return length(fr.core_matrix.enabled)
+end
+
 
 """
 This sampler can help if it's the first time you're trying a model. It checks

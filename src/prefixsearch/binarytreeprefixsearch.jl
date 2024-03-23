@@ -1,4 +1,4 @@
-import Base: sum!, push!, length, setindex!
+import Base: sum!, push!, length, setindex!, getindex
 using Random
 using Distributions: Uniform
 using Logging
@@ -134,6 +134,10 @@ end
 """
 function Base.setindex!(pst::BinaryTreePrefixSearch{T}, value::T, index) where T
     set_multiple!(pst, [(index, value)])
+end
+
+function Base.getindex(pst::BinaryTreePrefixSearch{T}, index) where {T}
+	return pst.array[index + pst.offset - 1]
 end
 
 

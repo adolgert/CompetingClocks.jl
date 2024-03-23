@@ -16,9 +16,9 @@ function enable!(
     )
 end
 
-function disable!(sampler, clock, when::Float64) end
+function disable!(sampler, clock, when) end
 
-function next(sampler, when::Float64, rng::AbstractRNG) end
+function next(sampler, when, rng) end
 
 """
     Return the time associated with a clock. If the clock does not exist,
