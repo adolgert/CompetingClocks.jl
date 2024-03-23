@@ -29,7 +29,7 @@ function disable!(fr::FirstReaction{K,T}, clock::K, when::T) where {K,T}
 end
 
 
-function next(fr::FirstReaction{K,T}, when::T, rng) where {K,T}
+function next(fr::FirstReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
 	soonest_clock::Union{Nothing,K} = nothing
 	soonest_time = typemax(T)
 
