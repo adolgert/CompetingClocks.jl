@@ -129,7 +129,6 @@ If you want to test a distribution, look at `tests/nrmetric.jl` to see how
 distributions are timed.
 """
 struct CombinedNextReaction{K,T} <: SSA{K,T}
-    # NOTE: should be min heap?
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     transition_entry::Dict{K,NRTransition{T}}
 end
