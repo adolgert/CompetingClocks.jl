@@ -333,6 +333,9 @@ function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <
     nothing
 end
 
+"""
+    For the `CombinedNextReaction` sampler, returns the stored firing time associated to the clock.
+"""
 function Base.getindex(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
     if haskey(nr.transition_entry, clock)
         heap_handle = getfield(nr.transition_entry[clock], :heap_handle)

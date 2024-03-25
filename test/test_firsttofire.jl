@@ -33,11 +33,6 @@ end
 
     propagator = FirstToFire{Int64,Float64}()
     
-    @test length(propagator) == 0
-    @test length(keys(propagator)) == 0
-    @test_throws KeyError propagator[1]
-    @test keytype(propagator) <: Int64
-    
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
         heap_handle = push!(
             propagator.firing_queue,
@@ -45,10 +40,6 @@ end
             )
         propagator.transition_entry[clock] = heap_handle
     end
-
-    @test length(propagator) == 5
-    @test length(keys(propagator)) == 5
-    @test propagator[1] == 7.9
 
     rng = Xoshiro(39472)
     for (key, fire_time) in [(4, 0.00013),(5, 0.2), (3, 3.7), (1, 7.9), (2, 12.3)]
@@ -59,4 +50,33 @@ end
     end
     (t2, k2) = next(propagator, 0.0, rng)
     @test k2 === nothing
+end
+
+@safetestset FirstToFire_interface = "FirstToFire basic interface" begin
+    using Fleck
+    using Distributions
+    using Random: Xoshiro
+
+    rng = Xoshiro(123)
+
+    propagator = FirstToFire{Int64,Float64}()
+    
+    @test length(propagator) == 0
+    @test length(keys(propagator)) == 0
+    @test_throws KeyError propagator[1]
+    @test keytype(propagator) <: Int64
+
+    for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
+        enable!(propagator, clock, Dirac(when_fire), 0.0, 0.0, rng)
+    end
+
+    @test length(propagator) == 5
+    @test length(keys(propagator)) == 5
+    @test propagator[1] == 7.9
+
+    disable!(propagator, 1, 0.0)
+
+    @test_throws KeyError propagator[1]
+    @test propagator[2] == 12.3
+
 end

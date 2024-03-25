@@ -18,7 +18,7 @@ using SafeTestsets
     @test which <= length(propensities)
 end
 
-@safetestset direct_call_insert = "DirectCall insertion" begin
+@safetestset DirectCall_interface = "DirectCall basic interface" begin
     using Fleck
     using Random: Xoshiro
     using Distributions
@@ -39,8 +39,13 @@ end
 
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
-    # @test sampler[1] == 7.9
-    
+    @test sampler[1] == 1/7.9
+
+    disable!(sampler, 1, 0.0)
+
+    @test_throws KeyError sampler[1]
+    @test sampler[2] == 1/12.3
+
 end
 
 @safetestset direct_call_empty = "DirectCall empty hazard" begin

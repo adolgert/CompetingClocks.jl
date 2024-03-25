@@ -49,8 +49,7 @@ function next(fr::FirstReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
 end
 
 """
-    For the FirstReaction sampler, this method will return the distribution associated
-with the given clock.
+	For the `FirstReaction` sampler, returns the distribution object associated to the clock.
 """
 function Base.getindex(fr::FirstReaction{K,T}, clock::K) where {K,T}
     if haskey(fr.core_matrix.enabled, clock)

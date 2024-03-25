@@ -21,7 +21,7 @@ using SafeTestsets
     end
 end
 
-@safetestset CombinedNextReaction_insertion = "CombinedNextReaction known insertions" begin
+@safetestset CombinedNextReaction_interface = "CombinedNextReaction basic interface" begin
     using Fleck
     using Distributions
     using Random: Xoshiro
@@ -41,5 +41,10 @@ end
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
     @test sampler[1] == 7.9
+
+    disable!(sampler, 1, 0.0)
+
+    @test_throws BoundsError sampler[1]
+    @test sampler[2] == 12.3
 
 end

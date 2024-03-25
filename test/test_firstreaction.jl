@@ -25,7 +25,7 @@ using SafeTestsets
     @test seen == Set([1, 3])
 end
 
-@safetestset first_reaction_insert = "FirstReaction insertion" begin
+@safetestset first_reaction_interface = "FirstReaction basic interface" begin
     using Fleck
     using Random: Xoshiro
     using Distributions
@@ -45,6 +45,11 @@ end
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
     @test sampler[1] == Dirac(7.9)
+
+    disable!(sampler, 1, 0.0)
+
+    @test_throws KeyError sampler[1]
+    @test sampler[2] == Dirac(12.3)
     
 end
 

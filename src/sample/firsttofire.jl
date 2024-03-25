@@ -62,6 +62,9 @@ function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
     delete!(propagator.transition_entry, clock)
 end
 
+"""
+    For the `FirstToFire` sampler, returns the stored firing time associated to the clock.
+"""
 function Base.getindex(propagator::FirstToFire{K,T}, clock::K) where {K,T}
     if haskey(propagator.transition_entry, clock)
         heap_handle = propagator.transition_entry[clock]

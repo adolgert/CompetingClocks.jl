@@ -21,7 +21,7 @@ function disable!(sampler::SSA{K,T}, clock::K, when::T) where {K,T} end
 function next(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T} end
 
 """
-    Return the time associated with a clock. If the clock does not exist,
+    Return stored state for a particular clock. If the clock does not exist,
 a `KeyError` will be thrown.
 """
 function Base.getindex(sampler::SSA{K,T}, clock::K) where {K,T} end

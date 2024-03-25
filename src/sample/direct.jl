@@ -98,8 +98,7 @@ function next(dc::DirectCall{K,T,P}, when::T, rng::AbstractRNG) where {K,T,P}
 end
 
 """
-    For the DirectCall sampler, this method will return the rate of the distribution associated
-with the given clock.
+    For the `DirectCall` sampler, returns the rate parameter associated to the clock.
 """
 function Base.getindex(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
     return dc.prefix_tree[clock]
