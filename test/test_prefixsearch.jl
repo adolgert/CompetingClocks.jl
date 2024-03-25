@@ -1,5 +1,15 @@
 using SafeTestsets
 
+@safetestset prefixsearch_log2 = "log2 internal" begin
+    using Fleck: ceil_log2
+
+    # I'm replacing one clear expression with one that's more obscure but fast.
+    # This tests that relationship.
+    for i in 1:500
+        @test ceil_log2(i) == Int(ceil(log2(i)))
+    end
+end
+
 
 @safetestset cumsumprefix_smoke = "cumsum prefix smoke" begin
     using Fleck: CumSumPrefixSearch, choose
@@ -179,5 +189,42 @@ end
     v = [(17.7, 5)]
     for (guess, result) in v
         @test choose(t, guess)[1] == result
+    end
+end
+
+
+@safetestset prefixsearch_getindex = "setindex getindex" begin
+    using Random
+    using Fleck: BinaryTreePrefixSearch, set_multiple!
+    @enum Modify Append Zero Reset
+
+    rng = Xoshiro(9347243)
+    for trialidx in 1:20
+        cnt = rand(rng, 1:20)
+        vals = rand(rng, 0:500, cnt)
+        btps = BinaryTreePrefixSearch{Int64}(cnt)
+        set_multiple!(btps, collect(enumerate(vals)))
+        for mod_and_check_idx in 1:500
+            modify = rand(rng, instances(Modify))
+            if modify == Append
+                val = rand(rng, 1:500)
+                push!(vals, val)
+                push!(btps, val)
+            elseif modify == Zero
+                idx = rand(rng, 1:length(vals))
+                vals[idx] = 0
+                btps[idx] = 0
+            elseif modify == Reset
+                idx = rand(rng, 1:length(vals))
+                vals[idx] = rand(rng, 1:500)
+                btps[idx] = vals[idx]
+            end
+            same = all(btps[i] == vals[i] for i in eachindex(vals))
+            @test same
+            if !same
+                println("modify $modify not same $(length(vals))")
+                return
+            end
+        end
     end
 end

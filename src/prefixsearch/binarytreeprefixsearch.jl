@@ -10,17 +10,19 @@ easier to find the leaf such that the sum of it and all previous
 leaves is greater than a given value.
 """
 mutable struct BinaryTreePrefixSearch{T<:Real}
-	array::Array{T,1}
-	depth::Int64
-	offset::Int64
-	cnt::Int64
+	# Data structure uses an array with children of i at 2i and 2i+1.
+	array::Array{T,1} # length(array) > 0
+	depth::Int64 # length(array) = 2^depth - 1
+	offset::Int64 # 2^(depth - 1). Index of first leaf and number of leaves.
+	cnt::Int64 # Number of leaves in use. Logical number of entries. cnt > 0.
 end
 
 
 """
-    BinaryTreePrefixSearch{T}()
+    BinaryTreePrefixSearch{T}([N])
 
 Constructor of a prefix search tree from an iterable list of real numbers.
+The optional hint, N, is the number of values to pre-allocate.
 """
 function BinaryTreePrefixSearch{T}(N=32) where {T<:Real}
 	depth, offset, array_cnt = _btps_sizes(N)
@@ -33,9 +35,25 @@ time_type(ps::BinaryTreePrefixSearch{T}) where {T} = T
 time_type(::Type{BinaryTreePrefixSearch{T}}) where {T} = T
 
 
+"""
+    ceil_log2(v::Integer)
+
+Integer log2, rounding up.
+"""
+function ceil_log2(v::Integer)
+    r = 0
+	power_of_two = ((v & (v - 1)) == 0) ? 0 : 1
+    while (v >>= 1) != 0
+        r += 1
+    end
+    r + power_of_two
+end
+
+
+# The tree must have at least `allocation` leaves.
 function _btps_sizes(allocation)
-	@assert allocation > 0
-	depth = Int(ceil(log2(allocation))) + 1
+	allocation = (allocation > 0) ? allocation : 1
+	depth = ceil_log2(allocation) + 1
 	offset = 2^(depth - 1)
 	array_cnt = 2^depth - 1
 	@assert allocation <= offset + 1
@@ -43,16 +61,16 @@ function _btps_sizes(allocation)
 end
 
 
-# newsize is the desired number of entries. It will allocate more than this.
-function resize!(pst::BinaryTreePrefixSearch{T}, newsize) where {T}
-	depth, offset, array_cnt = _btps_sizes(newsize)
+# newcnt is the desired number of entries.
+function resize!(pst::BinaryTreePrefixSearch{T}, newcnt) where {T}
+	depth, offset, array_cnt = _btps_sizes(newcnt)
 	b = zeros(T, array_cnt)
 	will_fit = min(offset, pst.offset)
 	b[offset:(offset + will_fit - 1)] = pst.array[pst.offset:(pst.offset + will_fit - 1)]
 	pst.array = b
 	pst.depth = depth
 	pst.offset = offset
-	pst.cnt = newsize
+	pst.cnt = newcnt
 	calculate_prefix!(pst)
 end
 
@@ -97,15 +115,22 @@ If there are multiple values to enter, then present them
 at once as pairs of tuples, (index, value).
 """
 function set_multiple!(pst::BinaryTreePrefixSearch, pairs)
-	modify=Set{Int}()
+	maxindex = maximum([i for (i, v) in pairs])
+	if maxindex > allocated(pst)
+		@debug "BinaryTreePrefixSearch resizing to $maxindex"
+		resize!(pst, maxindex)
+	end
+	if maxindex > pst.cnt
+		pst.cnt = maxindex
+	end
+	modify = Set{Int}()
 	for (pos, value) in pairs
 		index = pos + pst.offset - 1
 		pst.array[index] = value
 		push!(modify, div(index, 2))
 	end
 
-	# everything at depth-1 is correct, and changes are in modify.
-    for depth = (pst.depth - 2):-1:0
+    for depth = (pst.depth - 1):-1:1
         parents = Set{Int}()
         for node_idx in modify
             pst.array[node_idx] = pst.array[2 * node_idx] + pst.array[2 * node_idx + 1]
@@ -113,18 +138,12 @@ function set_multiple!(pst::BinaryTreePrefixSearch, pairs)
         end
         modify = parents
     end
+	@assert length(modify) == 1 && first(modify) == 0
 end
 
 
 function Base.push!(pst::BinaryTreePrefixSearch{T}, value::T) where T
-	index = pst.cnt + 1
-	if index <= allocated(pst)
-		pst.cnt += 1
-	else
-		@debug "Pushing to binarytreeprefix $index $(allocated(pst))"
-		resize!(pst, index)
-	end
-	pst[index] = value
+	set_multiple!(pst, [(pst.cnt + 1, value)])
 	return value
 end
 
