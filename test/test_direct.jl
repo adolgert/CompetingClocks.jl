@@ -18,6 +18,35 @@ using SafeTestsets
     @test which <= length(propensities)
 end
 
+@safetestset DirectCall_interface = "DirectCall basic interface" begin
+    using Fleck
+    using Random: Xoshiro
+    using Distributions
+
+    sampler = DirectCall{Int64,Float64}()
+    rng = Xoshiro(123)
+
+    @test length(sampler) == 0
+    @test length(keys(sampler)) == 0
+    @test_throws KeyError sampler[1]
+    @test keytype(sampler) <: Int64
+
+    @test_throws ErrorException enable!(sampler, 1, Dirac(1.0), 0.0, 0.0, rng)
+
+    for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
+        enable!(sampler, clock, Exponential(when_fire), 0.0, 0.0, rng)
+    end
+
+    @test length(sampler) == 5
+    @test length(keys(sampler)) == 5
+    @test sampler[1] == 1/7.9
+
+    disable!(sampler, 1, 0.0)
+
+    @test_throws KeyError sampler[1]
+    @test sampler[2] == 1/12.3
+
+end
 
 @safetestset direct_call_empty = "DirectCall empty hazard" begin
     using Fleck: DirectCall, next, enable!

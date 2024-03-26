@@ -128,8 +128,8 @@ sampling_space(::LinearGamma) = LinearSampling
 If you want to test a distribution, look at `tests/nrmetric.jl` to see how
 distributions are timed.
 """
-struct CombinedNextReaction{K,T}
-    firing_queue::MutableBinaryHeap{OrderedSample{K,T}}
+struct CombinedNextReaction{K,T} <: SSA{K,T}
+    firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     transition_entry::Dict{K,NRTransition{T}}
 end
 
@@ -331,4 +331,24 @@ function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <
         when
     )
     nothing
+end
+
+"""
+    For the `CombinedNextReaction` sampler, returns the stored firing time associated to the clock.
+"""
+function Base.getindex(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
+    if haskey(nr.transition_entry, clock)
+        heap_handle = getfield(nr.transition_entry[clock], :heap_handle)
+        return getfield(nr.firing_queue[heap_handle], :time)
+    else
+        throw(KeyError(clock))
+    end
+end
+
+function Base.keys(nr::CombinedNextReaction)
+    return collect(keys(nr.transition_entry))
+end
+
+function Base.length(nr::CombinedNextReaction)
+    return length(nr.transition_entry)
 end

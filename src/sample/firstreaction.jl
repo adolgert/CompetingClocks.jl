@@ -10,7 +10,7 @@ Classic First Reaction method for Exponential and non-Exponential
 distributions. Every time you sample, go to each distribution and ask when it
 would fire. Then take the soonest and throw out the rest until the next sample.
 """
-struct FirstReaction{K,T}
+struct FirstReaction{K,T} <: SSA{K,T}
 	# This other class already stores the current set of distributions, so use it.
     core_matrix::TrackWatcher{K}
 	FirstReaction{K,T}() where {K,T <: ContinuousTime} = new(TrackWatcher{K,T}())
@@ -29,7 +29,7 @@ function disable!(fr::FirstReaction{K,T}, clock::K, when::T) where {K,T}
 end
 
 
-function next(fr::FirstReaction{K,T}, when::T, rng) where {K,T}
+function next(fr::FirstReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
 	soonest_clock::Union{Nothing,K} = nothing
 	soonest_time = typemax(T)
 
@@ -46,6 +46,25 @@ function next(fr::FirstReaction{K,T}, when::T, rng) where {K,T}
 		end
 	end
 	return (soonest_time, soonest_clock)
+end
+
+"""
+	For the `FirstReaction` sampler, returns the distribution object associated to the clock.
+"""
+function Base.getindex(fr::FirstReaction{K,T}, clock::K) where {K,T}
+    if haskey(fr.core_matrix.enabled, clock)
+        return getfield(fr.core_matrix.enabled[clock], :distribution)
+    else
+        throw(KeyError(clock))
+    end
+end
+
+function Base.keys(fr::FirstReaction)
+    return collect(keys(fr.core_matrix.enabled))
+end
+
+function Base.length(fr::FirstReaction)
+    return length(fr.core_matrix.enabled)
 end
 
 

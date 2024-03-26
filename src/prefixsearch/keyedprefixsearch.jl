@@ -1,4 +1,4 @@
-import Base: in, setindex!, delete!
+import Base: in, setindex!, delete!, getindex
 using Random
 
 
@@ -98,6 +98,14 @@ function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
     end
 end
 
+function Base.getindex(kp::KeyedRemovalPrefixSearch, clock)
+    if haskey(kp.index, clock)
+        idx = kp.index[clock]
+        return kp.prefix[idx]
+    else
+        throw(KeyError(clock))
+    end
+end
 
 function Base.delete!(kp::KeyedRemovalPrefixSearch{T,P}, clock) where {T,P}
     idx = kp.index[clock]
