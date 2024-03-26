@@ -27,7 +27,7 @@ end
 # Finds the next one without removing it from the queue.
 function next(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,T}
     least = if !isempty(propagator.firing_queue)
-        top(propagator.firing_queue)
+        first(propagator.firing_queue)
     else
         OrderedSample(nothing, typemax(T))
     end
@@ -60,4 +60,24 @@ function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
     heap_handle = propagator.transition_entry[clock]
     delete!(propagator.firing_queue, heap_handle)
     delete!(propagator.transition_entry, clock)
+end
+
+"""
+    For the `FirstToFire` sampler, returns the stored firing time associated to the clock.
+"""
+function Base.getindex(propagator::FirstToFire{K,T}, clock::K) where {K,T}
+    if haskey(propagator.transition_entry, clock)
+        heap_handle = propagator.transition_entry[clock]
+        return getfield(propagator.firing_queue[heap_handle], :time)
+    else
+        throw(KeyError(clock))
+    end
+end
+
+function Base.keys(propagator::FirstToFire)
+    return collect(keys(propagator.transition_entry))
+end
+
+function Base.length(propagator::FirstToFire)
+    return length(propagator.transition_entry)
 end

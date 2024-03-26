@@ -25,6 +25,34 @@ using SafeTestsets
     @test seen == Set([1, 3])
 end
 
+@safetestset first_reaction_interface = "FirstReaction basic interface" begin
+    using Fleck
+    using Random: Xoshiro
+    using Distributions
+
+    sampler = FirstReaction{Int64,Float64}()
+    rng = Xoshiro(123)
+
+    @test length(sampler) == 0
+    @test length(keys(sampler)) == 0
+    @test_throws KeyError sampler[1]
+    @test keytype(sampler) <: Int64
+
+    for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
+        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0, rng)
+    end
+
+    @test length(sampler) == 5
+    @test length(keys(sampler)) == 5
+    @test sampler[1] == Dirac(7.9)
+
+    disable!(sampler, 1, 0.0)
+
+    @test_throws KeyError sampler[1]
+    @test sampler[2] == Dirac(12.3)
+    
+end
+
 
 @safetestset first_reaction_empty = "FirstReaction empty" begin
     using Fleck: FirstReaction, enable!, disable!, next

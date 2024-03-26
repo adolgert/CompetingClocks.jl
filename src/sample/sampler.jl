@@ -1,6 +1,6 @@
 
 export SingleSampler, MultiSampler
-export enable!, disable!, sample!
+export SSA, enable!, disable!, sample!
 
 """
     SSA{Key,Time}
