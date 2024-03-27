@@ -172,16 +172,16 @@ run(10)
 ````
 
 ````
-(when, what) = (0.07319364933011555, (6, CartesianIndex(8, 8), Main.var"##225".Left))
-(when, what) = (0.10866577949385807, (1, CartesianIndex(7, 10), Main.var"##225".Left))
-(when, what) = (0.1261320712404749, (1, CartesianIndex(7, 9), Main.var"##225".Up))
-(when, what) = (0.14627080658424274, (1, CartesianIndex(6, 9), Main.var"##225".Right))
-(when, what) = (0.16874877793434204, (7, CartesianIndex(7, 6), Main.var"##225".Left))
-(when, what) = (0.2118081725791219, (2, CartesianIndex(5, 10), Main.var"##225".Left))
-(when, what) = (0.2122942131455705, (1, CartesianIndex(6, 10), Main.var"##225".Left))
-(when, what) = (0.2646327040189687, (3, CartesianIndex(1, 8), Main.var"##225".Right))
-(when, what) = (0.26803917104227504, (6, CartesianIndex(8, 7), Main.var"##225".Up))
-(when, what) = (0.38470880913124333, (6, CartesianIndex(7, 7), Main.var"##225".Right))
+(when, what) = (0.07319364933011555, (3, CartesianIndex(1, 8), Main.var"##225".Down))
+(when, what) = (0.10866577949385807, (4, CartesianIndex(9, 1), Main.var"##225".Right))
+(when, what) = (0.1261320712404749, (4, CartesianIndex(9, 2), Main.var"##225".Down))
+(when, what) = (0.14627080658424274, (4, CartesianIndex(10, 2), Main.var"##225".Right))
+(when, what) = (0.16874877793434204, (5, CartesianIndex(4, 1), Main.var"##225".Down))
+(when, what) = (0.1951607095320235, (6, CartesianIndex(8, 8), Main.var"##225".Left))
+(when, what) = (0.2118081725791219, (8, CartesianIndex(2, 10), Main.var"##225".Down))
+(when, what) = (0.2122942131455705, (4, CartesianIndex(10, 3), Main.var"##225".Left))
+(when, what) = (0.2646327040189687, (7, CartesianIndex(7, 6), Main.var"##225".Left))
+(when, what) = (0.26803917104227504, (3, CartesianIndex(2, 8), Main.var"##225".Down))
 
 ````
 

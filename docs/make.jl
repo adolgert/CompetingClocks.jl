@@ -26,8 +26,7 @@ makedocs(;
         "Guide" => [
             "guide.md",
             "mainloop.md",
-            "distributions.md",
-            "rules.md"
+            "distributions.md"
         ],
         "Manual" => [
             "Structure" => "objects.md",
