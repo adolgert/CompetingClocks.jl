@@ -4,9 +4,70 @@ CurrentModule = Fleck
 
 # Reference
 
-```@index
+ * [Interface](@ref)
+ * [Samplers](@ref)
+ * [Algorithms](@ref)
+
+
+## Interface
+
+
+### Use a Sampler
+
+```@docs
+enable!
+disable!
+next
 ```
 
-```@autodocs
-Modules = [Fleck]
+### Query a Sampler
+
+```@docs
+getindex
+keys
+keytype
+length
+```
+
+## Samplers
+
+### Sampler Supertype
+
+```@docs
+SSA
+```
+
+### Sampler Types
+
+```@docs
+FirstReaction
+FirstToFire
+DirectCall
+CombinedNextReaction
+consume_survival
+sampling_space
+```
+
+### Sampling Helpers
+
+```@docs
+ChatReaction
+CommonRandomRecorder
+DebugWatcher
+MultiSampler
+SingleSampler
+TrackWatcher
+```
+
+## Algorithms
+
+```@docs
+CumSumPrefixSearch
+BinaryTreePrefixSearch
+KeyedKeepPrefixSearch
+KeyedRemovalPrefixSearch
+choose
+setindex!
+rand
+set_multiple!
 ```

@@ -3,6 +3,15 @@ using Random
 using Distributions: Uniform
 
 
+"""
+    CumSumPrefixSearch{T}()
+
+This stores hazard rates in order to make it easier for the Direct
+method to sample them. This version is the dumbest possible, but it can
+be faster when there are few hazards enabled. It uses a simple array
+and, each time the Direct method samples, this evaluates the cumulative
+sum of the array.
+"""
 struct CumSumPrefixSearch{T<:Real}
 	array::Vector{T}
     cumulant::Vector{T}
