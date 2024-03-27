@@ -1,8 +1,8 @@
 # How Fleck Decides What Happens Next
 
-Fleck simulates generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next. Let's describe here how clocks compete and begin by contrasting that with how SimJulia works.
+Fleck simulates generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next.
 
-The flow of control in a [SimJulia](https://simjuliajl.readthedocs.io/en/stable/welcome.html) simulation is based on tasks. Each task performs some action on the state, rolls the dice, and sets a wake-up time. It might wake up as expected, or it might be interrupted by another task's actions. The simulation code decides when it will wake next, and then it draws random numbers to determine what to do. In contrast, a simulation using Fleck will create a set of possible next events, assign a probability distribution for *when* each can happen, and the timing of which happens first determines *which* next event happens. Let's look at how a probability distribution describes the time for an event to happen and then how they compete in Fleck.
+In a *process-oriented* simulation (like [SimJulia](https://simjuliajl.readthedocs.io/en/stable/welcome.html)), control flow is based on tasks. Each task performs some action on the state, rolls the dice, and sets a wake-up time. It might wake up as expected and possible execute code, or it might be interrupted by another task's actions. In contrast, an *event-oriented* simulation using Fleck will create a set of possible next events, assign a probability distribution for *when* each can happen, and the timing of which happens first determines *which* next event happens. Let's look at how a probability distribution describes the time for an event to happen and then how they compete in Fleck.
 
 ## Distributions in Time
 
@@ -34,7 +34,19 @@ The probability distribution function changes now that you know you didn't recov
 f(t;t>t_0) = \lambda(t) e^{-\int_{t_0}^t \lambda(s)ds}
 ```
 
-In some sense, the underlying nature of when an event will happen is described more by the hazard rate.
+In some sense, the underlying nature of when a particular event will happen is described more by the hazard rate, whereas the distribution function tells us about ensembles of events.
+
+The hazard rate is related to the well known cumulative distribution function (CDF) by an integral. The CDF tells us what is the overall probability the event occured some time in the interval ``[t_0,t_1)``.
+
+```math
+F(t_0;t_1) = 1 - e^{-\int_{t_0}^{t_1} \lambda(s) ds}
+```
+
+Equally important for simulation is the survival function (sometimes called the complementary cumulative distribution function), which is the probability the event will not occur until after ``t_1``.
+
+```math
+S(t_1) = 1 - F(t_1;t_1) = e^{-\int_{t_0}^{t_1} \lambda(s) ds}
+```
 
 ## Competition
 
@@ -48,7 +60,7 @@ The separate hazard rates are what we put into the simulation. Given their compe
 
 ### Total Probability
 
-Given three events determined by the three clock distributions above, there is a marginal probability that any one of them will be the first to fire. We calculate this with an integral over the distribution of each event, multiplied by the survivals of the other events.
+Each of the three clock distributions above corresponds to a unique event ``E_i``, which has a probability that it will be the first to fire. We calculate this probability by marginalizing over the other events, which ends up being an integral over the distribution, multiplied by the survivals of the other events.
 
 ```math
 P[E_i] = \int_0^\infty f_i(t) \prod_{j\ne i} S_j(t) dt

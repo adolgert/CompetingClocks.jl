@@ -52,11 +52,16 @@ end
 # * `enable!(sampler, event ID, distribution, current time, start time of clock, RNG)`
 # * `disable!(sampler, event ID, current time)`
 #
+# There are a lot of samplers in Fleck to choose from. This example uses `CombinedNextReaction`
+# algorithm, which has good performance for a variety of distributions. Samplers in Fleck
+# require two type parameters, a key type for clocks and the type used to represent time.
+# In this case, the clock key type fully represents an event, giving the ID of the individual,
+# where they start, and which direction they may move.
+
+const ClockKey = Tuple{Int,CartesianIndex{2},Direction}
 
 function run(event_count)
-    ## An event is (who moves, where they start, which direction)
-    EventKey = Tuple{Int,CartesianIndex{2},Direction}
-    Sampler = CombinedNextReaction{EventKey,Float64}
+    Sampler = CombinedNextReaction{ClockKey,Float64}
     physical = PhysicalState(zeros(Int, 10, 10))
     @test showable(MIME("text/plain"), physical)
     sim = SimulationFSM{Sampler}(
@@ -87,14 +92,14 @@ function run(event_count)
             @show (when, what)
         end
     end
-end
+end;
 
 # For this checkerboard with wandering individuals, the allowed moves are
-# moves by any individual to any free square on the board. We will denote
-# each allowed move by a tuple, (who moves, where they are, which direction).
+# moves by any individual to any free square on the board. The set of allowed
+# moves is precisely the set of enabled clocks, so it stores `ClockKey`s.
 
 function allowed_moves(physical::PhysicalState)
-    allowed = Set{Tuple{Int,CartesianIndex{2},Direction}}()
+    allowed = Set{ClockKey}()
     row, col, value = findnz(physical.board)
     for ind_idx in eachindex(value)
         location = CartesianIndex((row[ind_idx], col[ind_idx]))
@@ -107,7 +112,7 @@ function allowed_moves(physical::PhysicalState)
         end
     end
     return allowed
-end
+end;
 
 # ## Changes to the state of the board
 # We set up the board with an initializer that places individuals at random.
@@ -125,7 +130,7 @@ function initialize!(physical::PhysicalState, individuals::Int, rng)
         locations[ind_idx] = loc
         physical.board[loc] = ind_idx
     end
-end
+end;
 
 
 function move!(physical::PhysicalState, event_id)
@@ -134,7 +139,7 @@ function move!(physical::PhysicalState, event_id)
     ## This sets the previous board value to zero.
     SparseArrays.dropstored!(physical.board, previous_location.I...)
     physical.board[next_location] = individual
-end
+end;
 
 # ## How it runs
 # A run of this simulation produces a sequence of moves, no two happening
