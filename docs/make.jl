@@ -3,13 +3,19 @@ using Documenter
 using Literate
 
 example_base = joinpath(dirname(@__FILE__), "src")
-println("example base is $example_base")
-Literate.markdown(
-    joinpath(example_base, "simple_board.jl"),
-    example_base,
-    name="mainloop",
-    execute=true
-    )
+adliterate = [("simple_board.jl", "mainloop"), ("distributions.jl", "distributions")]
+for (source, target) in adliterate
+    fsource, ftarget = joinpath.(example_base, [source, target])
+    if !isfile("$(ftarget).md") || mtime(fsource) > mtime("$(ftarget).md")
+        println("Literate of $source to $target")
+        Literate.markdown(
+            fsource,
+            example_base,
+            name=target,
+            execute=true
+            )
+    end
+end
 
 makedocs(;
     modules=[Fleck],

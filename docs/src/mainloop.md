@@ -62,11 +62,17 @@ Fleck are:
 * `enable!(sampler, event ID, distribution, current time, start time of clock, RNG)`
 * `disable!(sampler, event ID, current time)`
 
+There are a lot of samplers in Fleck to choose from. This example uses `CombinedNextReaction`
+algorithm, which has good performance for a variety of distributions. Samplers in Fleck
+require two type parameters, a key type for clocks and the type used to represent time.
+In this case, the clock key type fully represents an event, giving the ID of the individual,
+where they start, and which direction they may move.
+
 ````julia
+const ClockKey = Tuple{Int,CartesianIndex{2},Direction}
+
 function run(event_count)
-    # An event is (who moves, where they start, which direction)
-    EventKey = Tuple{Int,CartesianIndex{2},Direction}
-    Sampler = CombinedNextReaction{EventKey,Float64}
+    Sampler = CombinedNextReaction{ClockKey,Float64}
     physical = PhysicalState(zeros(Int, 10, 10))
     @test showable(MIME("text/plain"), physical)
     sim = SimulationFSM{Sampler}(
@@ -97,20 +103,16 @@ function run(event_count)
             @show (when, what)
         end
     end
-end
-````
-
-````
-run (generic function with 1 method)
+end;
 ````
 
 For this checkerboard with wandering individuals, the allowed moves are
-moves by any individual to any free square on the board. We will denote
-each allowed move by a tuple, (who moves, where they are, which direction).
+moves by any individual to any free square on the board. The set of allowed
+moves is precisely the set of enabled clocks, so it stores `ClockKey`s.
 
 ````julia
 function allowed_moves(physical::PhysicalState)
-    allowed = Set{Tuple{Int,CartesianIndex{2},Direction}}()
+    allowed = Set{ClockKey}()
     row, col, value = findnz(physical.board)
     for ind_idx in eachindex(value)
         location = CartesianIndex((row[ind_idx], col[ind_idx]))
@@ -123,11 +125,7 @@ function allowed_moves(physical::PhysicalState)
         end
     end
     return allowed
-end
-````
-
-````
-allowed_moves (generic function with 1 method)
+end;
 ````
 
 ## Changes to the state of the board
@@ -147,7 +145,7 @@ function initialize!(physical::PhysicalState, individuals::Int, rng)
         locations[ind_idx] = loc
         physical.board[loc] = ind_idx
     end
-end
+end;
 
 
 function move!(physical::PhysicalState, event_id)
@@ -156,11 +154,7 @@ function move!(physical::PhysicalState, event_id)
     # This sets the previous board value to zero.
     SparseArrays.dropstored!(physical.board, previous_location.I...)
     physical.board[next_location] = individual
-end
-````
-
-````
-move! (generic function with 1 method)
+end;
 ````
 
 ## How it runs
@@ -172,16 +166,16 @@ run(10)
 ````
 
 ````
-(when, what) = (0.07319364933011555, (7, CartesianIndex(7, 6), Main.var"##225".Left))
-(when, what) = (0.10866577949385807, (9, CartesianIndex(1, 3), Main.var"##225".Right))
-(when, what) = (0.15079187330778177, (9, CartesianIndex(1, 4), Main.var"##225".Left))
-(when, what) = (0.1682581650543986, (9, CartesianIndex(1, 3), Main.var"##225".Right))
-(when, what) = (0.16874877793434204, (3, CartesianIndex(1, 8), Main.var"##225".Left))
-(when, what) = (0.18888751327810988, (3, CartesianIndex(1, 7), Main.var"##225".Right))
-(when, what) = (0.20347320994043128, (4, CartesianIndex(9, 1), Main.var"##225".Down))
-(when, what) = (0.2118081725791219, (1, CartesianIndex(7, 10), Main.var"##225".Down))
-(when, what) = (0.2152994448757914, (3, CartesianIndex(1, 8), Main.var"##225".Right))
-(when, what) = (0.2634608206635203, (8, CartesianIndex(2, 10), Main.var"##225".Down))
+(when, what) = (0.07319364933011555, (6, CartesianIndex(8, 8), Main.var"##225".Right))
+(when, what) = (0.10866577949385807, (7, CartesianIndex(7, 6), Main.var"##225".Left))
+(when, what) = (0.1261320712404749, (7, CartesianIndex(7, 5), Main.var"##225".Down))
+(when, what) = (0.14627080658424274, (7, CartesianIndex(8, 5), Main.var"##225".Left))
+(when, what) = (0.1951607095320235, (8, CartesianIndex(2, 10), Main.var"##225".Up))
+(when, what) = (0.2118081725791219, (4, CartesianIndex(9, 1), Main.var"##225".Right))
+(when, what) = (0.2122942131455705, (7, CartesianIndex(8, 4), Main.var"##225".Up))
+(when, what) = (0.26803917104227504, (6, CartesianIndex(8, 9), Main.var"##225".Down))
+(when, what) = (0.35422570447600693, (5, CartesianIndex(4, 1), Main.var"##225".Right))
+(when, what) = (0.36309380269243435, (2, CartesianIndex(5, 10), Main.var"##225".Left))
 
 ````
 
