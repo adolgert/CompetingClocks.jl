@@ -19,7 +19,7 @@ For a simulation, we think of the distribution as being over time, and it's over
 In Julia, the [univariate distributions](https://juliastats.org/Distributions.jl/stable/univariate/) don't carry their enabling time as a parameter, so we store it separately.
 
 
-## Competing Clock
+## Competing Clocks
 
 Let's say you make a simulation of rabbits eating kibble. A rabbit just picked up a piece of kibble, and the simulation decides there is a Gamma-distributed time at which it will be ready to eat the next bit of kibble. Meanwhile, another rabbit eats the last bit of kibble. That makes it impossible for the first rabbit to eat any kibble, so we say that its event is interrupted. That interruption was a result of the rabbits competing, but what the simulation sees is distributions competing to fire first, and we call them competing clocks.
 

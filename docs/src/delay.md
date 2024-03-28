@@ -60,18 +60,3 @@ So we need something more general to encompass these kinds of models. Counting p
   2. [Leier, Andre, and Tatiana T. Marquez-Lago. "Delay chemical master equation: direct and closed-form solutions." Proceedings of the Royal Society A: Mathematical, Physical and Engineering Sciences 471.2179 (2015): 20150049.](https://doi.org/10.1098/rspa.2015.0049)
   3. [Brett, Tobias, and Tobias Galla. "Generating functionals and Gaussian approximations for interruptible delay reactions." Physical Review E 92.4 (2015): 042105.](https://journals.aps.org/pre/abstract/10.1103/PhysRevE.92.042105)
   4. [Nisbet, R. M., and W. S. C. Gurney. "The systematic formulation of population models for insects with dynamically varying instar duration." Theoretical Population Biology 23.1 (1983): 114-135.](https://www.sciencedirect.com/science/article/pii/0040580983900084)
-
-
-## Attic
-
-Random things that may be useful to plunder for ideas:
-
-  1. https://github.com/slwu89/stochastic_ng
-  2. https://github.com/slwu89/mosymodel/tree/master/premonition
-  3. https://github.com/dd-harp/delay
-  4. https://github.com/dd-harp/euler-abm
-  5. https://github.com/dd-harp/mini-mash
-  6. https://www.overleaf.com/project/5e3d95a0f8136c00010af62f
-  7. https://www.overleaf.com/project/5bb3e39b92734f6c26b6fbd4
-  8. https://www.overleaf.com/project/5f249f60d9e45f0001f710cf
-  9. https://www.overleaf.com/project/5de6ab381e175e0001c8c6bd

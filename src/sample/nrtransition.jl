@@ -1,9 +1,7 @@
 import Base: ==, <, >
 
-"""
-A record of a transition and the time.
-It's sortable by time. Immutable.
-"""
+# A record of a transition and the time.
+# It's sortable by time. Immutable.
 struct OrderedSample{K,T}
 	key::K
 	time::T

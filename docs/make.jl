@@ -1,5 +1,15 @@
 using Fleck
 using Documenter
+using Literate
+
+example_base = joinpath(dirname(@__FILE__), "src")
+println("example base is $example_base")
+Literate.markdown(
+    joinpath(example_base, "simple_board.jl"),
+    example_base,
+    name="mainloop",
+    execute=true
+    )
 
 makedocs(;
     modules=[Fleck],
@@ -13,10 +23,17 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
-        "Structure" => "objects.md",
-        "Develop" => "develop.md",
-        "Delay Equations" => "delay.md",
-        "Vector Addition Systems" => "vas.md",
+        "Guide" => [
+            "guide.md",
+            "mainloop.md",
+            "distributions.md"
+        ],
+        "Manual" => [
+            "Structure" => "objects.md",
+            "Delay Equations" => "delay.md",
+            "Develop" => "develop.md",
+            "Vector Addition Systems" => "vas.md",
+        ],
         "Reference" => "reference.md"
     ],
 )

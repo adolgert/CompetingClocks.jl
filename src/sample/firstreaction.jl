@@ -6,9 +6,19 @@ using Logging
 export FirstReaction, ChatReaction
 
 """
+    FirstReaction{KeyType,TimeType}()
+
+This classic, first reaction method is the simplest and most assuredly correct
+sampler. It can also be very fast when there are only a few clocks to sample.
+
 Classic First Reaction method for Exponential and non-Exponential
-distributions. Every time you sample, go to each distribution and ask when it
-would fire. Then take the soonest and throw out the rest until the next sample.
+distributions. Every time you sample, this goes to each distribution and asks
+when it would fire. Then it takes the soonest and throws out the rest of the
+sampled times until the next sample.
+
+One interesting property of this sampler is that you can call `next()`
+multiple times in order to get a distribution of next firing clocks and their
+times to fire.
 """
 struct FirstReaction{K,T} <: SSA{K,T}
 	# This other class already stores the current set of distributions, so use it.
@@ -70,7 +80,8 @@ end
 
 """
 This sampler can help if it's the first time you're trying a model. It checks
-all of the things and uses Julia's logger to communicate them.
+all of the things and uses Julia's logger to communicate them. It samples
+using the first reaction algorithm.
 """
 mutable struct ChatReaction{K,T}
 	# This other class already stores the current set of distributions, so use it.

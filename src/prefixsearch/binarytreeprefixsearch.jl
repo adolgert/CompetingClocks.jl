@@ -4,6 +4,9 @@ using Distributions: Uniform
 using Logging
 
 """
+    BinaryTreePrefixSearch{T}(N=32)
+
+This stores hazard rates to make them faster for the Direct method to sample.
 This is a binary tree where the leaves are values
 and the nodes are sums of those values. It is meant to make it
 easier to find the leaf such that the sum of it and all previous
@@ -35,11 +38,7 @@ time_type(ps::BinaryTreePrefixSearch{T}) where {T} = T
 time_type(::Type{BinaryTreePrefixSearch{T}}) where {T} = T
 
 
-"""
-    ceil_log2(v::Integer)
-
-Integer log2, rounding up.
-"""
+# Integer log2, rounding up.
 function ceil_log2(v::Integer)
     r = 0
 	power_of_two = ((v & (v - 1)) == 0) ? 0 : 1

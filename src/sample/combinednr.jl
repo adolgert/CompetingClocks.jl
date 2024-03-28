@@ -99,17 +99,21 @@ end
 
 This combines Next Reaction Method and Modified Next Reaction Method.
 The Next Reaction Method is from Gibson and Bruck in their 2000 paper called
-``Efficient Exact Stochastic Simulation of Chemical Systems with Many Species
+"Efficient Exact Stochastic Simulation of Chemical Systems with Many Species
 and Many Channels." The Modified Next Reaction Method is from David F. Anderson's
-2007 paper, ``A modified Next Reaction Method for simulating chemical systems
+2007 paper, "A modified Next Reaction Method for simulating chemical systems
 with time dependent propensities and delays." Both methods reuse draws of random
 numbers. The former works by accumulating survival of a distribution in
 a linear space and the latter works by accumulating survival of a distribution
 in a log space.
 
-Each distribution is more precise being sampled in either a linear space
-or a log space. This sampler chooses which space to use depending on the
-type of the `UnivariateDistribution`. Defaults are set for those distributions
+Each enabled clock specifies a univariate distribution from the `Distributions`
+package. Every distribution is more precise being sampled in the manner
+of the Next Reaction method (linear space) or the manner of the Modified
+Next Reaction method (log space). This sampler
+chooses which space to use depending on the
+type of the `UnivariateDistribution` and based on performance timings that
+are done during package testing. Defaults are set for those distributions
 included in the `Distributions.jl` package. If you want to add a distribution,
 then define:
 

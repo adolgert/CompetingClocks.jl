@@ -1,29 +1,28 @@
 # Vector Addition System
 
-A [vector addition system](https://en.wikipedia.org/wiki/Vector_addition_system) (VAS) is a simple mathematical language to model systems. It is simpler than the Petri net language, but has the advantage of allowing for more free-form simulation design, as intensity functions can be arbitrary functions of state.
+One way to understand how to use Fleck is to look at a very simple simulation. A [vector addition system](https://en.wikipedia.org/wiki/Vector_addition_system) (VAS) is a lot like chemical simulations, but it's free of some of the assumptions about chemical rates. The physical state of the system is a vector of integers. Such a simple physical state can make it easier to understand possible complications in how we define events.
 
-```mermaid
-classDiagram
+There are variations on how to define a vector addition system. Let's begin with one and introduce variations as they become interesting.
 
-class VectorAdditionSystem
-    VectorAdditionSystem: +Matrix take
-    VectorAdditionSystem: +Matrix give
-    VectorAdditionSystem: +Vector rates
+A vector addition system is
+
+ * a physical state $p$ which is a set of $d$ integers, labeled $(p_1, p_2,\cdots, p_d)$.
+
+ * a system time, $t$
+
+ * a finite set of events $E$ where each event has an enabling rule, a distribution, and a firing rule.
+
+   - a rule for when the event is enabled, where the rule is an invariant on the physical state, such as $r_i(p)\ge 0$. When the invariant is met, the event is enabled. When the invariant is not met, the event is disabled. For a vector addition system, this rule must be expressible as a matrix multiplication, so $M\cdot \vec{p} .\ge 0$, where the $.\ge$ means we are checking elementwise that every element is non-negative.
+
+   - a distribution in time, where the distribution is determined at enabling time and is a function of the physical state and system time at enabling. The distribution in time can have shocks, such as a delta function, but it may not have a shock at time zero, must have a measure-zero probability of firing at the same moment it is enabled.
+
+   - a rule for how the event changes physical state when it happens. The domain and co-domain of the rule are physical states of the system. Let's limit this model to require all events to modify the state, so that we exclude events that don't modify the state. As with enabling, this must be expressible as a matrix operation on the physical states to produce a new physical state.
+
+   From the rules, we see that an event's state is either disabled or enabled at an enabling time $t_e$.
+
+How would we implement this system? It's set up so that enabling rules and firing rules can be done with linear algebra. We can write this in Julia code 
 
 
-class VectorAdditionModel
-    VectorAdditionModel: +VectorAdditionSystem vas
-    VectorAdditionModel: +Vector state
-    VectorAdditionModel: +Float64 when
-
-class VectorAdditionFSM
-    VectorAdditionFSM: +VectorAdditionModel vam
-    VectorAdditionFSM: +Any sampler
-end
-
-VectorAdditionModel *-- VectorAdditionSystem
-VectorAdditionFSM *-- VectorAdditionModel
-```
 
 Simulation using the VAS requires concrete implementation of the interface:
 
