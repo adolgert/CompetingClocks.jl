@@ -1,3 +1,7 @@
+```@meta
+EditURL = "distributions.jl"
+```
+
 # How Fleck Decides What Happens Next
 
 Fleck simulates generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next.
@@ -94,3 +98,8 @@ We simulated using competing clocks when we measure using survival analysis. One
 A classic example of survival analysis is a hospital study where participants enter a trial for a drug, and doctors observe the date at which each patient recovers. How would you draw a probability distribution function for such a trial? You would draw a histogram where each week shows a count of how many recovered. What about the hazard rate for such a trial? Here, you would look only at the number of participants remaining in the trial and ask what fraction recover each week. That's a rate of recovery given that participants have not yet recovered.
 
 There are many disciplines that use survival analysis to measure rates of processes. Epidemiology measures rates of contagion, death, and recovery. Demography measures time to have children or move to another country. Reliability studies the time for a part to break and be fixed. Drug discovery measures the time to approve a chemical for the next trial stage. For traffic flow, it's the time to the next intersection. For package delivery, it's the time to the next package scan. All of these do use, or can use, survival analysis to observe a system to simulate.
+
+---
+
+*This page was generated using [Literate.jl](https://github.com/fredrikekre/Literate.jl).*
+
