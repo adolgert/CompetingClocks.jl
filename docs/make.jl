@@ -6,7 +6,7 @@ example_base = joinpath(dirname(@__FILE__), "src")
 adliterate = [("simple_board.jl", "mainloop"), ("distributions.jl", "distributions")]
 for (source, target) in adliterate
     fsource, ftarget = joinpath.(example_base, [source, target])
-    if !isfile("$(ftarget).md") || mtime(fsource) < mtime("$(ftarget).md")
+    if !isfile("$(ftarget).md") || mtime(fsource) > mtime("$(ftarget).md")
         println("Literate of $source to $target")
         Literate.markdown(
             fsource,
