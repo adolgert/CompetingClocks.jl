@@ -99,13 +99,13 @@ end
 
 This combines Next Reaction Method and Modified Next Reaction Method.
 The Next Reaction Method is from Gibson and Bruck in their 2000 paper called
-"Efficient Exact Stochastic Simulation of Chemical Systems with Many Species
-and Many Channels." The Modified Next Reaction Method is from David F. Anderson's
-2007 paper, "A modified Next Reaction Method for simulating chemical systems
-with time dependent propensities and delays." Both methods reuse draws of random
-numbers. The former works by accumulating survival of a distribution in
-a linear space and the latter works by accumulating survival of a distribution
-in a log space.
+["Efficient Exact Stochastic Simulation of Chemical Systems with Many Species
+and Many Channels"](https://doi.org/10.1021/jp993732q). 
+The Modified Next Reaction Method is from David F. Anderson's 2007 paper, 
+["A modified Next Reaction Method for simulating chemical systems with time dependent propensities and delays"](https://doi.org/10.1063/1.2799998). 
+Both methods reuse draws of random numbers. The former works by accumulating 
+survival of a distribution in a linear space and the latter works by accumulating 
+survival of a distribution in a log space.
 
 Each enabled clock specifies a univariate distribution from the `Distributions`
 package. Every distribution is more precise being sampled in the manner
@@ -211,9 +211,9 @@ end
 @doc raw"""
 This updates the survival for a transition in the linear space, according to
 Gibson and Bruck.
-Transition was enabled between time record.t0 and tn.
-Divide the survival by the conditional survival between t0 and tn.
-te can be before t0, at t0, between t0 and tn, or at tn, or after tn.
+Transition was enabled between time record t_0 and t_n.
+Divide the survival by the conditional survival between t_0 and t_n.
+t_e can be before t_0, at t_0, between t_0 and t_n, or at t_n, or after t_n.
 
 ``u=\exp\left(-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds\right)\exp\left(-\int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds\right)``
 
@@ -236,7 +236,7 @@ end
 
 
 @doc raw"""
-This updates the survival for a transition in the exponential space, according to
+This updates the survival for a transition in log space, according to
 Anderson's method.
 
 ``\ln u=-\int_{t_e}^{t_n}\lambda_0(s-t_e)ds - \int_{t_n}^{\tau'}\lambda_{n}(s-t_e)ds``
@@ -338,7 +338,9 @@ function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <
 end
 
 """
-    For the `CombinedNextReaction` sampler, returns the stored firing time associated to the clock.
+    getindex(sampler::CombinedNextReaction{K,T}, clock::K)
+
+For the `CombinedNextReaction` sampler, returns the stored firing time associated to the clock.
 """
 function Base.getindex(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
     if haskey(nr.transition_entry, clock)

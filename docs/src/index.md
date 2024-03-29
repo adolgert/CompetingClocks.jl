@@ -30,6 +30,9 @@ The library provides you with samplers. Each sampler has the same interface. Her
 
 Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can be fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
 
+## Documentation
+
+
 
 ## Why Use This?
 
