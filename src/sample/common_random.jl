@@ -164,8 +164,8 @@ from the same copy of the recorded random number generator states.
 """
 freeze(cr::CommonRandomRecorder{S,K,R}) where {S,K,R} = FrozenCommonRandomRecorder(cr, Dict{K,Int}())
 reset!(cr::FrozenCommonRandomRecorder{S,K,R}) where {S,K,R} = (reset!(cr.cr); cr.miss = Dict{K,Int}(); nothing)
-misscount(cr::FrozenCommonRandomRecorder) = misscount(cr.cr)
-misses(cr::FrozenCommonRandomRecorder) = misses(cr.cr)
+misscount(cr::FrozenCommonRandomRecorder) = misscount(cr.miss)
+misses(cr::FrozenCommonRandomRecorder) = misses(cr.miss)
 next(cr::FrozenCommonRandomRecorder, when, rng::AbstractRNG) = next(cr.cr, when, rng)
 disable!(cr::FrozenCommonRandomRecorder, clock, when) = disable!(cr.cr, clock, when)
 
