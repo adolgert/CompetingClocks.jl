@@ -20,6 +20,8 @@ If you want to write a simulation engine that tracks the state of a system, and 
 
 Many of these mathematical objects provide intricate structure to tell us what events are enabled in any particular state (e.g; Petri nets). Fleck organizes the stochastic firing times (clocks) of enabled events so we can sample from clocks to find out what happens next and update them after the state changes. In statistical terms, this library is a sampler for generalized semi-Markov processes.
 
+The background work for this library comes from [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
+
 ## Usage
 
 The library provides you with samplers. Each sampler has the same interface. Here, a distribution is a [Distributions.ContinuousUnivariateDistribution](https://juliastats.org/Distributions.jl/stable/univariate/#Continuous-Distributions), `RNG` is a [random number generator](https://docs.julialang.org/en/v1/stdlib/Random/#Generators-(creation-and-seeding)), the `key` is some identifier (maybe an integer) for the event, and an enabling time is a zero-time for the given distribution.
@@ -42,3 +44,4 @@ If I make a quick simulation for myself, I sample distributions the moment an ev
  * Performance matters (which it often doesn't), so I would like to try different samplers on my problem.
 
  * I want to focus on developing and testing my *model* not my *simulation algorithm*; Fleck is designed and tested with care to ensure correctness.
+ 
