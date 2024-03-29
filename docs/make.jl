@@ -36,6 +36,7 @@ makedocs(;
         ],
         "Manual" => [
             "Structure" => "objects.md",
+            "commonrandom.md",
             "Delay Equations" => "delay.md",
             "background.md",
             "distrib.md",

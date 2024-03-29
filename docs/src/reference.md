@@ -54,6 +54,7 @@ sampling_space
 ChatReaction
 CommonRandomRecorder
 reset!
+freeze
 misscount
 misses
 DebugWatcher

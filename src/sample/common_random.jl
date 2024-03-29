@@ -1,14 +1,15 @@
 using Random
 
+abstract type CommonRandom{S,K,R} end
 
-mutable struct CommonRandomRecorder{Sampler,T,RNG}
+mutable struct CommonRandomRecorder{Sampler,K,RNG} <: CommonRandom{Sampler,K,RNG}
     sampler::Sampler
-    record::Dict{T,Array{RNG,1}} # Value of RNG for each clock each instance.
-    sample_index::Dict{T,Int} # Current number of times each clock seen.
-    miss::Dict{T,Int} # Number of misses for each clock.
+    record::Dict{K,Array{RNG,1}} # Value of RNG for each clock each instance.
+    sample_index::Dict{K,Int} # Current number of times each clock seen.
+    miss::Dict{K,Int} # Number of misses for each clock.
 end
-export CommonRandomRecorder
-export reset!
+export CommonRandomRecorder, FrozenCommonRandomRecorder
+export reset!, misscount, misses, freeze
 
 """
 Common random variates, also called common random numbers (CRN),
@@ -74,6 +75,7 @@ function reset!(recorder::CommonRandomRecorder{S,K,R}) where {S,K,R}
     recorder.miss = Dict{K,Int}()
 end
 
+
 """
     misscount(recorder::CommonRandomRecorder)
 
@@ -84,6 +86,7 @@ replayed.
 """
 misscount(recorder::CommonRandomRecorder) = sum(values(recorder.miss))
 
+
 """
     misses(recorder::CommonRandomRecorder)
 
@@ -93,18 +96,19 @@ was marked by calling `reset!`.
 """
 misses(recorder::CommonRandomRecorder) = pairs(recorder.miss)
 
+
 # If you weren't using clock IDs and were instead using a direct method
 # it would be better to instrument the next function and record every draw
 # in a vector. So it makes sense to have different CRN implementations
 # for different purposes.
-function next(cr::CommonRandomRecorder{Sampler}, when, rng::AbstractRNG) where {Sampler}
+function next(cr::CommonRandomRecorder, when, rng::AbstractRNG)
     return next(cr.sampler, when, rng)
 end
 
 
 function enable!(
-    cr::CommonRandomRecorder{Sampler}, clock::T, distribution::UnivariateDistribution,
-    te, when, rng::AbstractRNG) where {Sampler, T}
+    cr::CommonRandomRecorder, clock, distribution::UnivariateDistribution,
+    te, when, rng::AbstractRNG)
 
     clock_seen_cnt = 1 + get(cr.sample_index, clock, 0)
     samples = get(cr.record, clock, nothing)
@@ -131,6 +135,56 @@ function enable!(
 end
 
 
-function disable!(cr::CommonRandomRecorder{Sampler}, clock::T, when) where {Sampler, T}
+function disable!(cr::CommonRandomRecorder, clock, when)
     disable!(cr.sampler, clock, when)
+end
+
+
+mutable struct FrozenCommonRandomRecorder{S,K,R} <: CommonRandom{S,K,R}
+    cr::CommonRandomRecorder{S,K,R}
+    miss::Dict{K,Int}
+end
+
+
+"""
+    freeze(cr::CommonRandomRecorder)::FrozenCommonRandomRecorder
+
+The [CommonRandomRecorder](@ref) records every time it sees a clock request
+random number generation. It continues to do that every time it runs, which
+is a problem if you run simulations for comparison on multiple threads.
+If you want to use CRN and to use multiple threads for subsequent simulation
+runs, then first run the simulation a bunch of times on one thread. Then
+freeze the simulation, and then the frozen version will stop remembering
+new threads.
+
+There is one part of the frozen recorder that will be mutable because it's
+useful for debugging, the record of missed clocks. Freeze a recorder for
+each thread, and each thread will track its own misses. They will all work
+from the same copy of the recorded random number generator states.
+"""
+freeze(cr::CommonRandomRecorder{S,K,R}) where {S,K,R} = FrozenCommonRandomRecorder(cr, Dict{K,Int}())
+reset!(cr::FrozenCommonRandomRecorder{S,K,R}) where {S,K,R} = (reset!(cr.cr); cr.miss = Dict{K,Int}(); nothing)
+misscount(cr::FrozenCommonRandomRecorder) = misscount(cr.cr)
+misses(cr::FrozenCommonRandomRecorder) = misses(cr.cr)
+next(cr::FrozenCommonRandomRecorder, when, rng::AbstractRNG) = next(cr.cr, when, rng)
+disable!(cr::FrozenCommonRandomRecorder, clock, when) = disable!(cr.cr, clock, when)
+
+function enable!(
+    fcr::FrozenCommonRandomRecorder, clock, distribution::UnivariateDistribution,
+    te, when, rng::AbstractRNG)
+
+    cr = fcr.cr
+    clock_seen_cnt = 1 + get(cr.sample_index, clock, 0)
+    samples = get(cr.record, clock, nothing)
+    if samples !== nothing && clock_seen_cnt <= length(samples)
+        saved_rng = copy(samples[clock_seen_cnt])
+        enable!(cr.sampler, clock, distribution, te, when, saved_rng)
+        # Only increment the seen count if the rng was used because Next Reaction avoids RNG.
+        if saved_rng != samples[clock_seen_cnt]
+            cr.sample_index[clock] = clock_seen_cnt
+        end  # else don't increment.
+    else
+        enable!(cr.sampler, clock, distribution, te, when, rng)
+        fcr.miss[clock] = get(fcr.miss, clock, 0) + 1
+    end
 end

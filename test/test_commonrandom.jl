@@ -170,3 +170,46 @@ end
     end
     @test total_diff < 1e-10
 end
+
+
+
+@safetestset crn_freeze = "Common random numbers frozen" begin
+    using Fleck
+    using Random
+    using ..CRNHelper: FakeSampler
+    using Distributions
+
+    rng = Xoshiro(2934723)
+    sampler = FakeSampler()
+    record_sampler = CommonRandomRecorder(sampler, Int, Xoshiro)
+    current_time::Float64 = 0
+    trace = Dict{Int,Float64}()
+    enabled = Set(1:5)
+    for startup in enabled
+       enable!(record_sampler, startup, Exponential(), current_time, current_time, rng)
+    end
+    for out in 1:5
+        (when, which) = next(record_sampler, current_time, rng)
+        trace[which] = when
+        pop!(enabled, which)
+        current_time = when
+    end
+
+    rng2 = Xoshiro(723498)
+    current_time = 0.0
+    frozen_sampler = freeze(record_sampler)
+    reset!(frozen_sampler)
+    for startup in Set(1:10)
+       enable!(frozen_sampler, startup, Exponential(), current_time, current_time, rng2)
+    end
+    total_diff::Float64 = 0
+    for out in 1:10
+        (when, which) = next(frozen_sampler, current_time, rng2)
+        @test which !== nothing
+        if which <= 5
+            total_diff += abs(when - trace[which])
+        end
+        current_time = when
+    end
+    @test total_diff < 1e-10
+end
