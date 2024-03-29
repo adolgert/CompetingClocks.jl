@@ -37,6 +37,7 @@ makedocs(;
         "Manual" => [
             "Structure" => "objects.md",
             "Delay Equations" => "delay.md",
+            "background.md",
             "Develop" => "develop.md",
             "Vector Addition Systems" => "vas.md",
         ],
