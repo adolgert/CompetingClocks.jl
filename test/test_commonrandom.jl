@@ -2,7 +2,7 @@ using Fleck
 using SafeTestsets
 
 module CRNHelper
-    export FakeSampler, next, enable!, disable!, clone
+    export FakeSampler, next, enable!, disable!, clone, reset!
     using Random
     using Fleck
     using Distributions
@@ -11,7 +11,7 @@ module CRNHelper
     # It will sometimes make a draw and sometimes not.
 
     # Assumptions: Clock IDs are integers. Don't care about times.
-    struct FakeSampler
+    mutable struct FakeSampler
         draws::Vector{Tuple{Float64, Int64}}
         FakeSampler() = new(Vector{Tuple{Float64, Int64}}())
     end
@@ -43,6 +43,10 @@ module CRNHelper
     end
 
     Fleck.clone(cr::FakeSampler) = FakeSampler()
+
+    function Fleck.reset!(cr::FakeSampler)
+        cr.draws = Vector{Tuple{Float64, Int64}}()
+    end
 end
 
 
@@ -112,14 +116,14 @@ end
     end
 
     rng2 = Xoshiro(3424324)
-    replay_sampler = replay(record_sampler)
     current_time = 0.0
+    reset!(record_sampler)
     for startup in Set(1:5)
-       enable!(replay_sampler, startup, Exponential(), current_time, current_time, rng2)
+       enable!(record_sampler, startup, Exponential(), current_time, current_time, rng2)
     end
     total_diff::Float64 = 0
     for out in 1:5
-        (when, which) = next(replay_sampler, current_time, rng2)
+        (when, which) = next(record_sampler, current_time, rng2)
         total_diff += abs(when - trace[which])
         current_time = when
     end
@@ -150,14 +154,14 @@ end
     end
 
     rng2 = Xoshiro(723498)
-    replay_sampler = replay(record_sampler)
     current_time = 0.0
+    reset!(record_sampler)
     for startup in Set(1:10)
-       enable!(replay_sampler, startup, Exponential(), current_time, current_time, rng2)
+       enable!(record_sampler, startup, Exponential(), current_time, current_time, rng2)
     end
     total_diff::Float64 = 0
     for out in 1:10
-        (when, which) = next(replay_sampler, current_time, rng2)
+        (when, which) = next(record_sampler, current_time, rng2)
         @test which !== nothing
         if which <= 5
             total_diff += abs(when - trace[which])

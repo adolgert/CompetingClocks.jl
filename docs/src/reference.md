@@ -53,6 +53,9 @@ sampling_space
 ```@docs
 ChatReaction
 CommonRandomRecorder
+reset!
+misscount
+misses
 DebugWatcher
 MultiSampler
 SingleSampler

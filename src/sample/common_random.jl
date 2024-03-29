@@ -1,11 +1,14 @@
 using Random
 
 
-struct CommonRandomRecorder{Sampler,T,RNG}
+mutable struct CommonRandomRecorder{Sampler,T,RNG}
     sampler::Sampler
-    record::Dict{T,Array{RNG,1}}
+    record::Dict{T,Array{RNG,1}} # Value of RNG for each clock each instance.
+    sample_index::Dict{T,Int} # Current number of times each clock seen.
+    miss::Dict{T,Int} # Number of misses for each clock.
 end
 export CommonRandomRecorder
+export reset!
 
 """
 Common random variates, also called common random numbers (CRN),
@@ -36,20 +39,59 @@ using Fleck
 example_clock = (3, 7)  # We will use clock IDs that are a tuple of 2 integers.
 sampler = FirstToFire{typeof(example_clock)}()
 crn_sampler = CommonRandomRecorder(sampler, typeof(example_clock), Xoshiro)
-run_simulation(model, crn_sampler)
+for trial_idx in 1:100
+    run_simulation(model, crn_sampler)
+    reset!(crn_sampler)
+end
 for param_idx in 1:10
     each_model = modify_model!(model, param_idx)
-    replay_sampler = replay(crn_sampler)
-    run_simulation(each_model, replay_sampler)
+    run_simulation(each_model, crn_sampler)
+    reset!(crn_sampler)
 end
 ```
 
 """
 function CommonRandomRecorder(sampler::Sampler, clock_type::Type, rng_type::Type) where {Sampler}
     storage = Dict{clock_type,Array{rng_type,1}}()
-    CommonRandomRecorder{Sampler,clock_type,rng_type}(sampler, storage)
+    index = Dict{clock_type,Int64}()
+    miss = Dict{clock_type,Int}()
+    CommonRandomRecorder{Sampler,clock_type,rng_type}(sampler, storage, index, miss)
 end
 
+
+"""
+    reset!(recorder::CommonRandomRecorder)
+
+The common random recorder records the state of the random number generator
+for each clock, but the same clock can be enabled multiple times in one
+simulation, so it records the generator state for each (clock, index of
+the enabling of that clock). The `reset!` function says we are starting a new
+simulation run, so all clocks haven't been seen.
+"""
+function reset!(recorder::CommonRandomRecorder{S,K,R}) where {S,K,R}
+    reset!(recorder.sampler)
+    recorder.sample_index = Dict{K,Int64}()
+    recorder.miss = Dict{K,Int}()
+end
+
+"""
+    misscount(recorder::CommonRandomRecorder)
+
+The common random recorder watches a simulation and replays the states of the
+random number generator on subsequent runs. This counts the number of times
+during the most recent run that a clock event happened that could not be
+replayed.
+"""
+misscount(recorder::CommonRandomRecorder) = sum(values(recorder.miss))
+
+"""
+    misses(recorder::CommonRandomRecorder)
+
+This iterates over pairs of misses in the common random recorder during
+the most recent simulation run, where the start of a simulation run
+was marked by calling `reset!`.
+"""
+misses(recorder::CommonRandomRecorder) = pairs(recorder.miss)
 
 # If you weren't using clock IDs and were instead using a direct method
 # it would be better to instrument the next function and record every draw
@@ -64,74 +106,31 @@ function enable!(
     cr::CommonRandomRecorder{Sampler}, clock::T, distribution::UnivariateDistribution,
     te, when, rng::AbstractRNG) where {Sampler, T}
 
-    rng_save = copy(rng)
-    enable!(cr.sampler, clock, distribution, te, when, rng)
-    if rng != rng_save
-        if clock ∈ keys(cr.record)
-            push!(cr.record[clock], rng_save)
-        else
-            cr.record[clock] = [rng_save]
+    clock_seen_cnt = 1 + get(cr.sample_index, clock, 0)
+    samples = get(cr.record, clock, nothing)
+    if samples !== nothing && clock_seen_cnt <= length(samples)
+        saved_rng = copy(samples[clock_seen_cnt])
+        enable!(cr.sampler, clock, distribution, te, when, saved_rng)
+        # Only increment the seen count if the rng was used because Next Reaction avoids RNG.
+        if saved_rng != samples[clock_seen_cnt]
+            cr.sample_index[clock] = clock_seen_cnt
+        end  # else don't increment.
+    else
+        rng_save = copy(rng)
+        enable!(cr.sampler, clock, distribution, te, when, rng)
+        if rng != rng_save
+            if samples !== nothing
+                push!(samples, rng_save)
+            else
+                cr.record[clock] = [rng_save]
+            end
+            cr.sample_index[clock] = clock_seen_cnt
         end
+        cr.miss[clock] = get(cr.miss, clock, 0) + 1
     end
 end
 
 
 function disable!(cr::CommonRandomRecorder{Sampler}, clock::T, when) where {Sampler, T}
     disable!(cr.sampler, clock, when)
-end
-
-
-struct CommonRandomReplay{Sampler,T,RNG}
-    sampler::Sampler
-    record::Dict{T,Array{RNG,1}}
-    sample_index::Dict{T,Int}
-    miss::Dict{T,Int}
-end
-
-
-function replay(recorder::CommonRandomRecorder{Sampler,T,RNG}) where {Sampler,T,RNG}
-    sampler = clone(recorder.sampler)
-    index = Dict(clock => 1 for clock in keys(recorder.record))
-    CommonRandomReplay{Sampler,T,RNG}(
-        sampler, recorder.record, index, Dict{T,Int}()
-        )
-end
-export replay
-
-
-function with_generator(fn::Function, crr::CommonRandomReplay, clock, rng)
-    clock_index = get(crr.sample_index, clock, 0)
-    if clock_index > 0
-        samples = crr.record[clock]
-        if clock_index <= length(samples)
-            use_rng = copy(samples[clock_index])
-            fn(use_rng)
-            if use_rng != samples[clock_index]
-                crr.sample_index[clock] += 1
-            end
-            return
-        end
-    end
-    fn(rng)
-    crr.miss[clock] = get(crr.miss, clock, 0) + 1
-end
-
-
-function next(crr::CommonRandomReplay, when, rng::AbstractRNG)
-    return next(crr.sampler, when, rng)
-end
-
-
-function enable!(
-    crr::CommonRandomReplay, clock, distribution::UnivariateDistribution,
-    te, when, rng::AbstractRNG)
-
-    with_generator(crr, clock, rng) do use_rng
-        enable!(crr.sampler, clock, distribution, te, when, use_rng)
-    end
-end
-
-
-function disable!(crr::CommonRandomReplay, clock, when)
-    disable!(crr.sampler, clock, when)
 end
