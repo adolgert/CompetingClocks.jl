@@ -17,7 +17,7 @@ measles.
 
 It frequently happens that random samples of the real valued variables
 such as $\bf{X}$ are actually analyzed on a discrete scale. For example
-Stocks\' data on latent periods of measles in
+Stocks' data on latent periods of measles in
 `latent_period`{.interpreted-text role="ref"} is based on daily visits
 by patients.
 
@@ -36,7 +36,7 @@ f_{X}(k) & =  \mathcal{P}[X=k] \\
 \end{aligned}
 ```
 
-For Stocks\' data in `latent_period`{.interpreted-text role="ref"}, the
+For Stocks' data in `latent_period`{.interpreted-text role="ref"}, the
 density at day $k$ should be interpreted as the probability of the
 appearance of symptoms since the previous visit on day $k-1$.
 
@@ -52,7 +52,7 @@ h_{X}(k) & =  \mathcal{P}[X=k\; |\; k-1<X] \\
 \end{aligned}
 ```
 
-In the case of Stocks\' data, the hazards shown in
+In the case of Stocks' data, the hazards shown in
 `latent_period_hazard`{.interpreted-text role="ref"} would correspond to
 the probability of symptoms appearing at day $k$ given that the patient
 had not displayed symptoms at any previous visit. As time goes on,
@@ -113,7 +113,7 @@ This is a rearrangement away from the definition of the discrete case.
 This library accepts a specification of a model in terms of hazards, an
 initial condition, and produces trajectories. This set of high-level
 steps to simulation (specify, initialize, step) has a well-defined
-abstraction called a *finite state machine.* It isn\'t the finite state
+abstraction called a *finite state machine.* It isn't the finite state
 machine familiar to programmers but a mathematical model, coming from
 category theory, for a particularly simple class of computing systems.
 At a conceptual level, a finite state machine can be considered a black
@@ -276,6 +276,10 @@ q_{ij}(\tau)&=\frac{d}{d\tau}P[Z_t|Z_s] \\
 ```
 
 While the waiting time density $w_i(\tau)$, is the derivative of the
-waiting time, we won\'t end up needing to relation $\pi_{ij}(\tau)$ to
+waiting time, we won't end up needing to relation $\pi_{ij}(\tau)$ to
 $\Pi_{ij}(\tau)$ when finding trajectories or computing hazards, so the
-more complicated relationship won\'t be a problem.
+more complicated relationship won't be a problem.
+
+## Acknowledgement
+
+This section comes was created by the Analytical Framework for Infectious Disease Dynamics (AFIDD) group at Cornell University in conjunction with the USDA Agricultural Research Service. This work was supported by the Science & Technology Directorate, Department of Homeland Security via interagency agreement no. HSHQDC-10-X-00138.

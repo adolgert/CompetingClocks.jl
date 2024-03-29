@@ -238,3 +238,7 @@ Then the algorithm requires three operations
 As you can see by comparison with the hazards version, it's simple to
 write the algorithm to accommodate either method of sampling. Therefore,
 each distribution can choose which interface to support.
+
+## Acknowledgement
+
+This section comes was created by the Analytical Framework for Infectious Disease Dynamics (AFIDD) group at Cornell University in conjunction with the USDA Agricultural Research Service. This work was supported by the Science & Technology Directorate, Department of Homeland Security via interagency agreement no. HSHQDC-10-X-00138.
