@@ -59,7 +59,11 @@ These are broad methods for sampling, each of which has specific variants for pa
 
 ### Specialize for the distribution
 
-Here, we would specialize, for instance, for having all Exponential distributions or all Weibull distributions.
+Here, we would specialize, for instance, for having all Exponential distributions or all Weibull distributions. Stochastic simulation also introduces another wrinkle in sampling univariate distributions.
+
+In a simulation, it is often the case that a clock is disabled and enabled again, or that a clock that was enabled with one rate is re-enabled with a different rate because it depends on the state of the system, and that state has changed. As a result, we frequently sample clocks that are shifted left. A clock is shifted left when the traditional zero-time for the distribution is in the past. In this case, we have options for how we modify sampling the distribution.
+
+We could use a rejection method, where we sample the distribution and reject samples that are times in the past. We could sample by inversion and select random variates that correspond only to future times. We could sample by rejection and choose a known distribution whose hazard always exceeds that of the shifted distribution. There are lots of options, but none are built into the Julia Distributions package as ways to sample shifted distributions. It's a small complication that applies to stochastic simulation, and we handle it in the code.
 
 ### Data structures and algorithms
 
@@ -99,6 +103,13 @@ In Fleck, you'll see a single sampler that uses a combination of the next reacti
 
 Why do people like the next reaction method when the first to fire is much less fussy and will use the appropriate sampler for the distribution, every time? It's about features. The next reaction method stores data that helps calculate importance samples. It also makes it easy to implement common random numbers. Finally, the next reaction method always samples from $U=[0,1]$ or from an exponential distribution, and then it transforms that value into the sample of the particular clock's distribution. This is called pathwise sampling, and it enables a simple method for taking derivatives of distributions.
 
+### Direct method for exponentials
+
+The Direct method is really quite solved, as described above. However, there is one complication that has to do with clock keys. Literature about prefix scans assumes that there are integer indices into an ordered, fixed list of integers. That is, you will use the integers 1-100 for the whole simulation. It seems so useful to have clock keys that can be strings, tuples, or other immutable types, so Fleck uses a prefix scan that maintains a dictionary of keys.
+
+If the prefix scan has a dictionary of keys, then it could remember the keys forever or it could forget them. If you have a long-running simulation that uses an ever-growing number of event keys, then it's important to remove keys that are no longer in use. If you have a simulation that uses a fixed set of keys, it's easier to keep them in the dictionary.
+
+It would be interesting to ask whether we could create a data structure that is a keyed prefix sum, instead of using a dictionary that indexes into a prefix sum.
 
 ## References
 
