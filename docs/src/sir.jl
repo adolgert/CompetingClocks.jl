@@ -16,6 +16,7 @@ using Fleck
 # ## Model structure
 
 # We use a struct that stores the type of the recovery distribution as a type parameter.
+# The model state is stored as a vector of integers, representing S, I, and R.
 # Additionally, because recovery clocks need unique keys, we define the method `get_key!`
 # which retrives an integer key and increments the stored key counter.
 
