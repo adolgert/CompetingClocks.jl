@@ -1,7 +1,16 @@
+# # Delayed Birth-Death Process
+
 using Random
 using Distributions
 using Fleck
 
+# [Birth-death processes](https://en.wikipedia.org/wiki/Birth%E2%80%93death_process) are a fundamental
+# type of stochastic process, and are the building block of many more complicated models. Here
+# we demonstrate how to use Fleck to build a very simple simulation of a birth-death process
+# where birth occurs according to an exponential (Markov) clock, but death occurs according
+# to a Weibull distribution. We compare ensemble results to the known stationary distribution.
+# Such models have been considered many times in the literature, but a recent reference is in
+# ["Stochastic description of delayed systems"](https://doi.org/10.1098/rsta.2012.0458) by Lafuerza and Toral.
 
 """
 This will be a very simple model. One process is birth, with a constant
