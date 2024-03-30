@@ -95,12 +95,12 @@ sampler = CombinedNextReaction{Tuple{Symbol,Int},Float64}();
 
 # Now we may intiialize and run the model.
 # We preallocate a matrix to store model output. Note that in the simple
-# SIR model with only infection and recovery events, a maximum of ``S I + I``
+# SIR model with only infection and recovery events, a maximum of ``2S + I``
 # events is possible.
 
 function run_sir!(model, sampler, tmax, rng)
 
-    output = zeros(prod(sirmodel.state[1:2])+sum(sirmodel.state[1:2])+1, 4)
+    output = zeros(2*model.state[1]+model.state[2]+1, 4)
     nout = 1
     output[nout,:] = [sirmodel.time; sirmodel.state]
     nout += 1;
