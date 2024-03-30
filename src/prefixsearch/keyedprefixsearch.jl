@@ -22,6 +22,13 @@ struct KeyedKeepPrefixSearch{T,P} <: KeyedPrefixSearch
 end
 
 
+function Base.empty!(kp::KeyedKeepPrefixSearch)
+    empty!(kp.index)
+    empty!(kp.key)
+    empty!(kp.prefix)
+end
+
+
 Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
 time_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = time_type(P)
 
@@ -76,6 +83,14 @@ struct KeyedRemovalPrefixSearch{T,P} <: KeyedPrefixSearch
     function KeyedRemovalPrefixSearch{T,P}(prefix::P) where {T,P}
         new{T,P}(Dict{T,Int64}(), Vector{T}(), Set{Int}(), prefix)
     end
+end
+
+
+function Base.empty!(kp::KeyedRemovalPrefixSearch)
+    empty!(kp.index)
+    empty!(kp.key)
+    empty!(kp.free)
+    empty!(kp.prefix)
 end
 
 

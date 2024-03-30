@@ -18,6 +18,7 @@ CurrentModule = Fleck
 enable!
 disable!
 next
+reset!
 ```
 
 ### Query a Sampler
@@ -53,7 +54,6 @@ sampling_space
 ```@docs
 ChatReaction
 CommonRandomRecorder
-reset!
 freeze
 misscount
 misses

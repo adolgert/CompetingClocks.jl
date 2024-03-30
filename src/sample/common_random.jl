@@ -2,7 +2,7 @@ using Random
 
 abstract type CommonRandom{S,K,R} end
 
-mutable struct CommonRandomRecorder{Sampler,K,RNG} <: CommonRandom{Sampler,K,RNG}
+struct CommonRandomRecorder{Sampler,K,RNG} <: CommonRandom{Sampler,K,RNG}
     sampler::Sampler
     record::Dict{K,Array{RNG,1}} # Value of RNG for each clock each instance.
     sample_index::Dict{K,Int} # Current number of times each clock seen.
@@ -71,8 +71,8 @@ simulation run, so all clocks haven't been seen.
 """
 function reset!(recorder::CommonRandomRecorder{S,K,R}) where {S,K,R}
     reset!(recorder.sampler)
-    recorder.sample_index = Dict{K,Int64}()
-    recorder.miss = Dict{K,Int}()
+    empty!(recorder.sample_index)
+    empty!(recorder.miss)
 end
 
 
@@ -140,7 +140,7 @@ function disable!(cr::CommonRandomRecorder, clock, when)
 end
 
 
-mutable struct FrozenCommonRandomRecorder{S,K,R} <: CommonRandom{S,K,R}
+struct FrozenCommonRandomRecorder{S,K,R} <: CommonRandom{S,K,R}
     cr::CommonRandomRecorder{S,K,R}
     miss::Dict{K,Int}
 end
@@ -163,11 +163,11 @@ each thread, and each thread will track its own misses. They will all work
 from the same copy of the recorded random number generator states.
 """
 freeze(cr::CommonRandomRecorder{S,K,R}) where {S,K,R} = FrozenCommonRandomRecorder(cr, Dict{K,Int}())
-reset!(cr::FrozenCommonRandomRecorder{S,K,R}) where {S,K,R} = (reset!(cr.cr); cr.miss = Dict{K,Int}(); nothing)
-misscount(cr::FrozenCommonRandomRecorder) = misscount(cr.miss)
-misses(cr::FrozenCommonRandomRecorder) = misses(cr.miss)
-next(cr::FrozenCommonRandomRecorder, when, rng::AbstractRNG) = next(cr.cr, when, rng)
-disable!(cr::FrozenCommonRandomRecorder, clock, when) = disable!(cr.cr, clock, when)
+reset!(fcr::FrozenCommonRandomRecorder{S,K,R}) where {S,K,R} = (reset!(fcr.cr); empty!(fcr.miss); nothing)
+misscount(fcr::FrozenCommonRandomRecorder) = misscount(cr.miss)
+misses(fcr::FrozenCommonRandomRecorder) = misses(fcr.miss)
+next(fcr::FrozenCommonRandomRecorder, when, rng::AbstractRNG) = next(fcr.cr, when, rng)
+disable!(fcr::FrozenCommonRandomRecorder, clock, when) = disable!(fcr.cr, clock, when)
 
 function enable!(
     fcr::FrozenCommonRandomRecorder, clock, distribution::UnivariateDistribution,

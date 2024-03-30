@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures: MutableBinaryHeap
 using Random
 
 using Fleck: OrderedSample

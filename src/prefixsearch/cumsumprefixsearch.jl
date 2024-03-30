@@ -23,6 +23,12 @@ function CumSumPrefixSearch{T}() where {T<:Real}
 end
 
 
+function Base.empty!(ps::CumSumPrefixSearch)
+    empty!(ps.array)
+    empty!(ps.cumulant)
+end
+
+
 Base.length(ps::CumSumPrefixSearch) = length(ps.array)
 time_type(ps::CumSumPrefixSearch{T}) where {T} = T
 time_type(ps::Type{CumSumPrefixSearch{T}}) where {T} = T

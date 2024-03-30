@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures: MutableBinaryMinHeap
 
 export FirstToFire
 
@@ -11,7 +11,7 @@ fire and saves that time in a sorted heap of future times. Then it works
 through the heap, one by one. When a clock is disabled, its future firing time
 is removed from the list. There is no memory of previous firing times.
 """
-mutable struct FirstToFire{K,T} <: SSA{K,T}
+struct FirstToFire{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     # This maps from transition to entry in the firing queue.
     transition_entry::Dict{K,Int}
@@ -26,10 +26,8 @@ end
 
 
 function reset!(propagator::FirstToFire{K,T}) where {K,T}
-    heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
-    state = Dict{K,Int}()
-    propagator.firing_queue = heap
-    propagator.transition_entry = state
+    empty!(propagator.firing_queue)
+    empty!(propagator.transition_entry)
 end
 
 

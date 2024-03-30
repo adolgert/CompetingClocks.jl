@@ -18,6 +18,7 @@ mutable struct BinaryTreePrefixSearch{T<:Real}
 	depth::Int64 # length(array) = 2^depth - 1
 	offset::Int64 # 2^(depth - 1). Index of first leaf and number of leaves.
 	cnt::Int64 # Number of leaves in use. Logical number of entries. cnt > 0.
+	initial_allocation::Int64
 end
 
 
@@ -30,7 +31,17 @@ The optional hint, N, is the number of values to pre-allocate.
 function BinaryTreePrefixSearch{T}(N=32) where {T<:Real}
 	depth, offset, array_cnt = _btps_sizes(N)
 	b = zeros(T, array_cnt)
-	BinaryTreePrefixSearch{T}(b, depth, offset, 0)
+	BinaryTreePrefixSearch{T}(b, depth, offset, 0, N)
+end
+
+
+function Base.empty!(ps::BinaryTreePrefixSearch)
+	depth, offset, array_cnt = _btps_sizes(ps.initial_allocation)
+	resize!(ps.array, array_cnt)
+	fill!(ps.array, zero(eltype(ps.array)))
+	ps.depth = depth
+	ps.offset = offset
+	ps.cnt = 0
 end
 
 
@@ -61,7 +72,7 @@ end
 
 
 # newcnt is the desired number of entries.
-function resize!(pst::BinaryTreePrefixSearch{T}, newcnt) where {T}
+function Base.resize!(pst::BinaryTreePrefixSearch{T}, newcnt) where {T}
 	depth, offset, array_cnt = _btps_sizes(newcnt)
 	b = zeros(T, array_cnt)
 	will_fit = min(offset, pst.offset)

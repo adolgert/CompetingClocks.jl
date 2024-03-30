@@ -45,6 +45,8 @@ mutable struct TrackWatcher{K,T}
 end
 
 
+reset!(ts::TrackWatcher) = (empty!(ts.enabled); nothing)
+
 function Base.iterate(ts::TrackWatcher)
     return iterate(values(ts.enabled))
 end
@@ -93,6 +95,9 @@ mutable struct DebugWatcher{K,T}
     disabled::Vector{DisablingEntry{K,T}}
     DebugWatcher{K,T}() where {K,T}=new(Vector{EnablingEntry{K,T}}(), Vector{DisablingEntry{K,T}}())
 end
+
+
+reset!(ts::DebugWatcher) = (empty!(ts.enabled); empty!(ts.disabled); nothing)
 
 
 function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
