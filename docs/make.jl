@@ -3,7 +3,7 @@ using Documenter
 using Literate
 
 example_base = joinpath(dirname(@__FILE__), "src")
-adliterate = [("simple_board.jl", "mainloop"), ("distributions.jl", "distributions")]
+adliterate = [("simple_board.jl", "mainloop"), ("distributions.jl", "distributions"), ("constant_birth.jl", "constant_birth")]
 for (source, target) in adliterate
     fsource, ftarget = joinpath.(example_base, [source, target])
     if !isfile("$(ftarget).md") || mtime(fsource) > mtime("$(ftarget).md")
@@ -36,12 +36,14 @@ makedocs(;
         ],
         "Manual" => [
             "Structure" => "objects.md",
-            "Delay Equations" => "delay.md",
             "background.md",
             "distrib.md",
             "Develop" => "develop.md",
             "samplers.md",
             "Vector Addition Systems" => "vas.md",
+        ],
+        "Examples" => [
+            "Birth-death Process" => "constant_birth.md"
         ],
         "Reference" => "reference.md"
     ],
