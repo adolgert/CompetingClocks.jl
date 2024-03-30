@@ -116,7 +116,7 @@ rng = MersenneTwister(seed);
 sirmodel = SIRNonMarkov(deepcopy(initial_state), p, 0, Dirac(p[3]), 0.0)
 sampler = CombinedNextReaction{Tuple{Symbol,Int},Float64}();
 
-# Now we may intiialize and run the model.
+# Now we may run the model, using a function `run_sir!`.
 # We preallocate a matrix to store model output. Note that in the simple
 # SIR model with only infection and recovery events, a maximum of ``2S + I``
 # events is possible.
