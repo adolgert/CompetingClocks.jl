@@ -135,6 +135,7 @@ function Base.sum!(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P}
     (length(kp.index) > 0) ? sum!(kp.prefix) : zero(time_type(P))
 end
 
+
 function choose(kp::KeyedRemovalPrefixSearch, value)
     idx, hazard = choose(kp.prefix, value)
     return (kp.key[idx], hazard)
