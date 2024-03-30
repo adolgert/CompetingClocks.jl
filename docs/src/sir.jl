@@ -41,7 +41,14 @@ end
 function initialize!(model::SIRNonMarkov, sampler, rng)
     (β, c, γ) = model.parameters
     ## enable the infection clock
-    enable!(sampler, (:infection, get_key!(model)), Exponential(1.0/(β*c*model.state[2]/sum(model.state)*model.state[1])), model.time, model.time, rng)
+    enable!(
+        sampler,
+        (:infection, get_key!(model)),
+        Exponential(1.0/(β*c*model.state[2]/sum(model.state)*model.state[1])),
+        model.time,
+        model.time,
+        rng
+        )
     ## enable the recovery clocks
     for _ in 1:model.state[2]
         enable!(sampler, (:recovery, get_key!(model)), model.recovery_distribution, model.time, model.time, rng)
@@ -64,9 +71,23 @@ function step!(model::SIRNonMarkov, sampler::SSA{K,T}, when::T, which::K, rng) w
         model.state[2] += 1
         ## disable and reenable the infection clock after accounting for the new rate
         disable!(sampler, which, model.time)
-        enable!(sampler, which, Exponential(1.0/(β*c*model.state[2]/sum(model.state)*model.state[1])), model.time, model.time, rng)
+        enable!(
+            sampler,
+            which,
+            Exponential(1.0/(β*c*model.state[2]/sum(model.state)*model.state[1])),
+            model.time,
+            model.time,
+            rng
+            )
         ## enable a recovery event for the newly infected person
-        enable!(sampler, (:recovery, get_key!(model)), model.recovery_distribution, model.time, model.time, rng)
+        enable!(
+            sampler,
+            (:recovery, get_key!(model)),
+            model.recovery_distribution,
+            model.time,
+            model.time,
+            rng
+            )
     elseif first(which) == :recovery
         model.state[2] -= 1
         model.state[3] += 1
