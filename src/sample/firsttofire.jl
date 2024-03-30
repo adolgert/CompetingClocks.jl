@@ -1,4 +1,4 @@
-using DataStructures: MutableBinaryMinHeap
+using DataStructures: MutableBinaryMinHeap, extract_all!
 
 export FirstToFire
 
@@ -26,7 +26,8 @@ end
 
 
 function reset!(propagator::FirstToFire{K,T}) where {K,T}
-    empty!(propagator.firing_queue)
+    extract_all!(propagator.firing_queue)
+    @assert isempty(propagator.firing_queue)
     empty!(propagator.transition_entry)
 end
 

@@ -50,6 +50,7 @@ end
     end
     (t2, k2) = next(propagator, 0.0, rng)
     @test k2 === nothing
+    reset!(propagator)
 end
 
 @safetestset FirstToFire_interface = "FirstToFire basic interface" begin

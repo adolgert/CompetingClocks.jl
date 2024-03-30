@@ -43,5 +43,6 @@ end
         @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run", "walk to sandwich shop"]
         disable!(sampler, "walk to sandwich shop", 1.7)
         @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run"]
+        reset!(sampler)
     end
 end
