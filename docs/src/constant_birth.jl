@@ -12,7 +12,7 @@ using Fleck
 # Such models have been considered many times in the literature, but a recent reference is in
 # ["Stochastic description of delayed systems"](https://doi.org/10.1098/rsta.2012.0458) by Lafuerza and Toral.
 
-# ## Model Structure
+# ## Model structure
 
 # The model will be stored in a struct with a type parameter that is a subtype of `ContinuousUnivariateDistribution`,
 # which is the distribution type for the clock associated to death.
@@ -46,6 +46,8 @@ function initialize_model!(model, sampler, rng)
         model.alive += 1
     end
 end;
+
+# ## Model update
 
 # There's two classes of events that can occur in this model. Birth is always
 # assigned to key `1`. When it fires, we disable and enable the birth process to
@@ -101,6 +103,8 @@ function run_constant_birth(rng, max_step = 10000)
     observed_state = total / (when - start_time)
     (steady_state, observed_state)
 end;
+
+# ## Simulation
 
 # We check below that as we increase the data collected,
 # it gets closer to the expected average with smaller standard deviation.
