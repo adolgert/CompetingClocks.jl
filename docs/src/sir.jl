@@ -88,7 +88,8 @@ seed = 456959517
 rng = MersenneTwister(seed);
 
 # Next we generate the model struct and the sampler object. Here
-# we choose the `CombinedNextReaction` sampler type.
+# we choose the `CombinedNextReaction` sampler type. We choose to use
+# a Dirac delta distribution to simulate deterministic recovery times.
 
 sirmodel = SIRNonMarkov(deepcopy(initial_state), p, 0, Dirac(p[3]), 0.0)
 sampler = CombinedNextReaction{Tuple{Symbol,Int},Float64}();
