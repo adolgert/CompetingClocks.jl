@@ -24,7 +24,7 @@ deps/src/
 docs/build/
 docs/site/
 # Literate.jl creates chunk files.
-docs/src/distributions-*.png
+docs/src/literate
 docs/src/distributions.md
 docs/src/mainloop.md
 docs/src/constant_birth.md
