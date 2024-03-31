@@ -48,4 +48,4 @@ For a continuous-time simulation, each event happens at a distinct time. Right a
 
 2. A clock may be enabled. For instance, once a person is infected, they can now infect all neighboring people.
 
-3. The rate of a clock may change. We discussed moves on a chessboard earlier. Maybe there's now a breeze so that the right to move right is greater than the rate to move left. The Exponential distributions would change accordingly.
+3. The rate of a clock may change. We discussed moves on a chessboard earlier. Maybe there's now a breeze so that the rate to move right is greater than the rate to move left. The Exponential distributions would change accordingly.

@@ -15,3 +15,15 @@ An *event* is an observable change of state at a time. It is a function where th
 Given the current state of the system, there is a set of possible next events which could happen. We call the possible next events *enabled.* Think of the moment in time just after the simulation has begun or an event has just happened. At this moment, there may be multiple enabled events. Which one is next depends on how often that event happens. If our simulation includes both the radioactive decay of an unstable element and decay of iron, the unstable element will usually decay first. We describe the rates of these events using probability distributions in time. Each event has an associated continuous univariate distribution where the variable is time.
 
 We can think of all event distributions in a model as a *bag of clocks.* The next one to ring is the next event to occur. When that event occurs, the state changes. When the state changes, it will enable some events and disable others. Enabled events are added to the bag of clocks. Disabled ones are removed. This library holds the bag of clocks.
+
+## Sets of Clocks
+
+In Fleck, clocks can be either *enabled* or *disabled*. The firing of clocks triggers events, which change the state of the system. This in turn changes the set of clocks that are enabled. This is the basic algorithm to sample models that are phrased as continuous-time discrete-event systems.
+
+It is worth examining what happens at a state update in more detail. Let ``E^{*}`` be the set of clocks (typically, just a single clock) that fires, and whose associated event updates state from ``S`` to ``S^{'}``. There are then three basic sets of clocks to consider: ``E(S)``, the set of clocks enabled in ``S``, ``E(S^{'})``, the set of clocks enabled in ``S^{'}``, and ``E^{*}``, the set of clocks that fired.
+
+Newly enabled clocks are those that are enabled in ``S^{'}`` not part of the set that was enabled in ``S`` and remains enabled in ``S^{'}``. Newly disabled clocks are those that were enabled in ``S`` but are not enabled in ``S^{'}``. Finally old clocks are those that were enabled in ``S``, and remain so in ``S^{'}``.
+
+All these sets are visualized in the figure below, reproduced from "Stochastic petri nets: Modelling, stability, simulation" by Peter J. Haas (2002).
+
+![](assets/ClockUpdate.png)

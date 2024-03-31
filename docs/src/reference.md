@@ -11,6 +11,7 @@ CurrentModule = Fleck
 
 ## Interface
 
+These are methods which are defined for any samplers subtyping `<:SSA`, the abstract sampler type.
 
 ### Use a Sampler
 
@@ -30,6 +31,8 @@ length
 ```
 
 ## Samplers
+
+The choice of sampler determines specific algorithms that are used to sample, update, and disable clocks. Helpers also exist that are useful for logging, utilizing common random numbers, and hierarchical sampling.
 
 ### Sampler Supertype
 
@@ -51,15 +54,17 @@ sampling_space
 ### Sampling Helpers
 
 ```@docs
-ChatReaction
 CommonRandomRecorder
-DebugWatcher
 MultiSampler
 SingleSampler
+ChatReaction
+DebugWatcher
 TrackWatcher
 ```
 
 ## Algorithms
+
+Many samplers depend on data structures to allow efficient querying of clocks ordered with respect to some value, usually the firing time. These types and methods implement them for Fleck.
 
 ```@docs
 CumSumPrefixSearch
