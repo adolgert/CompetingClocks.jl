@@ -6,6 +6,11 @@ If you set up the same model and run it with different initial random number gen
 
 What we want is a variance reduction technique. Common random numbers (CRN) are a variance reduction technique that enables you to use fewer simulation runs to compare the effect of different simulation parameters on the outcome. There are several other variance reduction techniques, such as antithetic variates and importance sampling, but let's look at common random numbers in Fleck.
 
+If you estimate a value with $n$ independent trajectories, then the bias of the estimate is proportional to $1/\sqrt{n}$ in most cases. If you want to distinguish the effect of changing a parameter, then the estimate must be precise enough that you can see the difference. It is common to use millions of trajectories. On the other hand, CRN means that you can produce $n=100$ trajectories, with significant bias in the estimate, and still see the effect of changing a parameter.
+
+CRN works well when the sample path is similar from run to run. If two runs use completely different events, then there will be too little overlap. If the causal chain of which events affect other events changes, that can be a problem, too. In most cases, people try CRN and see if it helps.
+
+
 ## Using Common Random Numbers in Fleck
 
 Fleck implements common random numbers by recording the state of the random number generator every time a clock is enabled. There are other ways to do this, but this one works with the [CombinedNextReaction](@ref) and [FirstToFire](@ref) samplers. The workflow you would use looks notionally like:
