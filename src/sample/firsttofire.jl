@@ -71,7 +71,9 @@ function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
 end
 
 """
-    For the `FirstToFire` sampler, returns the stored firing time associated to the clock.
+    getindex(sampler::FirstToFire{K,T}, clock::K)
+
+For the `FirstToFire` sampler, returns the stored firing time associated to the clock.
 """
 function Base.getindex(propagator::FirstToFire{K,T}, clock::K) where {K,T}
     if haskey(propagator.transition_entry, clock)

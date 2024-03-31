@@ -5,17 +5,12 @@ export DirectCall, enable!, disable!, next
 
 
 """
-    DirectCall{KeyType,TimeType}()
+    DirectCall{KeyType,TimeType,TreeType}()
 
 DirectCall is responsible for sampling among Exponential distributions. It
 samples using the Direct method. In this case, there is no optimization to
 that Direct method, so we call it DirectCall because it recalculates
 everything every time you call it.
-
-The type `KeyType` is the type of an identifier for each transition. This identifier
-is usually a nominal integer but can be a any key that identifies it, such as
-a string or tuple of integers. Instances of type `KeyType` are used as keys in a
-dictionary. The type `TimeType` is usually `Float64`.
 
 The algorithm for the Direct Method relies heavily on what data structure
 it uses to maintain a list of hazard rates, such that it can know the sum
@@ -25,10 +20,6 @@ are several options.
 
 # Example
 
-```julia
-sampler_string_keys = DirectCall{String,Float64}()
-sampler_inttuple_keys = DirectCall{(Int,Int), Float64}()
-```
 If we know that our simulation will only use a small number of different
 clock keys, then it would make sense to use a data structure that disables
 clocks by zeroing them out, instead of removing them from the list. This
@@ -114,7 +105,9 @@ function next(dc::DirectCall{K,T,P}, when::T, rng::AbstractRNG) where {K,T,P}
 end
 
 """
-    For the `DirectCall` sampler, returns the rate parameter associated to the clock.
+    getindex(sampler::DirectCall{K,T}, clock::K)
+
+For the `DirectCall` sampler, returns the rate parameter associated to the clock.
 """
 function Base.getindex(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
     return dc.prefix_tree[clock]
