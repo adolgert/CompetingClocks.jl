@@ -59,7 +59,6 @@ CommonRandomRecorder
 freeze
 misscount
 misses
-DebugWatcher
 MultiSampler
 SingleSampler
 ChatReaction

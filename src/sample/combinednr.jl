@@ -1,5 +1,5 @@
 
-using DataStructures: MutableBinaryMinHeap, extract_all!
+using DataStructures: MutableBinaryMinHeap, extract_all!, update!
 
 export sampling_space
 export CombinedNextReaction
