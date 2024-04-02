@@ -134,6 +134,15 @@ function MultiSampler{SamplerKey,Key,Time}(
 end
 
 
+function reset!(sampler::MultiSampler)
+    for clear_sampler in values(sampler.propagator)
+        reset!(clear_sampler)
+    end
+    sampler.when = zero(sampler.when)
+    empty!(sampler.chosen)
+end
+
+
 function Base.setindex!(
     sampler::MultiSampler{SamplerKey,Key,Time}, algorithm::SSA{Key,Time}, sampler_key::SamplerKey
     ) where {SamplerKey,Key,Time}

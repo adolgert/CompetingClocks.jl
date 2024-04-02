@@ -1,4 +1,3 @@
-using DataStructures
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
@@ -44,6 +43,9 @@ function DirectCall{K,T}() where {K,T<:ContinuousTime}
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
     DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 end
+
+
+reset!(dc::DirectCall) = (empty!(dc.prefix_tree); nothing)
 
 
 """

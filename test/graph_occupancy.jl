@@ -1,4 +1,3 @@
-using DataStructures
 using Distributions
 using Fleck
 using Graphs

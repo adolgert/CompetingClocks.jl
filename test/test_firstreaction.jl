@@ -50,7 +50,7 @@ end
 
     @test_throws KeyError sampler[1]
     @test sampler[2] == Dirac(12.3)
-    
+    reset!(sampler)
 end
 
 

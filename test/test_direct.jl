@@ -49,7 +49,7 @@ end
 end
 
 @safetestset direct_call_empty = "DirectCall empty hazard" begin
-    using Fleck: DirectCall, next, enable!
+    using Fleck: DirectCall, next, enable!, reset!
     using Random: MersenneTwister
     md = DirectCall{Int,Float64}()
     rng = MersenneTwister(90497979)
@@ -57,6 +57,7 @@ end
     when, which = next(md, current, rng)
     @test isinf(when)
     @test which === nothing
+    reset!(md)
 end
 
 

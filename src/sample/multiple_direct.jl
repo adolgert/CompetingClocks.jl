@@ -24,6 +24,16 @@ function MultipleDirect{SamplerKey,K,Time}(
 end
 
 
+function reset!(md::MultipleDirect)
+    for prefix_search in md.scan
+        empty!(prefix_search)
+        empty!(md.totals)
+        empty!(md.chosen)
+        empty!(md.scanmap)
+    end
+end
+
+
 function Base.setindex!(
     md::MultipleDirect{SamplerKey,K,Time,Chooser}, keyed_prefix_search, key
     ) where {SamplerKey,K,Time,Chooser}

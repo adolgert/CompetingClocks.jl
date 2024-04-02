@@ -24,6 +24,9 @@ struct FirstReaction{K,T} <: SSA{K,T}
 end
 
 
+reset!(fr::FirstReaction) = reset!(fr.core_matrix)
+
+
 function enable!(fr::FirstReaction{K,T}, clock::K, distribution::UnivariateDistribution,
 		te::T, when::T, rng::AbstractRNG) where {K,T}
 

@@ -15,8 +15,11 @@ end
 
 example_base = joinpath(dirname(@__FILE__), "src")
 adliterate = [
-        ("simple_board.jl", "mainloop"), ("distributions.jl", "distributions"), 
-        ("constant_birth.jl", "constant_birth"), ("sir.jl", "sir")
+        ("simple_board.jl", "mainloop"),
+        ("distributions.jl", "distributions"), 
+        ("constant_birth.jl", "constant_birth"),
+        ("sir.jl", "sir"),
+        ("commonrandom.jl", "commonrandom")
     ]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
@@ -69,6 +72,7 @@ makedocs(;
         ],
         "Manual" => [
             "Structure" => "objects.md",
+            "commonrandom.md",
             "background.md",
             "distrib.md",
             "Develop" => "develop.md",

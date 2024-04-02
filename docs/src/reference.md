@@ -19,6 +19,7 @@ These are methods which are defined for any samplers subtyping `<:SSA`, the abst
 enable!
 disable!
 next
+reset!
 ```
 
 ### Query a Sampler
@@ -55,6 +56,9 @@ sampling_space
 
 ```@docs
 CommonRandomRecorder
+freeze
+misscount
+misses
 MultiSampler
 SingleSampler
 ChatReaction

@@ -22,6 +22,13 @@ struct KeyedKeepPrefixSearch{T,P} <: KeyedPrefixSearch
 end
 
 
+function Base.empty!(kp::KeyedKeepPrefixSearch)
+    empty!(kp.index)
+    empty!(kp.key)
+    empty!(kp.prefix)
+end
+
+
 Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
 time_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = time_type(P)
 
@@ -79,6 +86,14 @@ struct KeyedRemovalPrefixSearch{T,P} <: KeyedPrefixSearch
 end
 
 
+function Base.empty!(kp::KeyedRemovalPrefixSearch)
+    empty!(kp.index)
+    empty!(kp.key)
+    empty!(kp.free)
+    empty!(kp.prefix)
+end
+
+
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
 
 function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
@@ -119,6 +134,7 @@ end
 function Base.sum!(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P}
     (length(kp.index) > 0) ? sum!(kp.prefix) : zero(time_type(P))
 end
+
 
 function choose(kp::KeyedRemovalPrefixSearch, value)
     idx, hazard = choose(kp.prefix, value)

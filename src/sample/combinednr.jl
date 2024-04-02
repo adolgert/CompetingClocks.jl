@@ -1,5 +1,5 @@
 
-using DataStructures
+using DataStructures: MutableBinaryMinHeap, extract_all!, update!
 
 export sampling_space
 export CombinedNextReaction
@@ -146,6 +146,12 @@ end
 clone(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}()
 export clone
 
+function reset!(nr::CombinedNextReaction)
+    extract_all!(nr.firing_queue)
+    @assert isempty(nr.firing_queue)
+    empty!(nr.transition_entry)
+    nothing
+end
 
 @doc raw"""
 For the first reaction sampler, you can call next() multiple times and get

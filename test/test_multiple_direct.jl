@@ -63,4 +63,5 @@ end
     # Disabling from the keep tree won't remove it.
     disable!(md, "fastlighton", when)
     @test length(keep_prefix_tree) == 1
+    reset!(md)
 end

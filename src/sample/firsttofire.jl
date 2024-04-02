@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures: MutableBinaryMinHeap, extract_all!, update!
 
 export FirstToFire
 
@@ -22,6 +22,13 @@ function FirstToFire{K,T}() where {K,T}
     heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
     state = Dict{K,Int}()
     FirstToFire{K,T}(heap, state)
+end
+
+
+function reset!(propagator::FirstToFire{K,T}) where {K,T}
+    extract_all!(propagator.firing_queue)
+    @assert isempty(propagator.firing_queue)
+    empty!(propagator.transition_entry)
 end
 
 

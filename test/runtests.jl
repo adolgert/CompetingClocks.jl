@@ -16,6 +16,11 @@ end
 end
 
 
+@testset "test_keyedprefixsearch.jl" begin
+    include("test_keyedprefixsearch.jl")
+end
+
+
 @testset "test_combinednr.jl" begin
     include("test_combinednr.jl")
 end
@@ -45,9 +50,11 @@ end
     include("test_sampler.jl")
 end
 
+
 @testset "test_multiple_direct.jl" begin
     include("test_multiple_direct.jl")
 end
+
 
 @testset "test_vas.jl" begin
     include("test_vas.jl")

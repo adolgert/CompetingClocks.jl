@@ -30,6 +30,16 @@ function enable!(
 end
 
 """
+    reset!(sampler)
+
+After a sampler is used for a simulation run, it has internal state. This
+function resets that internal state to the initial value in preparation
+for another sample run.
+"""
+function reset!(sampler::SSA{K,T}) where {K,T} end
+
+
+"""
     disable!(sampler, clock, when)
 
 Tell the sampler to forget a clock. We include the current simulation time

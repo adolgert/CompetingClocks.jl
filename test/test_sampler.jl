@@ -42,7 +42,7 @@ end
 
 @safetestset multisampler_smoke = "MultiSampler smoke" begin
     using Random: Xoshiro
-    using Fleck: FirstToFire, MultiSampler, enable!, disable!, sample!, choose_sampler
+    using Fleck: FirstToFire, MultiSampler, enable!, disable!, sample!, choose_sampler, reset!
     using ..MultiSamplerHelp: ByDistribution
     using Distributions: Exponential, Gamma
 
@@ -65,4 +65,5 @@ end
     disable!(sampler, todisable)
     enable!(sampler, 35, Exponential(), when, rng)
     when, which = sample!(sampler, rng)
+    reset!(sampler)
 end

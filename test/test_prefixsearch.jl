@@ -57,7 +57,7 @@ end
 
 
 @safetestset prefixsearch_single = "test single value" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
+    using Fleck: BinaryTreePrefixSearch, choose, sum!
 	t = BinaryTreePrefixSearch{Int64}()
     push!(t, 3)
 	@test sum!(t) == 3
@@ -69,7 +69,7 @@ end
 
 
 @safetestset prefixsearch_add_values = "binarytreeprefix add values" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!, allocated
+    using Fleck: BinaryTreePrefixSearch, choose, sum!, allocated
     initial_allocation = 1
 	t = BinaryTreePrefixSearch{Int64}(initial_allocation)
     push!(t, 3)
@@ -96,7 +96,7 @@ end
 
 
 @safetestset prefixsearch_double = "test double value" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
+    using Fleck: BinaryTreePrefixSearch, choose, sum!
     t = BinaryTreePrefixSearch{Int64}(2)
     push!(t, 3)
     push!(t, 1)
@@ -118,7 +118,7 @@ end
 
 
 @safetestset prefixsearch_three = "test three values" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
+    using Fleck: BinaryTreePrefixSearch, choose, sum!
     t = BinaryTreePrefixSearch{Int64}(3)
     for v in [3, 1, 2]
         push!(t, v)
@@ -137,7 +137,7 @@ end
 end
 
 @safetestset prefixsearch_three_floats = "three floats" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
+    using Fleck: BinaryTreePrefixSearch, choose, sum!
     t = BinaryTreePrefixSearch{Float64}(3)
     for v in [3.5, 1.5, 2.5]
         push!(t, v)
@@ -157,7 +157,7 @@ end
 
 
 @safetestset prefixsearch_four_floats = "four floats" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
+    using Fleck: BinaryTreePrefixSearch, choose, sum!
     vals = [3, 1, 2, 4]
     t = BinaryTreePrefixSearch{Int64}(4)
     for v in vals
@@ -172,7 +172,7 @@ end
 
 
 @safetestset prefixsearch_five = "five values" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, update!
+    using Fleck: BinaryTreePrefixSearch, choose, sum!
     vals = [3, 0, 2, 4, 1]
     t = BinaryTreePrefixSearch{Int64}(5)
     for v in vals
@@ -227,4 +227,25 @@ end
             end
         end
     end
+end
+
+
+@safetestset prefixsearch_empty = "testing empty!" begin
+    using Random
+    using Fleck: BinaryTreePrefixSearch, set_multiple!, allocated
+
+    rng = Xoshiro(3297920)
+    cnt = 20
+    btps1 = BinaryTreePrefixSearch{Int64}(cnt)
+    # The initial allocation is 32.
+    @test allocated(btps1) == Int(2^ceil(log2(cnt-1)))
+    vals = rand(rng, 0:500, 2 * cnt)
+    set_multiple!(btps1, collect(enumerate(vals)))
+    @test length(btps1) == 2 * cnt
+    # That allocation has to grow.
+    @test allocated(btps1) == Int(2^ceil(log2(2 * cnt-1)))
+    empty!(btps1)
+    # After emptying, the allocaiton returns to 32.
+    @test length(btps1) == 0
+    @test allocated(btps1) == Int(2^ceil(log2(cnt-1)))
 end

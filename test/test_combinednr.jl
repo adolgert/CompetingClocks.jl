@@ -4,7 +4,7 @@ using SafeTestsets
 @safetestset CombinedNextReactionSmoke = "combinednext reaction does basic things" begin
     using Distributions
     using Random
-    using Fleck: CombinedNextReaction, next, enable!, disable!
+    using Fleck: CombinedNextReaction, next, enable!, disable!, reset!
 
     rng = MersenneTwister(349827)
     for i in 1:100
@@ -18,6 +18,7 @@ using SafeTestsets
         @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run", "walk to sandwich shop"]
         disable!(sampler, "walk to sandwich shop", 1.7)
         @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run"]
+        reset!(sampler)
     end
 end
 
