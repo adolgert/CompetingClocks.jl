@@ -87,6 +87,6 @@ makedocs(;
     ],
 )
 
-deploydocs(;
-    repo="github.com/adolgert/Fleck.jl",
+deploydocs(
+    repo = "github.com/adolgert/Fleck.jl.git",
 )
