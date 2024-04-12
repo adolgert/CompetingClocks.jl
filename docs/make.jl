@@ -88,6 +88,6 @@ makedocs(;
 
 deploydocs(;
     target = "build",
-    repo = "github.com/adolgert/Fleck.jl",
+    repo = "github.com/adolgert/Fleck.jl.git",
     branch = "gh-pages"
 )
