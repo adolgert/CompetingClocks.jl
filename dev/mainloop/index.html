@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Sample Main Loop · Fleck.jl</title><meta name="title" content="Sample Main Loop · Fleck.jl"/><meta property="og:title" content="Sample Main Loop · Fleck.jl"/><meta property="twitter:title" content="Sample Main Loop · Fleck.jl"/><meta name="description" content="Documentation for Fleck.jl."/><meta property="og:description" content="Documentation for Fleck.jl."/><meta property="twitter:description" content="Documentation for Fleck.jl."/><meta property="og:url" content="https://adolgert.github.io/Fleck.jl/mainloop/"/><meta property="twitter:url" content="https://adolgert.github.io/Fleck.jl/mainloop/"/><link rel="canonical" href="https://adolgert.github.io/Fleck.jl/mainloop/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">Fleck.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Guide</span><ul><li><a class="tocitem" href="../guide/">Bag of Clocks</a></li><li class="is-active"><a class="tocitem" href>Sample Main Loop</a><ul class="internal"><li><a class="tocitem" href="#Introduction"><span>Introduction</span></a></li><li><a class="tocitem" href="#Main-Loop"><span>Main Loop</span></a></li><li><a class="tocitem" href="#Changes-to-the-state-of-the-board"><span>Changes to the state of the board</span></a></li><li><a class="tocitem" href="#How-it-runs"><span>How it runs</span></a></li></ul></li><li><a class="tocitem" href="../distributions/">How Fleck Decides What Happens Next</a></li></ul></li><li><span class="tocitem">Manual</span><ul><li><a class="tocitem" href="../objects/">Structure</a></li><li><a class="tocitem" href="../commonrandom/">Common Random Numbers</a></li><li><a class="tocitem" href="../background/">Background</a></li><li><a class="tocitem" href="../distrib/">Notation for Distributions</a></li><li><a class="tocitem" href="../develop/">Develop</a></li><li><a class="tocitem" href="../samplers/">Understanding Samplers</a></li><li><a class="tocitem" href="../vas/">Vector Addition Systems</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../constant_birth/">Birth-death Process</a></li><li><a class="tocitem" href="../sir/">SIR Model</a></li></ul></li><li><a class="tocitem" href="../reference/">Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Guide</a></li><li class="is-active"><a href>Sample Main Loop</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Sample Main Loop</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/adolgert/Fleck.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/adolgert/Fleck.jl/blob/main/docs/src/simple_board.jl" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Sample-Main-Loop"><a class="docs-heading-anchor" href="#Sample-Main-Loop">Sample Main Loop</a><a id="Sample-Main-Loop-1"></a><a class="docs-heading-anchor-permalink" href="#Sample-Main-Loop" title="Permalink"></a></h1><h2 id="Introduction"><a class="docs-heading-anchor" href="#Introduction">Introduction</a><a id="Introduction-1"></a><a class="docs-heading-anchor-permalink" href="#Introduction" title="Permalink"></a></h2><p>Let&#39;s walk through a small simulation so that we can see how Fleck could appear in the main loop. This models individuals wandering around on a checkerboard, where no two individuals can occupy the same space. First, let&#39;s import libraries.</p><pre><code class="language-julia hljs">import Base
+using Distributions
+using Random
+using SparseArrays
+using Test
+using Fleck</code></pre><p>There is a physical state for the model, separate from the state of the bag of clocks and separate from the time. Most of the board is empty, so let&#39;s use a spare matrix to represent the locations of individuals.</p><pre><code class="language-julia hljs">mutable struct PhysicalState
+    board::SparseMatrixCSC{Int64, Int64}
+end
+
+# They can move in any of four directions.
+@enum Direction Up Left Down Right
+const DirectionDelta = Dict(
+    Up =&gt; CartesianIndex(-1, 0),
+    Left =&gt; CartesianIndex(0, -1),
+    Down =&gt; CartesianIndex(1, 0),
+    Right =&gt; CartesianIndex(0, 1),
+    );</code></pre><p>The simulation, itself, carries the state of the clocks in the sampler, as well as the physical state. We&#39;ll call it a finite state machine (FSM) because it has the traits of a <a href="https://en.wikipedia.org/wiki/Moore_machine">Moore machine</a>.</p><pre><code class="language-julia hljs">mutable struct SimulationFSM{Sampler}
+    physical::PhysicalState
+    sampler::Sampler
+    when::Float64
+    rng::Xoshiro
+end</code></pre><h2 id="Main-Loop"><a class="docs-heading-anchor" href="#Main-Loop">Main Loop</a><a id="Main-Loop-1"></a><a class="docs-heading-anchor-permalink" href="#Main-Loop" title="Permalink"></a></h2><p>The main loop will ask what event happens next to the state. When that event changes the state, the loop will update the set of possible next events by disabling outdated ones and enabling new ones. The calls to Fleck are:</p><ul><li><code>next(sampler, current time, random number generator (RNG))</code></li><li><code>enable!(sampler, event ID, distribution, current time, start time of clock, RNG)</code></li><li><code>disable!(sampler, event ID, current time)</code></li></ul><p>There are a lot of samplers in Fleck to choose from. This example uses <code>CombinedNextReaction</code> algorithm, which has good performance for a variety of distributions. Samplers in Fleck require two type parameters, a key type for clocks and the type used to represent time. In this case, the clock key type fully represents an event, giving the ID of the individual, where they start, and which direction they may move.</p><pre><code class="language-julia hljs">const ClockKey = Tuple{Int,CartesianIndex{2},Direction}
+
+function run(event_count)
+    Sampler = CombinedNextReaction{ClockKey,Float64}
+    physical = PhysicalState(zeros(Int, 10, 10))
+    @test showable(MIME(&quot;text/plain&quot;), physical)
+    sim = SimulationFSM{Sampler}(
+        physical,
+        Sampler(),
+        0.0,
+        Xoshiro(2947223)
+    )
+    initialize!(sim.physical, 9, sim.rng)
+    current_events = allowed_moves(sim.physical)
+    for event_id in current_events
+        enable!(sim.sampler, event_id, Weibull(1.0), 0.0, 0.0, sim.rng)
+    end
+
+    for i in 1:event_count
+        (when, what) = next(sim.sampler, sim.when, sim.rng)
+        if isfinite(when) &amp;&amp; !isnothing(what)
+            sim.when = when
+            move!(sim.physical, what)
+            next_events = allowed_moves(sim.physical)
+            for remove_event in setdiff(current_events, next_events)
+                disable!(sim.sampler, remove_event, when)
+            end
+            for add_event in setdiff(next_events, current_events)
+                enable!(sim.sampler, add_event, Weibull(1.0), when, when, sim.rng)
+            end
+            current_events = next_events
+            @show (when, what)
+        end
+    end
+end;</code></pre><p>For this checkerboard with wandering individuals, the allowed moves are moves by any individual to any free square on the board. The set of allowed moves is precisely the set of enabled clocks, so it stores <code>ClockKey</code>s.</p><pre><code class="language-julia hljs">function allowed_moves(physical::PhysicalState)
+    allowed = Set{ClockKey}()
+    row, col, value = findnz(physical.board)
+    for ind_idx in eachindex(value)
+        location = CartesianIndex((row[ind_idx], col[ind_idx]))
+        for (direction, offset) in DirectionDelta
+            if checkbounds(Bool, physical.board, location + offset)
+                if physical.board[location + offset] == 0
+                    push!(allowed, (value[ind_idx], location, direction))
+                end
+            end
+        end
+    end
+    return allowed
+end;</code></pre><h2 id="Changes-to-the-state-of-the-board"><a class="docs-heading-anchor" href="#Changes-to-the-state-of-the-board">Changes to the state of the board</a><a id="Changes-to-the-state-of-the-board-1"></a><a class="docs-heading-anchor-permalink" href="#Changes-to-the-state-of-the-board" title="Permalink"></a></h2><p>We set up the board with an initializer that places individuals at random. We move one individual at a time, when their next event happens.</p><pre><code class="language-julia hljs">function initialize!(physical::PhysicalState, individuals::Int, rng)
+    physical.board .= 0
+    dropzeros!(physical.board)
+    locations = zeros(CartesianIndex{2}, individuals)
+    for ind_idx in 1:individuals
+        loc = rand(rng, CartesianIndices(physical.board))
+        while physical.board[loc] != 0
+            loc = rand(rng, CartesianIndices(physical.board))
+        end
+        locations[ind_idx] = loc
+        physical.board[loc] = ind_idx
+    end
+end;
+
+
+function move!(physical::PhysicalState, event_id)
+    (individual, previous_location, direction) = event_id
+    next_location = previous_location + DirectionDelta[direction]
+    # This sets the previous board value to zero.
+    SparseArrays.dropstored!(physical.board, previous_location.I...)
+    physical.board[next_location] = individual
+end;</code></pre><h2 id="How-it-runs"><a class="docs-heading-anchor" href="#How-it-runs">How it runs</a><a id="How-it-runs-1"></a><a class="docs-heading-anchor-permalink" href="#How-it-runs" title="Permalink"></a></h2><p>A run of this simulation produces a sequence of moves, no two happening at the same time because this is a continuous-time simulation.</p><pre><code class="language-julia hljs">run(10)</code></pre><pre><code class="nohighlight hljs">(when, what) = (0.07319364933011555, (7, CartesianIndex(7, 6), Main.var&quot;##225&quot;.Right))
+(when, what) = (0.10866577949385807, (3, CartesianIndex(1, 8), Main.var&quot;##225&quot;.Left))
+(when, what) = (0.15079187330778177, (3, CartesianIndex(1, 7), Main.var&quot;##225&quot;.Right))
+(when, what) = (0.1682581650543986, (3, CartesianIndex(1, 8), Main.var&quot;##225&quot;.Left))
+(when, what) = (0.1951607095320235, (4, CartesianIndex(9, 1), Main.var&quot;##225&quot;.Up))
+(when, what) = (0.20347320994043128, (2, CartesianIndex(5, 10), Main.var&quot;##225&quot;.Down))
+(when, what) = (0.21529944487579133, (4, CartesianIndex(8, 1), Main.var&quot;##225&quot;.Right))
+(when, what) = (0.2634608206635203, (9, CartesianIndex(1, 3), Main.var&quot;##225&quot;.Down))
+(when, what) = (0.26803917104227504, (7, CartesianIndex(7, 7), Main.var&quot;##225&quot;.Down))
+(when, what) = (0.26949661650175905, (2, CartesianIndex(6, 10), Main.var&quot;##225&quot;.Up))
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../guide/">« Bag of Clocks</a><a class="docs-footer-nextpage" href="../distributions/">How Fleck Decides What Happens Next »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.3.0 on <span class="colophon-date" title="Friday 12 April 2024 20:07">Friday 12 April 2024</span>. Using Julia version 1.10.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
