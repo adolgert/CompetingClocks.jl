@@ -55,7 +55,6 @@ end
 makedocs(;
     modules=[Fleck],
     authors="Andrew Dolgert <adolgert@uw.edu>",
-    repo="https://github.com/adolgert/Fleck.jl/blob/{commit}{path}#L{line}",
     sitename="Fleck.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
@@ -88,5 +87,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/adolgert/Fleck.jl",
+    target = "build",
+    repo = "github.com/adolgert/Fleck.jl",
+    branch = "gh-pages"
 )
