@@ -13,13 +13,13 @@ for hour in [0.005, 0.7]
     end
 end
 
-work_rate = Gamma(9.0, 0.5)
+work_rate = LogUniform(.5, 0.99) # Gamma(9.0, 0.5)
 break_rate = LogNormal(3.3, 0.4)
 repair_rate = Weibull(1.0, 5.0)
 joe = Individual(work_rate, break_rate, repair_rate)
 
 rng = Xoshiro(9378424)
-experiment = Experiment(20, 10, rng)
+experiment = Experiment(16, 10, rng)
 
 plot(experiment.group[1].work_dist)
 title!("Work Duration Distribution")
@@ -32,8 +32,13 @@ title!("Repair Time Durations")
 png("fix.png")
 
 
-# debug_logger = ConsoleLogger(stderr, Logging.Debug)
+# debug_logger = ConsoleLogger(stdout, Logging.Debug)
 # with_logger(debug_logger) do
-    result = run(experiment, 1000)
-    println(result)
+day_cnt = 1000
+    observation = run(experiment, day_cnt)
+    day_cnt = days(observation)
+    plot(1:day_cnt, observation.status[2, :], seriestype=:scatter, label="repair")
+    plot!(1:day_cnt, observation.status[1, :], seriestype=:scatter, label="working")
+    png("record.png")
+    println(100 * observation.broken_duration / day_cnt)
 # end

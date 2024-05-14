@@ -30,10 +30,10 @@ const IndividualTransitions = Dict(
 
 mutable struct Individual
     state::IndividualState
-    work_start::Float64
+    transition_start::Float64
     ## This is how an individual remembers its total work leading to failure.
     work_age::Float64
-    work_dist::Gamma
+    work_dist::LogUniform
     fail_dist::LogNormal
     repair_dist::Weibull
     Individual(work, fail, repair) = new(
@@ -66,8 +66,8 @@ end
 
 
 function Experiment(individual_cnt::Int, crew_size::Int, rng)
-    work_rate = Gamma(9.0, 0.2)
-    break_rate = LogNormal(3.3, 0.4)
+    work_rate = LogUniform(.8, 0.99) # Gamma(9.0, 0.2)
+    break_rate = LogNormal(1.5, 0.4)
     repair_rate = Weibull(1.0, 2.0)
     workers = [Individual(work_rate, break_rate, repair_rate) for _ in 1:individual_cnt]
     Experiment(workers, crew_size, rng)
@@ -75,6 +75,7 @@ end
 
 
 key_type(::Experiment) = Tuple{Int,Symbol}
+worker_cnt(experiment::Experiment) = size(experiment.group, 1)
 
 
 # If every ready worker has an active `:work` transition, then there
@@ -99,8 +100,10 @@ function handle_event(when, (who, transition), experiment, sampler)
     disable!(sampler, (who, transition), when)
 
     ## First look at what happens to an individual.
-    if start_state == :working
-        individual.work_age += when - individual.work_start
+    if start_state == working
+        work_duration = when - individual.transition_start
+        @debug "Adding $work_duration to $who"
+        individual.work_age += work_duration
     end
 
     worker_cnt = count(w.state == working for w in experiment.group)
@@ -123,7 +126,6 @@ function handle_event(when, (who, transition), experiment, sampler)
         end
     
     elseif transition == :work
-        individual.work_start = when
         # enable :done and :break
         enable!(sampler, (who, :done), individual.work_dist, when, when, experiment.rng)
         ## Time shift this distribution to the left because it remembers
@@ -132,7 +134,7 @@ function handle_event(when, (who, transition), experiment, sampler)
         enable!(sampler, (who, :break), individual.fail_dist, past_work, when, experiment.rng)
         @debug "schedule $who for done or break"
 
-    elseif transtion == :break
+    elseif transition == :break
         # If you broke, you don't get to finish your work.
         disable!(sampler, (who, :done), when)
         individual.work_age = zero(Float64)
@@ -142,6 +144,7 @@ function handle_event(when, (who, transition), experiment, sampler)
     else
         @assert finish_state ∈ (broken, working, ready)
     end
+    individual.transition_start = when
 
     ## Then look at changes to behavior of the whole system.
     if transition == :work && worker_cnt == experiment.workers_max
@@ -166,9 +169,48 @@ function handle_event(when, (who, transition), experiment, sampler)
 end
 
 
+mutable struct Observation
+    status::Array{Int64,2}
+    started_today::Array{Int64,1}
+    total_age::Array{Float64,1}
+    broken_duration::Array{Float64,1}
+    Observation(day_cnt, individual_cnt) = new(
+        zeros(Int64, 2, day_cnt),
+        zeros(Int64, day_cnt),
+        zeros(Float64, day_cnt),
+        zeros(Float64, individual_cnt)
+    )
+end
+
+days(observation::Observation) = size(observation.status, 2)
+
+
+function observe(experiment::Experiment, observation::Observation, when, which)
+    who, transition = which
+    day_idx = Int(floor(when))
+    if transition == :work
+        observation.started_today[day_idx + 1] += 1
+    elseif transition == :repair
+        observation.broken_duration[who] += when - experiment.group[who].transition_start
+    end
+    day_start = Int(floor(experiment.time + next_work_time(experiment.time, experiment.start_time)[1]))
+    next_start = Int(floor(when + next_work_time(when, experiment.start_time)[1]))
+    if day_start != next_start
+        worker_cnt = count(w.state == working for w in experiment.group)
+        broken_cnt = count(w.state == broken for w in experiment.group)
+        work_ages = sum(w.work_age for w in experiment.group)
+        for rec_idx in day_start:next_start - 1
+            observation.status[1, 1 + rec_idx] = worker_cnt
+            observation.status[2, 1 + rec_idx] = broken_cnt
+            observation.total_age[1 + rec_idx] = work_ages
+        end
+    end
+end
+
+
 function run(experiment::Experiment, days)
     day_cnt = Int(ceil(days))
-    status = zeros(Int, 2, day_cnt)
+    observation = Observation(day_cnt, worker_cnt(experiment))
     sampler = FirstToFire{key_type(experiment),Float64}()
     rng = experiment.rng
     rate = Uniform(next_work_time(0.0, experiment.start_time)...)
@@ -177,21 +219,12 @@ function run(experiment::Experiment, days)
     end
     when, which = next(sampler, experiment.time, rng)
     while isfinite(when) && when < days
-        day_start = Int(floor(experiment.time + next_work_time(experiment.time, experiment.start_time)[1]))
-        next_start = Int(floor(when + next_work_time(when, experiment.start_time)[1]))
-        if day_start != next_start
-            worker_cnt = count(w.state == working for w in experiment.group)
-            broken_cnt = count(w.state == broken for w in experiment.group)
-            for rec_idx in day_start:next_start - 1
-                status[1, 1 + rec_idx] = worker_cnt
-                status[2, 1 + rec_idx] = broken_cnt
-            end
-        end
+        observe(experiment, observation, when, which)
         @debug "$when $which"
         handle_event(when, which, experiment, sampler)
         when, which = next(sampler, experiment.time, rng)
     end
-    return status
+    return observation
 end
 
 # Let's make an experiment and look at the distributions.
