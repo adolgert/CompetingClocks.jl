@@ -169,12 +169,12 @@ function handle_event(when, (who, transition), experiment, sampler)
 end
 
 
-mutable struct Observation
+mutable struct ObserveLots
     status::Array{Int64,2}
     started_today::Array{Int64,1}
     total_age::Array{Float64,1}
     broken_duration::Array{Float64,1}
-    Observation(day_cnt, individual_cnt) = new(
+    ObserveLots(day_cnt, individual_cnt) = new(
         zeros(Int64, 2, day_cnt),
         zeros(Int64, day_cnt),
         zeros(Float64, day_cnt),
@@ -182,10 +182,10 @@ mutable struct Observation
     )
 end
 
-days(observation::Observation) = size(observation.status, 2)
+days(observation::ObserveLots) = size(observation.status, 2)
 
 
-function observe(experiment::Experiment, observation::Observation, when, which)
+function observe(experiment::Experiment, observation::ObserveLots, when, which)
     who, transition = which
     day_idx = Int(floor(when))
     if transition == :work
@@ -208,9 +208,45 @@ function observe(experiment::Experiment, observation::Observation, when, which)
 end
 
 
-function run(experiment::Experiment, days)
+mutable struct ObserveHistogram
+    counts::Array{Int64,2}
+    working::Int64
+    broken::Int64
+    burn::Float64
+    ObserveHistogram(e::Experiment, burn) = new(
+        zeros(Int64, e.workers_max + 1, worker_cnt(e) + 1), 0, 0, burn)
+end
+
+
+function observe(experiment::Experiment, observation::ObserveHistogram, when, which)
+    who, transition = which
+    if transition == :work
+        observation.working += 1
+    elseif transition == :done
+        observation.working -= 1
+    elseif transition == :break
+        observation.broken += 1
+        observation.working -= 1
+    elseif transition == :repair
+        observation.broken -= 1
+    else
+        @assert transition ∈ (:work, :done, :break, :repair)
+    end
+
+    if when < observation.burn
+        return
+    end
+
+    day_start = Int(floor(experiment.time + next_work_time(experiment.time, experiment.start_time)[1]))
+    next_start = Int(floor(when + next_work_time(when, experiment.start_time)[1]))
+    if day_start != next_start
+        observation.counts[observation.working + 1, observation.broken + 1] += 1
+    end
+end
+
+
+function run(experiment::Experiment, observation, days)
     day_cnt = Int(ceil(days))
-    observation = Observation(day_cnt, worker_cnt(experiment))
     sampler = FirstToFire{key_type(experiment),Float64}()
     rng = experiment.rng
     rate = Uniform(next_work_time(0.0, experiment.start_time)...)
@@ -224,7 +260,6 @@ function run(experiment::Experiment, days)
         handle_event(when, which, experiment, sampler)
         when, which = next(sampler, experiment.time, rng)
     end
-    return observation
 end
 
 # Let's make an experiment and look at the distributions.

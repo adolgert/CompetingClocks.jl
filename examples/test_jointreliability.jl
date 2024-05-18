@@ -44,12 +44,20 @@ Logging.min_enabled_level(logger::OnlyMyLogger) = Logging.min_enabled_level(logg
 Logging.handle_message(logger::OnlyMyLogger, args...; kwargs...) = Logging.handle_message(logger.instance, args...; kwargs...)
 
 debug_logger = OnlyMyLogger()
-with_logger(debug_logger) do
-    day_cnt = 1
-    observation = run(experiment, day_cnt)
-    day_cnt = days(observation)
-    plot(1:day_cnt, observation.status[2, :], seriestype=:scatter, label="repair")
-    plot!(1:day_cnt, observation.status[1, :], seriestype=:scatter, label="working")
-    png("record.png")
-    println(100 * observation.broken_duration / day_cnt)
-end
+day_cnt = 20000
+observation = ObserveHistogram(experiment, day_cnt ÷ 10)
+run(experiment, observation, day_cnt)
+println(observation.counts)
+heatmap(observation.counts)
+xlabel!("Broken")
+ylabel!("Worked")
+png("counts.png")
+# with_logger(debug_logger) do
+#     day_cnt = 2000
+#     observation = ObserveLots(day_cnt, worker_cnt(experiment))
+#     run(experiment, observation, day_cnt)
+#     plot(1:day_cnt, observation.status[2, :], seriestype=:scatter, label="repair")
+#     plot!(1:day_cnt, observation.status[1, :], seriestype=:scatter, label="working")
+#     png("record.png")
+#     println(100 * observation.broken_duration / day_cnt)
+# end
