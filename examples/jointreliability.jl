@@ -228,11 +228,3 @@ function run(experiment::Experiment, days)
 end
 
 # Let's make an experiment and look at the distributions.
-
-rng = Xoshiro(9378424)
-experiment = Experiment(20, 10, rng)
-
-plot(experiment.group[1].work_dist)
-plot(experiment.group[1].fail_dist)
-plot(experiment.group[1].repair_dist)
-
