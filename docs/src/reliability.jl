@@ -5,7 +5,9 @@
 using Distributions
 using Fleck
 using Logging
+using Plots
 using Random
+using StatsPlots
 
 # ## Overview
 #
@@ -77,7 +79,7 @@ end
 mutable struct Experiment
     time::Float64
     group::Vector{Individual}
-    # Each day the group tries to start `workers_max` workers.
+    ## Each day the group tries to start `workers_max` workers.
     workers_max::Int64
     start_time::Float64
     rng::Xoshiro
@@ -147,26 +149,24 @@ function handle_event(when, (who, transition), experiment, sampler)
     experiment.time = when
     disable!(sampler, (who, transition), when)
 
-# If a vehicle is done work, or if they break, then include the time worked
-# in their total work age.
+    ## If a vehicle is done work, or if they break, then include the time worked
+    ## in their total work age.
     if start_state == working
         work_duration = when - individual.transition_start
         @debug "Adding $work_duration to $who"
         individual.work_age += work_duration
     end
-#
-# The state of the system, as a whole, depends on the total number
-# currently working.
-#
+
+    ## The state of the system, as a whole, depends on the total number
+    ## currently working.
     worker_cnt = count(w.state == working for w in experiment.group)
     need_workers = worker_cnt < experiment.workers_max
     max_hour = experiment.start_time
-#
-# When an individual was working, there were two possible transitions,
-# one to `ready`, and one to `broken`. Don't forget to disable the `:break`
-# transition. Then schedule the next day's work only if the system has less
-# than ten working.
-#
+
+    ## When an individual was working, there were two possible transitions,
+    ## one to `ready`, and one to `broken`. Don't forget to disable the `:break`
+    ## transition. Then schedule the next day's work only if the system has less
+    ## than ten working.
     if transition == :done
         disable!(sampler, (who, :break), when)
         if need_workers
@@ -174,35 +174,32 @@ function handle_event(when, (who, transition), experiment, sampler)
             enable!(sampler, (who, :work), rate, when, when, experiment.rng)
             @debug "schedule $who for $rate"
         end
-#
-# A `:repair` transition can happen at any time, including during the first
-# fifteen minutes of a day.
-#
+
+    ## A `:repair` transition can happen at any time, including during the first
+    ## fifteen minutes of a day.
     elseif transition == :repair
         if need_workers
             rate = Uniform(next_work_time(when, max_hour)...)
             enable!(sampler, (who, :work), rate, when, when, experiment.rng)
             @debug "schedule $who for $rate"
         end
-#
-# The `:work` transition represents a vehicle going out to work for the day.
-# This enables two possible transitions, finishing work or breaking. The
-# breaking transition is interesting because it has what Zimmerman [2] calls
-# "memory." It remembers how long it was previously enabled
-#    
+
+    ## The `:work` transition represents a vehicle going out to work for the day.
+    ## This enables two possible transitions, finishing work or breaking. The
+    ## breaking transition is interesting because it has what Zimmerman [2] calls
+    ## "memory." It remembers how long it was previously enabled
     elseif transition == :work
-        # enable :done and :break
+        ## enable :done and :break
         enable!(sampler, (who, :done), individual.done_dist, when, when, experiment.rng)
         ## Time shift this distribution to the left because it remembers
         ## the time already worked.
         past_work = when - individual.work_age
         enable!(sampler, (who, :break), individual.fail_dist, past_work, when, experiment.rng)
         @debug "schedule $who for done or break"
-#
-# When a vehicle breaks, the only option is to repair it. This resets the work age.
-#
+
+    ## When a vehicle breaks, the only option is to repair it. This resets the work age.
     elseif transition == :break
-        # If you broke, you don't get to finish your work.
+        ## If you broke, you don't get to finish your work.
         disable!(sampler, (who, :done), when)
         individual.work_age = zero(Float64)
         enable!(sampler, (who, :repair), individual.repair_dist, when, when, experiment.rng)
@@ -212,14 +209,14 @@ function handle_event(when, (who, transition), experiment, sampler)
         @assert finish_state ∈ (broken, working, ready)
     end
     individual.transition_start = when
-#
-# We haven't handled how we ensure that at most ten vehicles start work every
-# morning. For that, we need to think about the system as a whole, explicitly
-# by looking at the current worker count and whether it crossed the threshold of
-# ten workers.
-#
-# If a vehicle just started and is the tenth worker, then cancel the ability of
-# all other vehicles to work.
+
+    ## We haven't handled how we ensure that at most ten vehicles start work every
+    ## morning. For that, we need to think about the system as a whole, explicitly
+    ## by looking at the current worker count and whether it crossed the threshold of
+    ## ten workers.
+    ##
+    ## If a vehicle just started and is the tenth worker, then cancel the ability of
+    ## all other vehicles to work.
     if transition == :work && worker_cnt == experiment.workers_max
         notnow = Int[]
         for too_many in [widx for (widx, w) in enumerate(experiment.group) if w.state == ready]
@@ -228,11 +225,10 @@ function handle_event(when, (who, transition), experiment, sampler)
             push!(notnow, too_many)
         end
         @debug "Unscheduling $notnow"
-#
-# If a vehicle stopped work, either by finishing or breaking, and it was the
-# first of the work crew to quit, then notify all `ready` vehicles that they
-# should start work at the start of the next morning.
-#
+
+    ## If a vehicle stopped work, either by finishing or breaking, and it was the
+    ## first of the work crew to quit, then notify all `ready` vehicles that they
+    ## should start work at the start of the next morning.
     elseif transition ∈ (:done, :break) && worker_cnt == experiment.workers_max - 1
         rate = Uniform(next_work_time(when, max_hour)...)
         upnext = Int[]
@@ -250,7 +246,8 @@ end
 #
 # For anything other than an example, the most important step would be
 # configuring the model so that it matches observations. Here, however, we
-# have put this directly into the `Experiment` type.
+# have put this directly into the `Experiment` type. Here is a plot of
+# the distributions.
 #
 function show_distributions()
     experiment = Experiment(16, 10, Xoshiro(9378424))
@@ -261,6 +258,10 @@ function show_distributions()
     title!("Distributions for Transitions")
 end
 show_distributions()
+# The short blue line in the upper-left is the probability distribution
+# function for a `LogUniform` distribution that represents the time
+# a vehicle drives on a single day. You can see that these vehicles
+# break about once a week and take a couple of days to repair, on average.
 
 # ## Run the Simulation
 #

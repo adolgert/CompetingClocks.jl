@@ -19,7 +19,8 @@ adliterate = [
         ("distributions.jl", "distributions"), 
         ("constant_birth.jl", "constant_birth"),
         ("sir.jl", "sir"),
-        ("commonrandom.jl", "commonrandom")
+        ("commonrandom.jl", "commonrandom"),
+        ("reliability.jl", "reliability")
     ]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
@@ -80,7 +81,8 @@ makedocs(;
         ],
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",
-            "SIR Model" => "sir.md"
+            "SIR Model" => "sir.md",
+            "Reliability" => "reliability.md"
         ],
         "Reference" => "reference.md"
     ],
