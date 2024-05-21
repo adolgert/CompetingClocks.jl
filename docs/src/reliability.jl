@@ -2,6 +2,7 @@
 
 # This is an extended example using a reliability model.
 
+using ColorSchemes
 using Distributions
 using Fleck
 using Logging
@@ -390,6 +391,20 @@ function observe(experiment::Experiment, observation::ObserveLots, when, which)
     end
 end
 #
+# Now we can use this observer to make a plot.
+#
+function walk_simulation()
+    day_cnt = 20
+    experiment = Experiment(16, 10, Xoshiro(979798))
+    observation = ObserveLots(day_cnt, worker_cnt(experiment))
+    run(experiment, observation, day_cnt)
+    plot(1:day_cnt, observation.status[2, :], seriestype=:scatter, label="repair",
+        yticks=0:2:10)
+    plot!(1:day_cnt, observation.status[1, :], seriestype=:scatter, label="working")
+    title!("Number Working or in Repair")
+end
+walk_simulation()
+#
 # ### Distribution of Broken Vehicles and Probability of Missing Crew
 #
 # If we were focused more on the small probability that there wouldn't be
@@ -431,7 +446,49 @@ function observe(experiment::Experiment, observation::ObserveHistogram, when, wh
         @assert transition ∈ (:work, :done, :break, :repair)
     end
 end
+#
+# This observer will help us see what happens if we keep the same total
+# number of vehicles but send more out each day for work.
+#
+function compare_across_workers(obs::Vector{ObserveHistogram}, labels, title)
+    firstplot = true
+    for (obs_idx, observation) in enumerate(obs)
+        worker_cnt = total_workers(observation)
+        broken = vec(sum(observation.counts, dims=1))
+        cnt = findlast(broken .> 0)
+        normed = broken[1:cnt] / sum(broken)
+        if firstplot
+            firstplot = false
+            plot(1:cnt, normed, seriestype=:scatter, label=labels[obs_idx], markersize=8)
+        else
+            plot!(1:cnt, normed, seriestype=:scatter, label=labels[obs_idx], markersize=8)
+        end
+    end
+    xlabel!("Count of Broken")
+    ylabel!("Probability Mass Function")
+    title!(title)
+end
 
+function show_competition_effect()
+    rng = Xoshiro(4377124)
+    observations = ObserveHistogram[]
+    labels = String[]
+    years = 10
+    day_cnt = 365 * years
+    worker_cnt = 20
+    for must_work in [1, 5, 10, 15, 20]
+        experiment = Experiment(worker_cnt, must_work, rng)
+        burn = min(day_cnt ÷ 10, 3650)
+        observation = ObserveHistogram(experiment, burn)
+        run(experiment, observation, day_cnt)
+        push!(observations, observation)
+        push!(labels, string(must_work))
+    end
+
+    compare_across_workers(observations, labels, "Number Broken as Crew Increases")
+end
+show_competition_effect()
+#
 # ## References
 #
 # 1. Limnios, Nikolaos, and Gheorghe Oprisan. Semi-Markov processes and
