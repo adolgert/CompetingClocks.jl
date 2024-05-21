@@ -345,6 +345,36 @@ function observe(experiment::Experiment, observation::ObserveContinuous, when, w
     push!(observation.state, ContinuousRec(working, broken, total_age, when))
 end
 #
+# This is the code that made the plot at the top of the page.
+#
+function plot_timeline(obs::ObserveContinuous, experiment::Experiment)
+    state = obs.state
+    last_time = state[end].time
+    first_idx = findlast([x.time < last_time - 5 for x in state])
+    times = [x.time for x in state[first_idx:end]]
+    times .-= 4009
+    working = [x.working for x in state[first_idx:end]]
+    broken = [x.broken for x in state[first_idx:end]]
+    ready = [worker_cnt(experiment) - x.working - x.broken for x in state[first_idx:end]]
+    plot(times, working, label="working", line=(:steppost, 2))
+    plot!(times, broken, label="broken", line=(:steppost, 2))
+    xlabel!("Time [days]")
+    ylabel!("Status [count]")
+    title!("Timeline of Work Crew Over Five Days")
+end
+
+function show_typical_timeline()
+    rng = Xoshiro(9234232)
+    years = 11
+    day_cnt = 365 * years
+    worker_cnt = 16
+    experiment = Experiment(worker_cnt, 10, rng)
+    observation = ObserveContinuous()
+    run(experiment, observation, day_cnt)
+
+    plot_timeline(observation, experiment)
+end
+#
 # ### Once-a-day Observation of the Working State
 #
 # Suppose that we want to match our simulation to observation data that counts,
