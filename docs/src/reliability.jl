@@ -29,8 +29,6 @@ using StatsPlots
 # instead, start all ten vehicles at the same time, using a single transition.
 # Either would work.
 #
-# ![Timeline of Working and Repair](timeline_month.png)
-#
 # Fleck will take care of the timing of all of the events, but we will see that
 # there is plenty of work to track the state of all of the vehicles. This
 # extended example shows that, if we wanted to create more reliability models,
@@ -306,8 +304,7 @@ end
 # ### Continuous-time Summary Observer
 #
 # The first example will record data at every transition, but it will record
-# only the total number of working or broken vehicles. This is what gave us the
-# plot at the top of this page.
+# only the total number of working or broken vehicles.
 #
 # This represents a single time point.
 struct ContinuousRec
@@ -350,7 +347,8 @@ function observe(experiment::Experiment, observation::ObserveContinuous, when, w
     push!(observation.state, ContinuousRec(working, broken, total_age, when))
 end;
 #
-# This is the code that made the plot at the top of the page.
+# This plot shows a timeline of the count of working and broken vehicles
+# over five days.
 #
 function plot_timeline(obs::ObserveContinuous, experiment::Experiment)
     state = obs.state
@@ -378,9 +376,9 @@ function show_typical_timeline()
     run(experiment, observation, day_cnt)
 
     plot_timeline(observation, experiment)
-end;
+end
+show_typical_timeline()
 #
-# ![Timeline of Working and Repair](timeline_month.png)
 #
 # ### Once-a-day Observation of the Working State
 #

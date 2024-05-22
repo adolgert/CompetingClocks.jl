@@ -60,6 +60,7 @@ makedocs(;
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         size_threshold_warn=2^17,
+        size_threshold=2^18,
         canonical="https://adolgert.github.io/Fleck.jl",
         assets=String[],
     ),
