@@ -26,9 +26,11 @@ The background work for this library comes from [Continuous-time, discrete-event
 
 The library provides you with samplers. Each sampler has the same interface. Here, a distribution is a [Distributions.ContinuousUnivariateDistribution](https://juliastats.org/Distributions.jl/stable/univariate/#Continuous-Distributions), `RNG` is a [random number generator](https://docs.julialang.org/en/v1/stdlib/Random/#Generators-(creation-and-seeding)), the `key` is some identifier (maybe an integer) for the event, and an enabling time is a zero-time for the given distribution.
 
- * `enable!(sampler, key, distribution, enabling time, current time, RNG)` - to start the clock on when an event will fire next.
- * `disable!(sampler, key, current time)` - to turn off an event so it can't fire.
- * `next(sampler, current time, RNG)` - to ask this library who fires next.
+ * [enable!](@ref)`(sampler, key, distribution, enabling time, current time, RNG))` - to start the clock on when an event will fire next.
+
+ * [disable!](@ref)`(sampler, key, current time)` - to turn off an event so it can't fire.
+
+ * [next](@ref)`(sampler, current time, RNG)` - to ask this library who fires next.
 
 Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can be fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
 

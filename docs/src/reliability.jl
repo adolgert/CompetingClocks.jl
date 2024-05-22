@@ -35,7 +35,7 @@ using StatsPlots
 # there is plenty of work to track the state of all of the vehicles. This
 # extended example shows that, if we wanted to create more reliability models,
 # it would make sense to create a framework for reliability modeling, one that
-# uses Fleck.
+# uses Fleck underneath.
 #
 # ## Define State for the Model
 #
@@ -51,10 +51,12 @@ const IndividualTransitions = Dict(
     :done => (working, ready),
     :break => (working, broken),
     :repair => (broken, ready)
-)
+);
 #
 # An individual has state and parameters. In the language of generalized
-# semi-Markov processes, this state is called the "physical state."
+# semi-Markov processes, this state is called the *physical state* in order
+# to distinguish it from the state of each enabled transition for each
+# vehicle.
 #
 mutable struct Individual
     ## State for the individual
@@ -97,11 +99,11 @@ function Experiment(individual_cnt::Int, crew_size::Int, rng)
     Experiment(workers, crew_size, rng)
 end
 #
-# Some helpers. The `key_type` says that we will track transitions using
+# And make some helpers. The `key_type` says that we will track transitions using
 # a tuple of (index of vehicle, symbol to identify the transition).
 #
-key_type(::Experiment) = Tuple{Int,Symbol}
-worker_cnt(experiment::Experiment) = size(experiment.group, 1)
+key_type(::Experiment) = Tuple{Int,Symbol};
+worker_cnt(experiment::Experiment) = size(experiment.group, 1);
 #
 # ## Define Transitions for the Model
 #
@@ -128,7 +130,7 @@ function next_work_time(now, fifteen_minutes)
     else ## You can't start until tomorrow.
         return one(hour) - hour, one(hour) + fifteen_minutes - hour
     end
-end
+end;
 #
 # Now we handle simulation events. This function's complexity is an argument
 # for using a framework like a queueing model, a generalized stochastic Petri
@@ -137,11 +139,12 @@ end
 # The arguments are:
 # 
 #  * `when` - The time of the next event.
-#  * `(who, transition)` - This exands the `key_type`, which identifies the transition.
+#  * `(who, transition)` - This expands the `key_type`, which identifies the transition.
 #  * `experiment` - It's our simulation data.
-#  * `sampler` - This is a `Sampler` from Fleck to enable and disable transitions.
+#  * `sampler` - This is a [Fleck.SSA](@ref) from Fleck to enable and disable transitions.
 #
 # The first few statements of the function are automatic for any transition.
+# Then this handler works through the transition types.
 function handle_event(when, (who, transition), experiment, sampler)
     start_state, finish_state = IndividualTransitions[transition]
     individual = experiment.group[who]
@@ -207,7 +210,7 @@ function handle_event(when, (who, transition), experiment, sampler)
         @debug "schedule $who for repair"
 
     else
-        @assert finish_state ∈ (broken, working, ready)
+        @assert transition ∈ keys(IndividualTransitions)
     end
     individual.transition_start = when
 
@@ -241,7 +244,7 @@ function handle_event(when, (who, transition), experiment, sampler)
         end
         @debug "scheduling $upnext for $rate"
     end
-end
+end;
 #
 # ## Configure the Model
 #
@@ -269,7 +272,8 @@ show_distributions()
 # Running a simulation means we are sampling from the stochastic process.
 # For a continuous-time stochastic process like this, that means asking the
 # sampler when the next transition is and which transition it is. If there
-# are no possible transitions, the next time will be infinite.
+# are no possible transitions, the next time will be infinite and the chosen
+# transition will be `nothing`.
 #
 function run(experiment::Experiment, observation, days)
     sampler = FirstToFire{key_type(experiment),Float64}()
@@ -291,7 +295,7 @@ end
 # ## Observers
 #
 # While writing a simulation that matches a real world model requires precision,
-# observations of simulation runs are comparatively messy. Continuous-time
+# writing an observer of that simulation is comparatively messy. Continuous-time
 # models have a separate transition and time for every change to the state,
 # so they can generate a lot of data quickly. It doesn't make sense to save
 # the raw data stream, so we use observers of the system to summarize that
@@ -312,7 +316,7 @@ struct ContinuousRec
     time::Float64
 end
 
-# We will have a vector of those single time points.
+# The observer stores a vector of those single time points.
 mutable struct ObserveContinuous
     state::Vector{ContinuousRec}
     ObserveContinuous() = new([ContinuousRec(0, 0, 0.0, 0.0)])
@@ -321,7 +325,7 @@ end
 # This observer keeps a running sum of the number working and broken.
 # Note that it has to know how different transitions change those numbers.
 # The relationship between the transition and how it changes counts is called
-# stoichiometry, because it was first observed for chemical reactions.
+# stochiometry (or stoichiometry), because it was first observed for chemical simulations.
 # Both chemical simualtions and GSPN would have this information encoded in
 # a formal model.
 #
@@ -343,7 +347,7 @@ function observe(experiment::Experiment, observation::ObserveContinuous, when, w
     end
     total_age = sum(w.work_age for w in experiment.group)
     push!(observation.state, ContinuousRec(working, broken, total_age, when))
-end
+end;
 #
 # This is the code that made the plot at the top of the page.
 #
@@ -373,7 +377,9 @@ function show_typical_timeline()
     run(experiment, observation, day_cnt)
 
     plot_timeline(observation, experiment)
-end
+end;
+#
+# ![Timeline of Working and Repair](timeline_month.png)
 #
 # ### Once-a-day Observation of the Working State
 #
@@ -394,7 +400,7 @@ mutable struct ObserveLots
     )
 end
 
-days(observation::ObserveLots) = size(observation.status, 2)
+days(observation::ObserveLots) = size(observation.status, 2);
 #
 # This observer waits until the current transition time is just after the
 # first 15min of the day. Then it records every vehicle's status.
@@ -419,7 +425,7 @@ function observe(experiment::Experiment, observation::ObserveLots, when, which)
             observation.total_age[1 + rec_idx] = work_ages
         end
     end
-end
+end;
 #
 # Now we can use this observer to make a plot.
 #
@@ -475,7 +481,7 @@ function observe(experiment::Experiment, observation::ObserveHistogram, when, wh
     else
         @assert transition ∈ (:work, :done, :break, :repair)
     end
-end
+end;
 #
 # This observer will help us see what happens if we keep the same total
 # number of vehicles but send more out each day for work.
