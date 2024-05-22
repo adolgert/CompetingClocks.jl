@@ -12,8 +12,8 @@ using StatsPlots
 
 # ## Overview
 #
-# The classic model for reliability is of a light bulb that is either
-# lit or broken. There is a distribution of failure times and a distribution
+# The classic model for reliability is of a machine that is either
+# working or broken. There is a distribution of failure times and a distribution
 # of repair times [1]. Let's extend this idea to the reliability of a vehicle
 # motor pool.
 #
@@ -117,7 +117,7 @@ worker_cnt(experiment::Experiment) = size(experiment.group, 1);
 # next available time. Once the tenth vehicle begins working, all of those
 # transitions need to be disabled.
 #
-# It's implied that the start of the day happens at 1.0, 2.0, 3.0. When a
+# It's implied that the start of each day happens at 1.0, 2.0, 3.0, etc. When a
 # vehicle becomes ready, or when the total working vehicles drops below
 # ten, then each ready vehicle could work at a future time. This function
 # takes in the current time and returns two times, relative to the current
@@ -294,17 +294,18 @@ end
 #
 # ## Observers
 #
-# While writing a simulation that matches a real world model requires precision,
-# writing an observer of that simulation is comparatively messy. Continuous-time
-# models have a separate transition and time for every change to the state,
-# so they can generate a lot of data quickly. It doesn't make sense to save
-# the raw data stream, so we use observers of the system to summarize that
-# data, almost as a first step of analysis. Let's look at a few examples
-# for the vehicle crew.
+# Without care, data collection from continuous-time simulation can generate a lot of data quickly.
+# In many cases, especially for performance analysis, not every event time and transition 
+# is important. Therefore, to avoid saving the raw data stream, we use observers of the system to summarize that data.
+# Construction of observers is important as it connects the simulation to tools or analyses
+# that may be used to guide decision-making. It also identifies which variables and metrics
+# are most important.
+# 
+# Let's look at a few examples for the vehicle crew.
 #
 # ### Continuous-time Summary Observer
 #
-# The first example will record data for every transition, but it will record
+# The first example will record data at every transition, but it will record
 # only the total number of working or broken vehicles. This is what gave us the
 # plot at the top of this page.
 #
@@ -488,6 +489,7 @@ end;
 #
 function compare_across_workers(obs::Vector{ObserveHistogram}, labels, title)
     firstplot = true
+    cols = palette(:tableau_20, length(obs))
     for (obs_idx, observation) in enumerate(obs)
         worker_cnt = total_workers(observation)
         broken = vec(sum(observation.counts, dims=1))
@@ -495,13 +497,15 @@ function compare_across_workers(obs::Vector{ObserveHistogram}, labels, title)
         normed = broken[1:cnt] / sum(broken)
         if firstplot
             firstplot = false
-            plot(1:cnt, normed, seriestype=:scatter, label=labels[obs_idx], markersize=8)
+            plot(1:cnt, normed, color=cols[obs_idx], seriestype=:scatter, markersize=2.5, label=false)
+            plot!(1:cnt, normed, color=cols[obs_idx], label=labels[obs_idx], legendtitle="Crew Size")
         else
-            plot!(1:cnt, normed, seriestype=:scatter, label=labels[obs_idx], markersize=8)
+            plot!(1:cnt, normed, color=cols[obs_idx], seriestype=:scatter, markersize=2.5, label=false)
+            plot!(1:cnt, normed, color=cols[obs_idx], label=labels[obs_idx])
         end
     end
     xlabel!("Count of Broken")
-    ylabel!("Probability Mass Function")
+    ylabel!("Probability Mass")
     title!(title)
 end
 
