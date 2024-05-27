@@ -1,8 +1,6 @@
-# Bag of Clocks
+# Competing Clocks
 
-We can introduce this style of simulation with a description that has no equations.
-
-We use the term discrete event simulation when code tracks the effects of individual events in time. We classify discrete event simulations by the pace of advances in time. If time advances in steps of the same size, it is a *discrete-time* simulation. If time advances to the next event, whenever that event might happen, it is *continuous-time* simulation. This library supports continuous-time discrete-event simulations.
+A discrete event simulation tracks the effects of individual events in time. We classify discrete event simulations by the pace of advances in time. If time advances in steps of the same size, it is a *discrete-time* simulation. If time advances to the next event, whenever that event might happen, it is *continuous-time* simulation. This library supports continuous-time discrete-event simulations.
 
 We write discrete event simulations by defining the state of a system and events that can act on that state. The state of a system can be the count of each chemical species for a chemical reaction system. It can be different numbers of chickens at different weights in different chicken coops for a farming simulation. It can be the age of each widget in an engine for a reliability simulation. These states are called the *physical state* of the system and vary widely in what they represent.
 

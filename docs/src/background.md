@@ -1,4 +1,4 @@
-# Background
+# Markov Processes
 
 This addresses two main points, how to specify a model for the library
 using distributions defined by hazards and why such a specification,
@@ -18,8 +18,8 @@ measles.
 It frequently happens that random samples of the real valued variables
 such as $\bf{X}$ are actually analyzed on a discrete scale. For example
 Stocks' data on latent periods of measles in
-`latent_period`{.interpreted-text role="ref"} is based on daily visits
-by patients.
+`latent_period` is based on daily visits
+by patients [Stocks:1931].
 
 The (cumulative) distribution of $\bf{X}$ is defined as
 
@@ -36,7 +36,7 @@ f_{X}(k) & =  \mathcal{P}[X=k] \\
 \end{aligned}
 ```
 
-For Stocks' data in `latent_period`{.interpreted-text role="ref"}, the
+For Stocks' data in `latent_period`, the
 density at day $k$ should be interpreted as the probability of the
 appearance of symptoms since the previous visit on day $k-1$.
 
@@ -53,7 +53,7 @@ h_{X}(k) & =  \mathcal{P}[X=k\; |\; k-1<X] \\
 ```
 
 In the case of Stocks' data, the hazards shown in
-`latent_period_hazard`{.interpreted-text role="ref"} would correspond to
+`latent_period_hazard` would correspond to
 the probability of symptoms appearing at day $k$ given that the patient
 had not displayed symptoms at any previous visit. As time goes on,
 patients who have already developed symptoms effectively reduce the pool
@@ -177,7 +177,7 @@ a new stochastic process, $\bf{Z}$, from $\bf{Y}$ by the rule
 $Z_{t} = s_k$ in the time interval $t_n \le t
 < t_{n+1}$ given $Y_{n} = (s_k, t_n)$ . In other words, $\bf{Z}_{t}$ is
 a piecewise constant version of $\bf{Y}$ as shown in
-`piecewise_Z`{.interpreted-text role="ref"}
+`piecewise_Z`.
 
 ![Figure 4. **Realization of a continuous time stochastic process and
 associated Markov chain.**](assets/piecewise_Z.svg)
@@ -279,6 +279,10 @@ While the waiting time density $w_i(\tau)$, is the derivative of the
 waiting time, we won't end up needing to relation $\pi_{ij}(\tau)$ to
 $\Pi_{ij}(\tau)$ when finding trajectories or computing hazards, so the
 more complicated relationship won't be a problem.
+
+## References
+
+[Stocks:1931]	P. Stocks, “[Incubation period of measles](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2313639/),” British Medical Journal 1(3655): p. 157.
 
 ## Acknowledgement
 
