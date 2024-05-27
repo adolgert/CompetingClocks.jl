@@ -6,10 +6,9 @@ CurrentModule = Fleck
 
 Fleck is a Julia library that samples distributions for discrete event systems (DES) in continuous time. It supports Exponential and non-Exponential distributions for events.
 
-
 ## Overview
 
-If you want to write a simulation engine that tracks the state of a system, and the next event in that system is determined by which, among competing events, fires first, then this library can track the next firing times. Here are some examples of discrete event systems.
+Many kinds of discrete event simulations need an efficient way to choose the next event in a simulation.
 
  * Simulations of chemical reactions.
  * Queueing theory models of networks, production, and computation.
@@ -18,7 +17,9 @@ If you want to write a simulation engine that tracks the state of a system, and 
  * Generalized stochastic Petri nets.
  * Generalized semi-Markov Processes.
 
-Many of these mathematical objects provide intricate structure to tell us what events are enabled in any particular state (e.g; Petri nets). Fleck organizes the stochastic firing times (clocks) of enabled events so we can sample from clocks to find out what happens next and update them after the state changes. In statistical terms, this library is a sampler for generalized semi-Markov processes.
+This library supports these kinds of simulations by optimizing the choice of the next event in the system. In statistical terms, this library is a sampler for generalized semi-Markov processes.
+
+![Fleck chooses the next transition but the simulation tracks state and changes to state.](assets/FleckTopLevel.svg)
 
 The background work for this library comes from [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
 
@@ -33,10 +34,6 @@ The library provides you with samplers. Each sampler has the same interface. Her
  * [next](@ref)`(sampler, current time, RNG)` - to ask this library who fires next.
 
 Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can be fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
-
-## Documentation
-
-
 
 ## Why Use This?
 
