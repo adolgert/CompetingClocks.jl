@@ -33,7 +33,7 @@ The library provides you with samplers. Each sampler has the same interface. Her
 
  * [next](@ref)`(sampler, current time, RNG)` - to ask this library who fires next.
 
-Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can be fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
+Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
 
 ## Why Use This?
 
@@ -46,4 +46,3 @@ If I make a quick simulation for myself, I sample distributions the moment an ev
  * Performance matters (which it often doesn't), so I would like to try different samplers on my problem.
 
  * I want to focus on developing and testing my *model* not my *simulation algorithm*; Fleck is designed and tested with care to ensure correctness.
- 

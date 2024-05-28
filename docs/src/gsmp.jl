@@ -16,9 +16,9 @@
 #
 # Glynn presented GSMP by distinguishing the physical state of the system from the clock state [Glynn:1989], and Shedler is known for having the clearest presentation [Shedler:1987]. He represented the physical state as a set of states $p=(p_1,p_2,p_3...)$. Then each event, $E_j$, is defined in relation to those physical states:
 #
-#  * An event is *enabled* by an enabling function which depends on a subset of physical states. This is a function $e(\{p_l\},T_i)\rightarrow \mbox{bool}$. In this notation, the curly bracked $\{\}$ indicate a "set of" something.
+#  * An event is *enabled* by an enabling function which depends on a subset of physical states. This is a function $e(\{p_l\},T_i)\rightarrow \text{bool}$. In this notation, the curly bracked $\{\}$ indicate a "set of" something.
 #  * When the event is not enabled, it is *disabled.*
-#  * The distribution of event times for an event is determined by a subset of physical states. This is a function $f(\{p_m\},T_i)\rightarrow \mbox{pdf}$.
+#  * The distribution of event times for an event is determined by a subset of physical states. This is a function $f(\{p_m\},T_i)\rightarrow \text{pdf}$.
 #  * An event creates a new state by changing some subset of the physical state, and that function can depend on another subset of the physical state, which isn't changed. This is a function $\chi(\{p_j\},\{p_k\},T_i,T_{i+1})\rightarrow \{p'_j\}$.
 #
 # Look at all the subsets. There is a subset for enabling, transition rates, modified state, and catalyst state (which affects the action but isn't modified). If we think of the physical state as nodes in a graph and the events as nodes in a graph, then each subset associated with an event forms a different kind of edge in a bipartite graph.
