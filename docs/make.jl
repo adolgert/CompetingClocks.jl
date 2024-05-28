@@ -22,7 +22,8 @@ adliterate = [
         ("commonrandom.jl", "commonrandom"),
         ("reliability.jl", "reliability"),
         ("memory.jl", "memory"),
-        ("gsmp.jl", "gsmp")
+        ("gsmp.jl", "gsmp"),
+        ("hierarchical.jl", "hierarchical")
     ]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
@@ -81,6 +82,7 @@ makedocs(;
             "background.md",
             "GSMP" => "gsmp.md",
             "samplers.md",
+            "hierarchical.md",
             "memory.md",
             "commonrandom.md",
         ],

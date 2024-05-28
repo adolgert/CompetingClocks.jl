@@ -13,7 +13,7 @@ From the perspective of someone who uses samplers in a simulation the features a
    - control variates?
  * Does it maintain accuracy for extreme distribution parameters or extreme draws?
 
-Answers to these questions come from understanding how samplers are built.
+Answers to these questions come from understanding how samplers are built. A modern description of samplers is in Marchetti [Marchetti:2019].
 
 ## Series of choices
 
@@ -95,7 +95,7 @@ The next reaction method also samples each clock, but it samples in such a way t
 
 When a clock is first enabled, the next reaction method samples a uniform variate in [0,1], and then it finds a putative next event time for that clock using inversion. The original random variate is considered the **total survival for this clock.** The interesting move is that, if that same clock is disabled, this method saves some measure of how far the clock has gotten. That is, it measures the survival of the clock and subtracts that survival from the total survival. If the clock is ever enabled again, its new firing time is determined by the remaining survival.
 
-Is that allowed? The authors of the Next Reaction sort of prove it in ["Efficient Exact Stochastic Simulation of Chemical Systems with Many Species and Many Channels"](https://pubs.acs.org/doi/full/10.1021/jp993732q), but they can fortunately can rely on the work of Kurtz [1], which I don't quite see in their references. Nevertheless, Anderson and Kurtz amended this work with ["Continuous time markov chain models for chemical reaction methods"](https://link.springer.com/chapter/10.1007/978-1-4419-6766-4_1).
+Is that allowed? The authors of the Next Reaction sort of prove it in ["Efficient Exact Stochastic Simulation of Chemical Systems with Many Species and Many Channels"](https://pubs.acs.org/doi/full/10.1021/jp993732q), but they can fortunately can rely on the work of Kurtz [Kurtz:1970], which I don't quite see in their references. Nevertheless, Anderson and Kurtz amended this work with ["Continuous time markov chain models for chemical reaction methods"](https://link.springer.com/chapter/10.1007/978-1-4419-6766-4_1).
 
 In Anderson and Kurtz, they take the same approach as the next reaction method. It's still split by the conditional firing times. It's still sampling by inversion, but they change to a log-space for the sampling of individual distributions. That's the whole change. Instead of storing the total survival, $U$, they store the log of that quantity, which turns out to be much more efficient for exponentials and Weibulls, which are used most frequently.
 
@@ -113,4 +113,6 @@ It would be interesting to ask whether we could create a data structure that is 
 
 ## References
 
-[1] Kurtz, Thomas G. "Solutions of ordinary differential equations as limits of pure jump Markov processes." Journal of applied Probability 7.1 (1970): 49-58.
+[Kurtz:1970] Kurtz, Thomas G. "Solutions of ordinary differential equations as limits of pure jump Markov processes." Journal of applied Probability 7.1 (1970): 49-58.
+
+[Marchetti:2019] Marchetti, Luca, Corrado Priami, and Vo Hong Thanh. Simulation algorithms for computational systems biology. Vol. 1. Berlin, Germany, 2019.
