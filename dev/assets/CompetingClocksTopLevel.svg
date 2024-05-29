@@ -24,12 +24,13 @@
     <g id="Canvas_1_Layer_1">
       <title>Layer 1</title>
       <g id="Graphic_2">
-        <path d="M 588.475 217 L 705.025 217 C 718.8112 217 730 240.072 730 268.5 C 730 296.928 718.8112 320 705.025 320 L 588.475 320 C 574.6888 320 563.5 296.928 563.5 268.5 C 563.5 240.072 574.6888 217 588.475 217 Z" fill="#40ffff"/>
-        <path d="M 588.475 217 L 705.025 217 C 718.8112 217 730 240.072 730 268.5 C 730 296.928 718.8112 320 705.025 320 L 588.475 320 C 574.6888 320 563.5 296.928 563.5 268.5 C 563.5 240.072 574.6888 217 588.475 217 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
-        <text transform="translate(585.15 240.828)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="12.111998" y="15" xml:space="preserve">CompetingClocks decides </tspan>
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="5.3039985" y="33.448" xml:space="preserve">which transition </tspan>
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="10.767998" y="51.895996" xml:space="preserve">happens next.</tspan>
+        <path d="M 589.975 217 L 713.525 217 C 728.1392 217 740 240.072 740 268.5 C 740 296.928 728.1392 320 713.525 320 L 589.975 320 C 575.3608 320 563.5 296.928 563.5 268.5 C 563.5 240.072 575.3608 217 589.975 217 Z" fill="#40ffff"/>
+        <path d="M 589.975 217 L 713.525 217 C 728.1392 217 740 240.072 740 268.5 C 740 296.928 728.1392 320 713.525 320 L 589.975 320 C 575.3608 320 563.5 296.928 563.5 268.5 C 563.5 240.072 575.3608 217 589.975 217 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(586.15 231.604)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="1.4399985" y="15" xml:space="preserve">CompetingClocks </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="14.191998" y="33.448" xml:space="preserve">decides which </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="32.56" y="51.895996" xml:space="preserve">transition </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="14.767998" y="70.34399" xml:space="preserve">happens next.</tspan>
         </text>
       </g>
       <g id="Graphic_3">
@@ -92,7 +93,7 @@
         </g>
       </g>
       <g id="Line_21">
-        <path d="M 726.6499 242.73032 C 734.8847 233.78013 738.7178 224.20403 739.0703 217 C 740 198 726 182 699.1289 170.89844 C 672.2578 159.79687 327.89062 159.16406 307.9453 166.08203 C 288 173 266 192 267.0703 217 C 267.33993 223.2976 272.33873 229.49532 280.22667 235.293" marker-end="url(#FilledArrow_Marker_2)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+        <path d="M 733.5893 234.91075 C 737.1687 228.45943 738.8194 222.12861 739.0703 217 C 740 198 726 182 699.1289 170.89844 C 672.2578 159.79687 327.89062 159.16406 307.9453 166.08203 C 288 173 266 192 267.0703 217 C 267.33993 223.2976 272.33873 229.49532 280.22667 235.293" marker-end="url(#FilledArrow_Marker_2)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
       </g>
       <g id="Graphic_22">
         <text transform="translate(488.73 250.052)" fill="black">
