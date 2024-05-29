@@ -16,7 +16,7 @@ shiftpdf(dist, intermediate, x) = hazard(dist, x + intermediate) * conditional_s
 remembered_age = 5.1
 plot(x, shiftpdf.(bottler, remembered_age, x), xlims=(0.0, 12.0))
 #
-# Another way to think about transitions with memory is that the zero-time of the process is now in the past. For Fleck, that zero-time is called the *enabling time.* When we enable a transition, we give the enabling time as an absolute time in the simulation.
+# Another way to think about transitions with memory is that the zero-time of the process is now in the past. For CompetingClocks, that zero-time is called the *enabling time.* When we enable a transition, we give the enabling time as an absolute time in the simulation.
 #
 # ```
 # enablingtime = currenttime - remembered_age

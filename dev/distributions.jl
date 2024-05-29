@@ -7,9 +7,9 @@ using LaTeXStrings #hide
 using QuadGK #hide
 using ForwardDiff #hide
 
-# Fleck is a sampler for generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next.
+# CompetingClocks is a sampler for generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next.
 # 
-# In a *process-oriented* simulation (like [SimJulia](https://simjuliajl.readthedocs.io/en/stable/welcome.html)), control flow is based on tasks. Each task performs some action on the state, rolls the dice, and sets a wake-up time. It might wake up as expected and possible execute code, or it might be interrupted by another task's actions. In contrast, an *event-oriented* simulation using Fleck will create a set of possible next events, assign a probability distribution for *when* each can happen, and the timing of which happens first determines *which* next event happens. Let's look at how a probability distribution describes the time for an event to happen and then how they compete in Fleck.
+# In a *process-oriented* simulation (like [SimJulia](https://simjuliajl.readthedocs.io/en/stable/welcome.html)), control flow is based on tasks. Each task performs some action on the state, rolls the dice, and sets a wake-up time. It might wake up as expected and possible execute code, or it might be interrupted by another task's actions. In contrast, an *event-oriented* simulation using CompetingClocks will create a set of possible next events, assign a probability distribution for *when* each can happen, and the timing of which happens first determines *which* next event happens. Let's look at how a probability distribution describes the time for an event to happen and then how they compete in CompetingClocks.
 # 
 # ## Distributions in Time
 # 
