@@ -54,7 +54,7 @@ for (source, target) in adliterate
             chunk_source = joinpath(example_base, chunk)
             chunk_target = joinpath(example_base, "literate", chunk)
             @info "Moving $chunk_source to $chunk_target"
-            mv(chunk_source, chunk_target)
+            mv(chunk_source, chunk_target; force=true)
         end
     end
 end
