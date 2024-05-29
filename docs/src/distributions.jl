@@ -7,7 +7,7 @@ using LaTeXStrings #hide
 using QuadGK #hide
 using ForwardDiff #hide
 
-# Fleck simulates generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next.
+# Fleck is a sampler for generalized semi-Markov processes (GSMP). Every event in a generalized semi-Markov process is chosen as the result of a competion among clocks to see which fires next.
 # 
 # In a *process-oriented* simulation (like [SimJulia](https://simjuliajl.readthedocs.io/en/stable/welcome.html)), control flow is based on tasks. Each task performs some action on the state, rolls the dice, and sets a wake-up time. It might wake up as expected and possible execute code, or it might be interrupted by another task's actions. In contrast, an *event-oriented* simulation using Fleck will create a set of possible next events, assign a probability distribution for *when* each can happen, and the timing of which happens first determines *which* next event happens. Let's look at how a probability distribution describes the time for an event to happen and then how they compete in Fleck.
 # 
@@ -83,7 +83,7 @@ DisplayAs.PNG(sgp) #hide
 # Equally important for simulation is the survival function (sometimes called the complementary cumulative distribution function), which is the probability the event will not occur until after ``t_1``.
 # 
 # ```math
-# S(t_1) = 1 - F(t_1;t_1) = e^{-\int_{t_0}^{t_1} \lambda(s) ds}
+# S(t_1) = 1 - F(t_1;0) = e^{-\int_{0}^{t_1} \lambda(s) ds}
 # ```
 
 y1 = cdf.(Gamma51, x) #hide
@@ -94,6 +94,8 @@ xlabel!(p, "Time") #hide
 ylabel!(p, "Probability") #hide
 title!(p, "Cumulative distribution and Survival functions \nof a Gamma Distribution") #hide
 DisplayAs.PNG(p) #hide
+
+# For our example, survival is the chance the cold lasts longer than the given time.
 
 # ## Competition
 # 
@@ -147,7 +149,7 @@ function marginal_probability_event(dists, which, t) #hide
     end #hide
     core_matrix #hide
 end #hide
-
+#hide
 total_probability(which, lim) = quadgk(t -> marginal_probability_event(com_dists, which, t), 0, lim, rtol=1e-3)[1] #hide
 tp = total_probability.([1, 2, 3], Inf) #hide
 @show tp #hide
@@ -187,7 +189,7 @@ function total_pdf(t) #hide
     return factor1 * factor2 #hide
 end #hide
 a = plot(com_x, total_pdf.(com_x), legend=:none, title="PDF for First to Fire") #hide
-
+#hide
 function com_cond_prob(i, t) #hide
     hazard(com_dists[i], t) / sum(hazard.(com_dists, t)) #hide
 end #hide
@@ -195,7 +197,6 @@ com_rel_prob = stack([com_cond_prob.(i, com_x) for i in eachindex(com_dists)]) #
 b = plot(com_x, com_rel_prob, labels=com_labels, ylabel="Conditional Probability", #hide
     title="Which Event Fires Given Firing Time") #hide
 DisplayAs.PNG(plot(a, b, size=(1000, 400))) #hide
-
 # 
 # On the left of this graph is the pdf for the first event of the three to fire. We can see this as a marginal $P[t]$ and then the right-hand graph as the conditional $P[E_i|t]$.
 # 
