@@ -1,7 +1,7 @@
 using DataStructures: MutableBinaryHeap, update!
 using Random
 
-using Fleck: OrderedSample
+using CompetingClocks: OrderedSample
 
 abstract type AbstractNextReaction{T} end
 

@@ -3,7 +3,7 @@ module VectorAddition
 
 import Distributions
 using Random: AbstractRNG
-using Fleck
+using CompetingClocks
 
 export VectorAdditionSystem, zero_state, vas_delta, vas_initial, fire!, simstep!,
     VectorAdditionModel, VectorAdditionFSM

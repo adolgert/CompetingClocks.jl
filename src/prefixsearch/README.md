@@ -9,7 +9,7 @@ Prefix search is also known as prefix sum, cumulative sum, or inclusive scan. Th
    within the list
  * Finding the index of a value by its cumulant within the list
 
-In Fleck, the Direct method uses prefix search to find the next hazard, or propensity, within the list of all enabled hazards. Most variations on the Direct method are optimizations of the prefix search algorithm.
+In CompetingClocks, the Direct method uses prefix search to find the next hazard, or propensity, within the list of all enabled hazards. Most variations on the Direct method are optimizations of the prefix search algorithm.
 
 ## Example
 
@@ -35,7 +35,7 @@ For a Direct method within a sampler framework, we are looking for a few feature
 
 ### Non-integer keys
 
-I don't know of any implementations that can use non-integer keys, but Fleck allows any kind of clock ID you want, not just integers. A prefix search tree for non-integer keys would be some combination of a hash, or dict, and a set of cumulative sums. Julia does have sorted dictionaries in its DataStructures.jl library, but these are sorted by the key, not the value, so it's backwards from what we need.
+I don't know of any implementations that can use non-integer keys, but CompetingClocks allows any kind of clock ID you want, not just integers. A prefix search tree for non-integer keys would be some combination of a hash, or dict, and a set of cumulative sums. Julia does have sorted dictionaries in its DataStructures.jl library, but these are sorted by the key, not the value, so it's backwards from what we need.
 
 ### Mutable values
 

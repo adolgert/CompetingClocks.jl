@@ -2,7 +2,7 @@ using SafeTestsets
 
 
 @safetestset first_reaction_smoke = "FirstReaction smoke" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: MersenneTwister
     using Distributions: Exponential, Gamma
 
@@ -26,7 +26,7 @@ using SafeTestsets
 end
 
 @safetestset first_reaction_interface = "FirstReaction basic interface" begin
-    using Fleck
+    using CompetingClocks
     using Random: Xoshiro
     using Distributions
 
@@ -55,7 +55,7 @@ end
 
 
 @safetestset first_reaction_empty = "FirstReaction empty" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: MersenneTwister
 
     rng = MersenneTwister(90422342)
@@ -67,7 +67,7 @@ end
 
 
 @safetestset first_reaction_binomial = "FirstReaction binomial" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: MersenneTwister
     using ..DirectFixture: test_exponential_binomial
 
@@ -78,7 +78,7 @@ end
 
 
 @safetestset first_reaction_weibull_binomial = "FirstReaction weibull binomial" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: MersenneTwister
     using ..DirectFixture: test_weibull_binomial
 
@@ -89,7 +89,7 @@ end
 
 
 @safetestset first_reaction_single = "FirstReaction single transition" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: Xoshiro
     using HypothesisTests: pvalue, ExactOneSampleKSTest
     using Distributions: Gamma, Exponential, Weibull
@@ -109,7 +109,7 @@ end
 
 
 @safetestset first_reaction_single_later = "FirstReaction single transition later" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: Xoshiro
     using HypothesisTests: pvalue, ExactOneSampleKSTest, confint
     using Distributions: Gamma, Exponential, Weibull, truncated
@@ -132,7 +132,7 @@ end
 
 
 @safetestset first_reaction_single_future = "FirstReaction single future transition" begin
-    using Fleck: FirstReaction, enable!, disable!, next
+    using CompetingClocks: FirstReaction, enable!, disable!, next
     using Random: Xoshiro
     using HypothesisTests: pvalue, ExactOneSampleKSTest, confint
     using Distributions: Gamma, Exponential, Weibull

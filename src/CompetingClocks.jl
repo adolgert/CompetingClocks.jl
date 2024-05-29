@@ -1,4 +1,4 @@
-module Fleck
+module CompetingClocks
 using Documenter
 
 const ContinuousTime = AbstractFloat

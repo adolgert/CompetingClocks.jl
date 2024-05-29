@@ -3,7 +3,7 @@
 # of the classic NextReaction and ModifiedNextReaction types. We are
 # guarding against errors that come from mishandling types in Julia.
 using Distributions
-using Fleck
+using CompetingClocks
 using Random
 
 

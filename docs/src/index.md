@@ -1,10 +1,10 @@
 ```@meta
-CurrentModule = Fleck
+CurrentModule = CompetingClocks
 ```
 
-# Fleck
+# CompetingClocks
 
-Fleck is a Julia library that samples distributions for discrete event systems (DES) in continuous time. It supports Exponential and non-Exponential distributions for events.
+CompetingClocks is a Julia library that samples distributions for discrete event systems (DES) in continuous time. It supports Exponential and non-Exponential distributions for events.
 
 ## Overview
 
@@ -19,7 +19,7 @@ Many kinds of discrete event simulations need an efficient way to choose the nex
 
 This library supports these kinds of simulations by optimizing the choice of the next event in the system. In statistical terms, this library is a sampler for generalized semi-Markov processes.
 
-![Fleck chooses the next transition but the simulation tracks state and changes to state.](assets/FleckTopLevel.svg)
+![CompetingClocks chooses the next transition but the simulation tracks state and changes to state.](assets/CompetingClocksTopLevel.svg)
 
 The background work for this library comes from [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
 
@@ -45,4 +45,4 @@ If I make a quick simulation for myself, I sample distributions the moment an ev
 
  * Performance matters (which it often doesn't), so I would like to try different samplers on my problem.
 
- * I want to focus on developing and testing my *model* not my *simulation algorithm*; Fleck is designed and tested with care to ensure correctness.
+ * I want to focus on developing and testing my *model* not my *simulation algorithm*; CompetingClocks is designed and tested with care to ensure correctness.

@@ -28,5 +28,5 @@
 #
 # Each time a simulation calls `enable!` and `disable!` for an event, it specifies a key for that event. If the sampler is hierarchical, it can use that key, and maybe the type of the distribution, to choose which sampler handles any given event.
 #
-# Fleck's approach in the [`MultiSampler`](@ref) type is to let the user specify a function that takes as input the key and the distribution and returns some ID for the chosen sampler. The MultiSampler then remembers that choice for this event key, from that point on.
+# CompetingClocks's approach in the [`MultiSampler`](@ref) type is to let the user specify a function that takes as input the key and the distribution and returns some ID for the chosen sampler. The MultiSampler then remembers that choice for this event key, from that point on.
 #

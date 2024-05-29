@@ -1,7 +1,7 @@
 # # Sample Main Loop
 
 # ## Introduction
-# Let's walk through a small simulation so that we can see how Fleck
+# Let's walk through a small simulation so that we can see how CompetingClocks
 # could appear in the main loop.
 # This models individuals wandering around on a checkerboard, where no
 # two individuals can occupy the same space. First, let's import libraries.
@@ -11,7 +11,7 @@ using Distributions
 using Random
 using SparseArrays
 using Test
-using Fleck
+using CompetingClocks
 
 # There is a physical state for the model, separate from the state of
 # the bag of clocks and separate from the time. Most of the board is empty,
@@ -46,14 +46,14 @@ end
 # The main loop will ask what event happens next to the state. When that
 # event changes the state, the loop will update the set of possible next
 # events by disabling outdated ones and enabling new ones. The calls to
-# Fleck are:
+# CompetingClocks are:
 #
 # * `next(sampler, current time, random number generator (RNG))`
 # * `enable!(sampler, event ID, distribution, current time, start time of clock, RNG)`
 # * `disable!(sampler, event ID, current time)`
 #
-# There are a lot of samplers in Fleck to choose from. This example uses `CombinedNextReaction`
-# algorithm, which has good performance for a variety of distributions. Samplers in Fleck
+# There are a lot of samplers in CompetingClocks to choose from. This example uses `CombinedNextReaction`
+# algorithm, which has good performance for a variety of distributions. Samplers in CompetingClocks
 # require two type parameters, a key type for clocks and the type used to represent time.
 # In this case, the clock key type fully represents an event, giving the ID of the individual,
 # where they start, and which direction they may move.

@@ -4,7 +4,7 @@
 module SampleVAS
 using Combinatorics
 using Distributions
-using Fleck
+using CompetingClocks
 export sample_transitions, sample_sir, TrackerSampler, enable!, disable!
 function sample_transitions()
     all = [
@@ -62,7 +62,7 @@ end
 module DirectFixture
 using Distributions: Exponential, Weibull
 using Test
-using Fleck: enable!, next
+using CompetingClocks: enable!, next
 using HypothesisTests: BinomialTest, confint
 
 function test_exponential_binomial(sampler, rng)

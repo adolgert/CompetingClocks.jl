@@ -25,7 +25,7 @@ end
 
 
 @safetestset vas_reports_hazards = "VAS reports_hazards" begin
-using Fleck: push!, DebugWatcher, enable!, disable!
+using CompetingClocks: push!, DebugWatcher, enable!, disable!
 using ..VectorAddition
 using ..SampleVAS: sample_transitions
 take, give, rates = sample_transitions()
@@ -65,7 +65,7 @@ end
 @safetestset vas_loops = "VAS main loop" begin
 # This test takes apart the main loop in order to examine whether
 # the model works without a sampler. It watches VAS work.
-using Fleck: TrackWatcher, enable!, disable!
+using CompetingClocks: TrackWatcher, enable!, disable!
 using Random: MersenneTwister
 using ..VectorAddition
 using ..SampleVAS: sample_transitions
@@ -110,7 +110,7 @@ end
 
 
 @safetestset vas_fsm_init = "VAS finite state init" begin
-    using Fleck: DirectCall
+    using CompetingClocks: DirectCall
     using Random: MersenneTwister
     using ..VectorAddition
     using ..SampleVAS: sample_transitions
@@ -129,7 +129,7 @@ end
 
 
 @safetestset vas_fsm_sir = "VAS runs SIR to completion" begin
-    using Fleck: DirectCall
+    using CompetingClocks: DirectCall
     using Random: MersenneTwister
     using ..VectorAddition
     using ..SampleVAS: sample_sir

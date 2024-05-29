@@ -19,7 +19,7 @@ Answers to these questions come from understanding how samplers are built. A mod
 
 ### Split into marginal and conditional
 
-Fleck supports sampling from generalized semi-Markov processes (GSMP). Every sampler of GSMP is sampling a joint space of which clock event is next, $E$, and which time is next, $T$. The clock event is a discrete choice, and the time is a continuous choice.
+CompetingClocks supports sampling from generalized semi-Markov processes (GSMP). Every sampler of GSMP is sampling a joint space of which clock event is next, $E$, and which time is next, $T$. The clock event is a discrete choice, and the time is a continuous choice.
 The first step to making a GSMP sampler is to split that joint distribution into marginals and conditionals.
 
 The reason to split the joint distribution is that, to sample any joint distribution, the usual method is to sample from the marginal of one random variable and then, given that value, sample the conditional of the other random variable. There are three ways to split a GSMP's joint distribution.
@@ -99,13 +99,13 @@ Is that allowed? The authors of the Next Reaction sort of prove it in ["Efficien
 
 In Anderson and Kurtz, they take the same approach as the next reaction method. It's still split by the conditional firing times. It's still sampling by inversion, but they change to a log-space for the sampling of individual distributions. That's the whole change. Instead of storing the total survival, $U$, they store the log of that quantity, which turns out to be much more efficient for exponentials and Weibulls, which are used most frequently.
 
-In Fleck, you'll see a single sampler that uses a combination of the next reaction method (Gibson and Bruck) and the modified next reaction method (Anderson and Kurtz). Based on the particular univariate distribution, the code uses a lookup into a performance table to choose either a linear space or log space. It's the best of both worlds, and it's just a matter of changing data structures a little bit.
+In CompetingClocks, you'll see a single sampler that uses a combination of the next reaction method (Gibson and Bruck) and the modified next reaction method (Anderson and Kurtz). Based on the particular univariate distribution, the code uses a lookup into a performance table to choose either a linear space or log space. It's the best of both worlds, and it's just a matter of changing data structures a little bit.
 
 Why do people like the next reaction method when the first to fire is much less fussy and will use the appropriate sampler for the distribution, every time? It's about features. The next reaction method stores data that helps calculate importance samples. It also makes it easy to implement common random numbers. Finally, the next reaction method always samples from $U=[0,1]$ or from an exponential distribution, and then it transforms that value into the sample of the particular clock's distribution. This is called pathwise sampling, and it enables a simple method for taking derivatives of distributions.
 
 ### Direct method for exponentials
 
-The Direct method is really quite solved, as described above. However, there is one complication that has to do with clock keys. Literature about prefix scans assumes that there are integer indices into an ordered, fixed list of integers. That is, you will use the integers 1-100 for the whole simulation. It seems so useful to have clock keys that can be strings, tuples, or other immutable types, so Fleck uses a prefix scan that maintains a dictionary of keys.
+The Direct method is really quite solved, as described above. However, there is one complication that has to do with clock keys. Literature about prefix scans assumes that there are integer indices into an ordered, fixed list of integers. That is, you will use the integers 1-100 for the whole simulation. It seems so useful to have clock keys that can be strings, tuples, or other immutable types, so CompetingClocks uses a prefix scan that maintains a dictionary of keys.
 
 If the prefix scan has a dictionary of keys, then it could remember the keys forever or it could forget them. If you have a long-running simulation that uses an ever-growing number of event keys, then it's important to remove keys that are no longer in use. If you have a simulation that uses a fixed set of keys, it's easier to keep them in the dictionary.
 

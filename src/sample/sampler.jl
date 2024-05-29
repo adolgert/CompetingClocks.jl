@@ -87,17 +87,17 @@ We can name them with symbols. The trick is that we need to direct each kind
 of distribution to the correct sampler. Use a Float64 for time and each clock
 can be identified with an Int64.
 ```
-using Fleck
+using CompetingClocks
 using Distributions: Exponential, UnivariateDistribution
 
 struct ByDistribution <: SamplerChoice{Int64,Symbol} end
 
-function Fleck.choose_sampler(
+function CompetingClocks.choose_sampler(
     chooser::ByDistribution, clock::Int64, distribution::Exponential
     )::Symbol
     return :direct
 end
-function Fleck.choose_sampler(
+function CompetingClocks.choose_sampler(
     chooser::ByDistribution, clock::Int64, distribution::UnivariateDistribution
     )::Symbol
     if clock < 100

@@ -1,7 +1,7 @@
-using Fleck
+using CompetingClocks
 
 @safetestset never_fair = "Never fair weather" begin
-    using Fleck: Never
+    using CompetingClocks: Never
 
     n = Never()
     p = params(n)

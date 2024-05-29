@@ -27,7 +27,7 @@
         <path d="M 588.475 217 L 705.025 217 C 718.8112 217 730 240.072 730 268.5 C 730 296.928 718.8112 320 705.025 320 L 588.475 320 C 574.6888 320 563.5 296.928 563.5 268.5 C 563.5 240.072 574.6888 217 588.475 217 Z" fill="#40ffff"/>
         <path d="M 588.475 217 L 705.025 217 C 718.8112 217 730 240.072 730 268.5 C 730 296.928 718.8112 320 705.025 320 L 588.475 320 C 574.6888 320 563.5 296.928 563.5 268.5 C 563.5 240.072 574.6888 217 588.475 217 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
         <text transform="translate(585.15 240.828)" fill="black">
-          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="12.111998" y="15" xml:space="preserve">Fleck decides </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="12.111998" y="15" xml:space="preserve">CompetingClocks decides </tspan>
           <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="5.3039985" y="33.448" xml:space="preserve">which transition </tspan>
           <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="10.767998" y="51.895996" xml:space="preserve">happens next.</tspan>
         </text>

@@ -1,7 +1,7 @@
 using DataStructures: MutableBinaryHeap
 using Random
 
-using Fleck: OrderedSample
+using CompetingClocks: OrderedSample
 
 
 """

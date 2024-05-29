@@ -36,7 +36,7 @@ the trajectories.
 
 ```julia
 using Random: Xoshiro
-using Fleck
+using CompetingClocks
 example_clock = (3, 7)  # We will use clock IDs that are a tuple of 2 integers.
 sampler = FirstToFire{typeof(example_clock)}()
 crn_sampler = CommonRandomRecorder(sampler, typeof(example_clock), Xoshiro)

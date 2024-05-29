@@ -1,6 +1,6 @@
 # Vector Addition System
 
-One way to understand how to use Fleck is to look at a very simple simulation. A [vector addition system](https://en.wikipedia.org/wiki/Vector_addition_system) (VAS) is a lot like chemical simulations, but it's free of some of the assumptions about chemical rates. The physical state of the system is a vector of integers. Such a simple physical state can make it easier to understand possible complications in how we define events.
+One way to understand how to use CompetingClocks is to look at a very simple simulation. A [vector addition system](https://en.wikipedia.org/wiki/Vector_addition_system) (VAS) is a lot like chemical simulations, but it's free of some of the assumptions about chemical rates. The physical state of the system is a vector of integers. Such a simple physical state can make it easier to understand possible complications in how we define events.
 
 There are variations on how to define a vector addition system. Let's begin with one and introduce variations as they become interesting.
 
