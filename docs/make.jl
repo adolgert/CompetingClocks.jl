@@ -91,7 +91,11 @@ makedocs(;
             "SIR Model" => "sir.md",
             "Reliability" => "reliability.md"
         ],
-        "Reference" => "reference.md"
+        "Reference" => [
+            "interface.md",
+            "reference.md",
+            "algorithms.md"
+        ]
     ],
 )
 
