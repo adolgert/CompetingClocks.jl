@@ -20,7 +20,10 @@ adliterate = [
         ("constant_birth.jl", "constant_birth"),
         ("sir.jl", "sir"),
         ("commonrandom.jl", "commonrandom"),
-        ("reliability.jl", "reliability")
+        ("reliability.jl", "reliability"),
+        ("memory.jl", "memory"),
+        ("gsmp.jl", "gsmp"),
+        ("hierarchical.jl", "hierarchical")
     ]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
@@ -37,7 +40,7 @@ for (source, target) in adliterate
         rm("$(ftarget).md", force=true)
     end
     if !isfile("$(ftarget).md") || mtime(fsource) > mtime("$(ftarget).md")
-        println("Literate of $source to $target")
+        @info "Literate of $source to $target"
         Literate.markdown(
             fsource,
             example_base,
@@ -48,7 +51,10 @@ for (source, target) in adliterate
         ischunk = Regex("$(target)-[0-9]+.(png|svg|pdf)")
         chunks = [fn for fn in readdir(example_base) if match(ischunk, fn) !== nothing]
         for chunk in chunks
-            mv(joinpath(example_base, chunk), joinpath(example_base, "literate", chunk))
+            chunk_source = joinpath(example_base, chunk)
+            chunk_target = joinpath(example_base, "literate", chunk)
+            @info "Moving $chunk_source to $chunk_target"
+            mv(chunk_source, chunk_target)
         end
     end
 end
@@ -72,13 +78,13 @@ makedocs(;
             "distributions.md"
         ],
         "Manual" => [
-            "Structure" => "objects.md",
-            "commonrandom.md",
-            "background.md",
             "distrib.md",
-            "Develop" => "develop.md",
+            "background.md",
+            "GSMP" => "gsmp.md",
             "samplers.md",
-            "Vector Addition Systems" => "vas.md",
+            "hierarchical.md",
+            "memory.md",
+            "commonrandom.md",
         ],
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",

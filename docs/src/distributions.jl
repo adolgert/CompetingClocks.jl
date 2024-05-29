@@ -1,4 +1,4 @@
-# # How Fleck Decides What Happens Next
+# # Non-exponential Simulation
 
 using DisplayAs #hide
 using Plots #hide
