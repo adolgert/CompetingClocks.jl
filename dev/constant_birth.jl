@@ -123,12 +123,8 @@ function multiple_runs(trial_cnt = 20, max_step = 1000)
      std(trials) / single_expected)
 end
 
-multiple_runs(20, 100)
+multiple_runs(5, 100)
 
 #-
 
-multiple_runs(20, 1000)
-
-#-
-
-multiple_runs(20, 10000)
+multiple_runs(5, 200)
