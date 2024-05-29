@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xl="http://www.w3.org/1999/xlink" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="188 158.07714 554.6138 314.42286" width="554.6138" height="314.42286">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -3 6 6" markerWidth="6" markerHeight="6" color="#7f8080">
+      <g>
+        <path d="M 3.2 0 L 0 -1.2 L 0 1.2 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledBall_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-7 -4 8 8" markerWidth="8" markerHeight="8" color="#7f8080">
+      <g>
+        <circle cx="-2.9999986" cy="0" r="2.99999734868332" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker_2" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -3 6 6" markerWidth="6" markerHeight="6" color="#7f8080">
+      <g>
+        <path d="M 3.7333333 0 L 0 -1.4 L 0 1.4 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+  </defs>
+  <g id="Canvas_1" fill-opacity="1" stroke="none" fill="none" stroke-opacity="1" stroke-dasharray="none">
+    <title>Canvas 1</title>
+    <rect fill="white" x="188" y="158.07714" width="554.6138" height="314.42286"/>
+    <g id="Canvas_1_Layer_1">
+      <title>Layer 1</title>
+      <g id="Graphic_2">
+        <path d="M 588.475 217 L 705.025 217 C 718.8112 217 730 240.072 730 268.5 C 730 296.928 718.8112 320 705.025 320 L 588.475 320 C 574.6888 320 563.5 296.928 563.5 268.5 C 563.5 240.072 574.6888 217 588.475 217 Z" fill="#40ffff"/>
+        <path d="M 588.475 217 L 705.025 217 C 718.8112 217 730 240.072 730 268.5 C 730 296.928 718.8112 320 705.025 320 L 588.475 320 C 574.6888 320 563.5 296.928 563.5 268.5 C 563.5 240.072 574.6888 217 588.475 217 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(585.15 240.828)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="12.111998" y="15" xml:space="preserve">Fleck decides </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="5.3039985" y="33.448" xml:space="preserve">which transition </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="10.767998" y="51.895996" xml:space="preserve">happens next.</tspan>
+        </text>
+      </g>
+      <g id="Graphic_3">
+        <path d="M 190.5 459.7 L 190.5 377.3 C 190.5 371.6144 230.036 367 278.75 367 C 327.464 367 367 371.6144 367 377.3 L 367 459.7 C 367 465.3856 327.464 470 278.75 470 C 230.036 470 190.5 465.3856 190.5 459.7" fill="#c0c0ff"/>
+        <path d="M 190.5 459.7 L 190.5 377.3 C 190.5 371.6144 230.036 367 278.75 367 C 327.464 367 367 371.6144 367 377.3 L 367 459.7 C 367 465.3856 327.464 470 278.75 470 C 230.036 470 190.5 465.3856 190.5 459.7 M 190.5 377.3 C 190.5 382.9856 230.036 387.6 278.75 387.6 C 327.464 387.6 367 382.9856 367 377.3" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(195.5 414.426)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="20.418" y="15" xml:space="preserve">Simulation STATE</tspan>
+        </text>
+      </g>
+      <g id="Graphic_4">
+        <path d="M 398 459.7 L 398 377.3 C 398 371.6144 437.536 367 486.25 367 C 534.964 367 574.5 371.6144 574.5 377.3 L 574.5 459.7 C 574.5 465.3856 534.964 470 486.25 470 C 437.536 470 398 465.3856 398 459.7" fill="#c0c0ff"/>
+        <path d="M 398 459.7 L 398 377.3 C 398 371.6144 437.536 367 486.25 367 C 534.964 367 574.5 371.6144 574.5 377.3 L 574.5 459.7 C 574.5 465.3856 534.964 470 486.25 470 C 437.536 470 398 465.3856 398 459.7 M 398 377.3 C 398 382.9856 437.536 387.6 486.25 387.6 C 534.964 387.6 574.5 382.9856 574.5 377.3" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(403 405.202)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="21.61" y="15" xml:space="preserve">Which transitions </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="16" fill="black" x="16.562" y="33.448" xml:space="preserve">could</tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" y="33.448" xml:space="preserve"> happen next</tspan>
+        </text>
+      </g>
+      <g id="Graphic_5">
+        <path d="M 316.975 217 L 440.525 217 C 455.1392 217 467 240.072 467 268.5 C 467 296.928 455.1392 320 440.525 320 L 316.975 320 C 302.3608 320 290.5 296.928 290.5 268.5 C 290.5 240.072 302.3608 217 316.975 217 Z" fill="#c0c0ff"/>
+        <path d="M 316.975 217 L 440.525 217 C 455.1392 217 467 240.072 467 268.5 C 467 296.928 455.1392 320 440.525 320 L 316.975 320 C 302.3608 320 290.5 296.928 290.5 268.5 C 290.5 240.072 302.3608 217 316.975 217 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(313.15 250.052)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="9.143998" y="15" xml:space="preserve">Handle the next </tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="32.56" y="33.448" xml:space="preserve">transition</tspan>
+        </text>
+      </g>
+      <g id="Line_6">
+        <line x1="467" y1="268.5" x2="544.6" y2="268.5" marker-end="url(#FilledArrow_Marker)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+      </g>
+      <g id="Line_8">
+        <line x1="340.8111" y1="325.40833" x2="312.56072" y2="367.7839" marker-start="url(#FilledBall_Marker)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Line_9">
+        <line x1="419.4447" y1="325.2833" x2="449.9922" y2="367.9077" marker-start="url(#FilledBall_Marker)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+      </g>
+      <g id="Group_14">
+        <g id="Graphic_13">
+          <rect x="609" y="328.5359" width="107.5" height="140.448" fill="#ccc"/>
+          <rect x="609" y="328.5359" width="107.5" height="140.448" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+        </g>
+        <g id="Graphic_10">
+          <path d="M 631.625 337.5359 L 692.875 337.5359 C 700.12 337.5359 706 347.6159 706 360.0359 C 706 372.4559 700.12 382.5359 692.875 382.5359 L 631.625 382.5359 C 624.38 382.5359 618.5 372.4559 618.5 360.0359 C 618.5 347.6159 624.38 337.5359 631.625 337.5359 Z" fill="white"/>
+          <path d="M 631.625 337.5359 L 692.875 337.5359 C 700.12 337.5359 706 347.6159 706 360.0359 C 706 372.4559 700.12 382.5359 692.875 382.5359 L 631.625 382.5359 C 624.38 382.5359 618.5 372.4559 618.5 360.0359 C 618.5 347.6159 624.38 337.5359 631.625 337.5359 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(632.25 350.8119)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="10.296" y="15" xml:space="preserve">Logic</tspan>
+          </text>
+        </g>
+        <g id="Graphic_11">
+          <path d="M 618.5 435.9359 L 618.5 399.1359 C 618.5 396.5967 638.1 394.5359 662.25 394.5359 C 686.4 394.5359 706 396.5967 706 399.1359 L 706 435.9359 C 706 438.4751 686.4 440.5359 662.25 440.5359 C 638.1 440.5359 618.5 438.4751 618.5 435.9359" fill="white"/>
+          <path d="M 618.5 435.9359 L 618.5 399.1359 C 618.5 396.5967 638.1 394.5359 662.25 394.5359 C 686.4 394.5359 706 396.5967 706 399.1359 L 706 435.9359 C 706 438.4751 686.4 440.5359 662.25 440.5359 C 638.1 440.5359 618.5 438.4751 618.5 435.9359 M 618.5 399.1359 C 618.5 401.6751 638.1 403.7359 662.25 403.7359 C 686.4 403.7359 706 401.6751 706 399.1359" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(623.5 401.3879)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="22.006" y="15" xml:space="preserve">Data </tspan>
+            <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="7.038" y="33.448" xml:space="preserve">structure</tspan>
+          </text>
+        </g>
+        <g id="Graphic_12">
+          <text transform="translate(633.802 445.5359)" fill="black">
+            <tspan font-family="Helvetica Neue" font-weight="bold" font-size="16" fill="black" x="31974423e-20" y="16" xml:space="preserve">Legend</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Line_21">
+        <path d="M 726.6499 242.73032 C 734.8847 233.78013 738.7178 224.20403 739.0703 217 C 740 198 726 182 699.1289 170.89844 C 672.2578 159.79687 327.89062 159.16406 307.9453 166.08203 C 288 173 266 192 267.0703 217 C 267.33993 223.2976 272.33873 229.49532 280.22667 235.293" marker-end="url(#FilledArrow_Marker_2)" stroke="#7f8080" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+      </g>
+      <g id="Graphic_22">
+        <text transform="translate(488.73 250.052)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="2.072" y="15" xml:space="preserve">Enable</tspan>
+          <tspan font-family="Helvetica Neue" font-size="16" fill="black" x="4369838e-19" y="33.448" xml:space="preserve">Disable</tspan>
+        </text>
+      </g>
+    </g>
+  </g>
+</svg>
