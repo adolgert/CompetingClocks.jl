@@ -4,7 +4,7 @@ authors = [
     "Andrew Dolgert <andrew@dolgert.com>",
     "Sean L. Wu <slwood@gmail.com>"
     ]
-version = "0.2.0"
+version = "0.1.0"
 
 [deps]
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
