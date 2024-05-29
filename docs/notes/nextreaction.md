@@ -32,7 +32,7 @@ In the general case, for non-Markovian or inhomogeneous Markovian processes,
 
 During the $n^{\text{th}}$ iteration of the First Reaction method, the random variables giving the relative putative times to firing are $R_{\alpha}$ for each transition. For homogeneous Markov processes we assume they follow an exponential distribution with parameter $a_{\alpha}$. The random variable giving the putative absolute time to firing is $T_{\alpha}=R_{\alpha}+t_{n}$. The distribution of $T_{\alpha}$ is the original shifted to the right by $t_{n}$.
 
-## Implementation in Fleck
+## Implementation in CompetingClocks
 
 Let $\xi_{j}(v)$ be the most recent enabling time of clock $j$. When it is first enabled, we sample by inversion, which solves the following equation for the putative firing time $t^\prime$.
 

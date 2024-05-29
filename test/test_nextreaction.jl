@@ -3,7 +3,7 @@ using SafeTestsets
 
 @safetestset NextReaction_handle_always_positive = "heap handle is always positive" begin
     using DataStructures
-    using Fleck: OrderedSample
+    using CompetingClocks: OrderedSample
 
     # The NextReaction algorithm relies on the heap handle always being positive
     # so this test checks that is the case.
@@ -29,7 +29,7 @@ end
 @safetestset NextReactionSmoke = "next reaction does basic things" begin
     using Distributions
     using Random
-    using Fleck: NextReaction, next, enable!, disable!
+    using CompetingClocks: NextReaction, next, enable!, disable!
 
     rng = MersenneTwister(349827)
     for i in 1:100

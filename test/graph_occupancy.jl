@@ -1,5 +1,5 @@
 using Distributions
-using Fleck
+using CompetingClocks
 using Graphs
 using Random
 using StatsBase

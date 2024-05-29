@@ -2,7 +2,7 @@ using SafeTestsets
 
 @safetestset singlesampler_smoke = "SingleSampler smoke" begin
     using Random: Xoshiro
-    using Fleck: FirstToFire, SingleSampler, enable!, disable!, sample!
+    using CompetingClocks: FirstToFire, SingleSampler, enable!, disable!, sample!
     using Distributions: Exponential
 
     sampler = SingleSampler(FirstToFire{Int64,Float64}())
@@ -22,17 +22,17 @@ end
 
 
 module MultiSamplerHelp
-    using Fleck
+    using CompetingClocks
     using Distributions: Exponential, UnivariateDistribution
 
     struct ByDistribution <: SamplerChoice{Int64,Int64} end
 
-    function Fleck.choose_sampler(
+    function CompetingClocks.choose_sampler(
         chooser::ByDistribution, clock::Int64, distribution::Exponential
         )::Int64
         return 1
     end
-    function Fleck.choose_sampler(
+    function CompetingClocks.choose_sampler(
         chooser::ByDistribution, clock::Int64, distribution::UnivariateDistribution
         )::Int64
         return 2
@@ -42,7 +42,7 @@ end
 
 @safetestset multisampler_smoke = "MultiSampler smoke" begin
     using Random: Xoshiro
-    using Fleck: FirstToFire, MultiSampler, enable!, disable!, sample!, choose_sampler, reset!
+    using CompetingClocks: FirstToFire, MultiSampler, enable!, disable!, sample!, choose_sampler, reset!
     using ..MultiSamplerHelp: ByDistribution
     using Distributions: Exponential, Gamma
 

@@ -2,7 +2,7 @@ using SafeTestsets
 
 
 @safetestset direct_call_prob = "DirectCall probabilities" begin
-    using Fleck: DirectCall, enable!, next
+    using CompetingClocks: DirectCall, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
 
@@ -19,7 +19,7 @@ using SafeTestsets
 end
 
 @safetestset DirectCall_interface = "DirectCall basic interface" begin
-    using Fleck
+    using CompetingClocks
     using Random: Xoshiro
     using Distributions
 
@@ -49,7 +49,7 @@ end
 end
 
 @safetestset direct_call_empty = "DirectCall empty hazard" begin
-    using Fleck: DirectCall, next, enable!, reset!
+    using CompetingClocks: DirectCall, next, enable!, reset!
     using Random: MersenneTwister
     md = DirectCall{Int,Float64}()
     rng = MersenneTwister(90497979)
@@ -62,7 +62,7 @@ end
 
 
 @safetestset direct_call_later = "DirectCall probabilities correct at a later time" begin
-    using Fleck: DirectCall, next, enable!, next
+    using CompetingClocks: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
     using HypothesisTests: BinomialTest, confint
@@ -90,7 +90,7 @@ end
 
 
 @safetestset direct_call_prob = "DirectCall probabilities correct" begin
-    using Fleck: DirectCall, next, enable!, next
+    using CompetingClocks: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
     using HypothesisTests: BinomialTest, confint

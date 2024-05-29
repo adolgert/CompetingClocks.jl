@@ -2,7 +2,7 @@ using SafeTestsets
 
 
 @safetestset OrderedSample_smoke = "nr transition can be created and compared" begin
-    using Fleck: OrderedSample
+    using CompetingClocks: OrderedSample
 
     a = OrderedSample{Int,Float64}(3, 2.2)
     b = OrderedSample{Int,Float64}(1, 2.5)
@@ -33,7 +33,7 @@ end
 
 @safetestset OrderedSample_heapable = "nr transition can be used in a heap" begin
     using DataStructures
-    using Fleck: OrderedSample
+    using CompetingClocks: OrderedSample
 
     # This shows that the custom isless() operator is what we need in order to
     # use this data structure for sampling.

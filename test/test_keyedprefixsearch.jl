@@ -3,7 +3,7 @@ using SafeTestsets
 module KeyedPrefixScanFixture
 using Random
 using Distributions
-using Fleck
+using CompetingClocks
 using Test
 
 @enum ScanActions EnableNew EnableOld Disable Empty CheckAll
@@ -50,7 +50,7 @@ function scan_gymnasium(keyed_scan)
                 probed = Set{Int64}()
                 # Walk slowly enough that we must see all keys.
                 for probe in zero(total):(0.5 * min_hazard):total
-                    key, hazard = Fleck.choose(keyed_scan, probe)
+                    key, hazard = CompetingClocks.choose(keyed_scan, probe)
                     push!(probed, parse(Int, key))
                 end
                 @test probed == Set(keys(enabled))
@@ -69,9 +69,9 @@ end
     using ..KeyedPrefixScanFixture: scan_gymnasium
     using Random
     using Distributions
-    using Fleck
-    prefix_tree = Fleck.BinaryTreePrefixSearch{Float64}()
-    keyed_scan = Fleck.KeyedRemovalPrefixSearch{String,typeof(prefix_tree)}(prefix_tree)
+    using CompetingClocks
+    prefix_tree = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    keyed_scan = CompetingClocks.KeyedRemovalPrefixSearch{String,typeof(prefix_tree)}(prefix_tree)
     scan_gymnasium(keyed_scan)
 end
 
@@ -80,8 +80,8 @@ end
     using ..KeyedPrefixScanFixture: scan_gymnasium
     using Random
     using Distributions
-    using Fleck
-    prefix_tree = Fleck.BinaryTreePrefixSearch{Float64}()
-    keyed_scan = Fleck.KeyedKeepPrefixSearch{String,typeof(prefix_tree)}(prefix_tree)
+    using CompetingClocks
+    prefix_tree = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    keyed_scan = CompetingClocks.KeyedKeepPrefixSearch{String,typeof(prefix_tree)}(prefix_tree)
     scan_gymnasium(keyed_scan)
 end

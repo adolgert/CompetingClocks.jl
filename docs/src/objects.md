@@ -1,6 +1,6 @@
-# Objects in Fleck
+# Objects in CompetingClocks
 
-This describes the kinds of objects in Fleck in order to explain how they work together.
+This describes the kinds of objects in CompetingClocks in order to explain how they work together.
 
 
 ## Distribution
@@ -30,7 +30,7 @@ For example, let's make a model of a random walker on a chessboard. Given that t
 
 ## Sampler
 
-The main responsibility of Fleck.jl is to provide samplers of competing clocks. Given a list of enabled distributions, decide which one is next to fire and when it will fire.
+The main responsibility of CompetingClocks.jl is to provide samplers of competing clocks. Given a list of enabled distributions, decide which one is next to fire and when it will fire.
 
 In order to decide which clock fires next, a sampler needs some information.
 

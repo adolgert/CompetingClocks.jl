@@ -1,4 +1,4 @@
-using Fleck
+using CompetingClocks
 using Documenter
 using Literate
 
@@ -60,14 +60,14 @@ for (source, target) in adliterate
 end
 
 makedocs(;
-    modules=[Fleck],
+    modules=[CompetingClocks],
     authors="Andrew Dolgert <adolgert@uw.edu>",
-    sitename="Fleck.jl",
+    sitename="CompetingClocks.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         size_threshold_warn=2^17,
         size_threshold=2^18,
-        canonical="https://adolgert.github.io/Fleck.jl",
+        canonical="https://adolgert.github.io/CompetingClocks.jl",
         assets=String[],
     ),
     pages=[
@@ -101,6 +101,6 @@ makedocs(;
 
 deploydocs(;
     target = "build",
-    repo = "github.com/adolgert/Fleck.jl.git",
+    repo = "github.com/adolgert/CompetingClocks.jl.git",
     branch = "gh-pages"
 )

@@ -2,11 +2,11 @@
 
 using Random
 using Distributions
-using Fleck
+using CompetingClocks
 
 # [Birth-death processes](https://en.wikipedia.org/wiki/Birth%E2%80%93death_process) are a fundamental
 # type of stochastic process, and are the building block of many more complicated models. Here
-# we demonstrate how to use Fleck to build a very simple simulation of a birth-death process
+# we demonstrate how to use CompetingClocks to build a very simple simulation of a birth-death process
 # where birth occurs according to an exponential (Markov) clock, but death occurs according
 # to a Weibull distribution. We compare ensemble results to the known stationary distribution.
 # Such models have been considered many times in the literature, but a recent reference is in
@@ -73,7 +73,7 @@ function step!(model::ConstantBirth, sampler::SSA{K,T}, when::T, which::K, rng) 
     model.alive * duration
 end;
 
-# Our run function is simple. We use the `FirstToFire` sampler, but any sampler from Fleck
+# Our run function is simple. We use the `FirstToFire` sampler, but any sampler from CompetingClocks
 # capable of supporting non-Exponential distributions can be used.
 
 function run_constant_birth(rng, max_step = 10000)

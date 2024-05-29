@@ -4,7 +4,7 @@ using Test
 
 @safetestset vas_sample = "VAS samples with direct" begin
 using Random: MersenneTwister
-using Fleck: DirectCall
+using CompetingClocks: DirectCall
 using ..VectorAddition
 using ..SampleVAS: sample_sir
 
@@ -29,7 +29,7 @@ end
 
 @safetestset vas_sample = "VAS samples with first reaction" begin
     using Random: MersenneTwister
-    using Fleck: FirstReaction
+    using CompetingClocks: FirstReaction
     using ..VectorAddition
     using ..SampleVAS: sample_sir
     
@@ -55,7 +55,7 @@ end
 
 @safetestset vas_sample = "VAS samples with first to fire" begin
     using Random: MersenneTwister
-    using Fleck: FirstToFire
+    using CompetingClocks: FirstToFire
     using ..VectorAddition
     using ..SampleVAS: sample_sir
     

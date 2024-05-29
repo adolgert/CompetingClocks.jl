@@ -1,10 +1,10 @@
-using Fleck
+using CompetingClocks
 using SafeTestsets
 
 module CRNHelper
     export FakeSampler, next, enable!, disable!, clone, reset!
     using Random
-    using Fleck
+    using CompetingClocks
     using Distributions
     # The first set of tests of commonrandom will construct a fake sampler.
     # That fake sampler will know whether it gets a unique rng starting point.
@@ -17,7 +17,7 @@ module CRNHelper
     end
 
 
-    function Fleck.next(cr::FakeSampler, when::Float64, rng::AbstractRNG)
+    function CompetingClocks.next(cr::FakeSampler, when::Float64, rng::AbstractRNG)
         if length(cr.draws) > 0
             ((time, clock_id), element) = findmin(cr.draws)
             deleteat!(cr.draws, element)
@@ -28,23 +28,23 @@ module CRNHelper
     end
 
 
-    function Fleck.enable!(
+    function CompetingClocks.enable!(
         cr::FakeSampler, clock::T, distribution::UnivariateDistribution,
         te::Float64, when::Float64, rng::AbstractRNG) where {T}
         push!(cr.draws, (when + rand(rng, distribution), clock))
     end
 
 
-    function Fleck.disable!(cr::FakeSampler, clock::T, when::Float64) where { T}
+    function CompetingClocks.disable!(cr::FakeSampler, clock::T, when::Float64) where { T}
         toremove = findnext(x->x[2]==clock, cr.draws, 1)
         if toremove !== nothing
             deleteat!(cr.draws, toremove)
         end
     end
 
-    Fleck.clone(cr::FakeSampler) = FakeSampler()
+    CompetingClocks.clone(cr::FakeSampler) = FakeSampler()
 
-    function Fleck.reset!(cr::FakeSampler)
+    function CompetingClocks.reset!(cr::FakeSampler)
         cr.draws = Vector{Tuple{Float64, Int64}}()
     end
 end
@@ -71,7 +71,7 @@ end
 
 
 @safetestset crn_recording = "Common random numbers recording" begin
-    using Fleck
+    using CompetingClocks
     using Random
     using ..CRNHelper
     using Distributions
@@ -94,7 +94,7 @@ end
 
 
 @safetestset crn_replay = "Common random numbers exact replay" begin
-    using Fleck
+    using CompetingClocks
     using Random
     using ..CRNHelper: FakeSampler
     using Distributions
@@ -132,7 +132,7 @@ end
 
 
 @safetestset crn_extend_replay = "Common random numbers replay plus some" begin
-    using Fleck
+    using CompetingClocks
     using Random
     using ..CRNHelper: FakeSampler
     using Distributions
@@ -174,7 +174,7 @@ end
 
 
 @safetestset crn_freeze = "Common random numbers frozen" begin
-    using Fleck
+    using CompetingClocks
     using Random
     using ..CRNHelper: FakeSampler
     using Distributions

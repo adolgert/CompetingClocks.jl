@@ -47,7 +47,7 @@
 #
 # More commonly, what if the next step in a simulation were determined by an ordinary differential equation (ODE) that depends on the current state and time? A simulation could, at the enabling time, integrate the ODE to find when it predicts the next event and then enable a distribution that is a delta function centered at that predicted time.
 #
-# The caveat for atomic hazards it's possible for two atomic hazards to happen at exactly the same time. Fleck doesn't have a way to guarantee which of those events happen first. It certainly doesn't have a way to randomly select which event should happen from a configurable probability distribution. This is a feature specific to samplers that allow instantaneous and simultaneous events. The way we handle the possiblility of simultaneous events is to schedule atomic events relative to continuous-time events or to ensure that there is only one atomic hazard in a whole simulation.
+# The caveat for atomic hazards it's possible for two atomic hazards to happen at exactly the same time. CompetingClocks doesn't have a way to guarantee which of those events happen first. It certainly doesn't have a way to randomly select which event should happen from a configurable probability distribution. This is a feature specific to samplers that allow instantaneous and simultaneous events. The way we handle the possiblility of simultaneous events is to schedule atomic events relative to continuous-time events or to ensure that there is only one atomic hazard in a whole simulation.
 #
 # ### Markov Decision Process
 #

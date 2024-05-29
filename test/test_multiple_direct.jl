@@ -1,13 +1,13 @@
 using SafeTestsets
 
 module MultipleKeyedHelp
-    using Fleck
+    using CompetingClocks
     using Distributions: Exponential, UnivariateDistribution
 
     struct ByName <: SamplerChoice{String,Symbol} end
     export ByName
 
-    function Fleck.choose_sampler(
+    function CompetingClocks.choose_sampler(
         chooser::ByName, clock::String, distribution::UnivariateDistribution
         )::Symbol
         if startswith(clock, "fast")
@@ -22,7 +22,7 @@ end
 @safetestset multiple_direct_smoke = "MultipleDirect smoke" begin
     using Distributions
     using Random
-    using Fleck
+    using CompetingClocks
     using ..MultipleKeyedHelp
 
     rng = Xoshiro(432234)
@@ -31,12 +31,12 @@ end
     Time = Float64
 
     md = MultipleDirect{SamplerKey,K,Time}(ByName())
-    prefix_tree = Fleck.BinaryTreePrefixSearch{Time}()
-    keyed_prefix_tree = Fleck.KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
+    prefix_tree = CompetingClocks.BinaryTreePrefixSearch{Time}()
+    keyed_prefix_tree = CompetingClocks.KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
     md[:slow] = keyed_prefix_tree
 
-    cumulant_scan = Fleck.CumSumPrefixSearch{Time}()
-    keep_prefix_tree = Fleck.KeyedKeepPrefixSearch{K,typeof(cumulant_scan)}(cumulant_scan)
+    cumulant_scan = CompetingClocks.CumSumPrefixSearch{Time}()
+    keep_prefix_tree = CompetingClocks.KeyedKeepPrefixSearch{K,typeof(cumulant_scan)}(cumulant_scan)
     md[:fast] = keep_prefix_tree
 
     when = 0.0

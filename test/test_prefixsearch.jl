@@ -1,7 +1,7 @@
 using SafeTestsets
 
 @safetestset prefixsearch_log2 = "log2 internal" begin
-    using Fleck: ceil_log2
+    using CompetingClocks: ceil_log2
 
     # I'm replacing one clear expression with one that's more obscure but fast.
     # This tests that relationship.
@@ -12,7 +12,7 @@ end
 
 
 @safetestset cumsumprefix_smoke = "cumsum prefix smoke" begin
-    using Fleck: CumSumPrefixSearch, choose
+    using CompetingClocks: CumSumPrefixSearch, choose
     ps = CumSumPrefixSearch{Float64}()
     for idx in 1:20
         push!(ps, 0.5)
@@ -30,7 +30,7 @@ end
 
 
 @safetestset cumsumprefix_rand = "cumsum prefix has rand" begin
-    using Fleck: CumSumPrefixSearch, choose
+    using CompetingClocks: CumSumPrefixSearch, choose
     using Random
     rng = Xoshiro(23423)
     ps = CumSumPrefixSearch{Float64}()
@@ -46,7 +46,7 @@ end
 
 
 @safetestset prefixsearch_structure = "test structure" begin
-    using Fleck: _btps_sizes
+    using CompetingClocks: _btps_sizes
     # depth offset array_cnt
     @test _btps_sizes(1) == (1, 1, 1)
     @test _btps_sizes(2) == (2, 2, 3)
@@ -57,7 +57,7 @@ end
 
 
 @safetestset prefixsearch_single = "test single value" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
 	t = BinaryTreePrefixSearch{Int64}()
     push!(t, 3)
 	@test sum!(t) == 3
@@ -69,7 +69,7 @@ end
 
 
 @safetestset prefixsearch_add_values = "binarytreeprefix add values" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!, allocated
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!, allocated
     initial_allocation = 1
 	t = BinaryTreePrefixSearch{Int64}(initial_allocation)
     push!(t, 3)
@@ -96,7 +96,7 @@ end
 
 
 @safetestset prefixsearch_double = "test double value" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
     t = BinaryTreePrefixSearch{Int64}(2)
     push!(t, 3)
     push!(t, 1)
@@ -118,7 +118,7 @@ end
 
 
 @safetestset prefixsearch_three = "test three values" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
     t = BinaryTreePrefixSearch{Int64}(3)
     for v in [3, 1, 2]
         push!(t, v)
@@ -137,7 +137,7 @@ end
 end
 
 @safetestset prefixsearch_three_floats = "three floats" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
     t = BinaryTreePrefixSearch{Float64}(3)
     for v in [3.5, 1.5, 2.5]
         push!(t, v)
@@ -157,7 +157,7 @@ end
 
 
 @safetestset prefixsearch_four_floats = "four floats" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
     vals = [3, 1, 2, 4]
     t = BinaryTreePrefixSearch{Int64}(4)
     for v in vals
@@ -172,7 +172,7 @@ end
 
 
 @safetestset prefixsearch_five = "five values" begin
-    using Fleck: BinaryTreePrefixSearch, choose, sum!
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
     vals = [3, 0, 2, 4, 1]
     t = BinaryTreePrefixSearch{Int64}(5)
     for v in vals
@@ -195,7 +195,7 @@ end
 
 @safetestset prefixsearch_getindex = "setindex getindex" begin
     using Random
-    using Fleck: BinaryTreePrefixSearch, set_multiple!
+    using CompetingClocks: BinaryTreePrefixSearch, set_multiple!
     @enum Modify Append Zero Reset
 
     rng = Xoshiro(9347243)
@@ -232,7 +232,7 @@ end
 
 @safetestset prefixsearch_empty = "testing empty!" begin
     using Random
-    using Fleck: BinaryTreePrefixSearch, set_multiple!, allocated
+    using CompetingClocks: BinaryTreePrefixSearch, set_multiple!, allocated
 
     rng = Xoshiro(3297920)
     cnt = 20

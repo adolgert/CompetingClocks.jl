@@ -4,7 +4,7 @@
 
 using ColorSchemes
 using Distributions
-using Fleck
+using CompetingClocks
 using Logging
 using Plots
 using Random
@@ -29,11 +29,11 @@ using StatsPlots
 # instead, start all ten vehicles at the same time, using a single transition.
 # Either would work.
 #
-# Fleck will take care of the timing of all of the events, but we will see that
+# CompetingClocks will take care of the timing of all of the events, but we will see that
 # there is plenty of work to track the state of all of the vehicles. This
 # extended example shows that, if we wanted to create more reliability models,
 # it would make sense to create a framework for reliability modeling, one that
-# uses Fleck underneath.
+# uses CompetingClocks underneath.
 #
 # ## Define State for the Model
 #
@@ -139,7 +139,7 @@ end;
 #  * `when` - The time of the next event.
 #  * `(who, transition)` - This expands the `key_type`, which identifies the transition.
 #  * `experiment` - It's our simulation data.
-#  * `sampler` - This is a [Fleck.SSA](@ref) from Fleck to enable and disable transitions.
+#  * `sampler` - This is a [CompetingClocks.SSA](@ref) from CompetingClocks to enable and disable transitions.
 #
 # The first few statements of the function are automatic for any transition.
 # Then this handler works through the transition types.

@@ -4,7 +4,7 @@ using SafeTestsets
 @safetestset CombinedNextReactionSmoke = "combinednext reaction does basic things" begin
     using Distributions
     using Random
-    using Fleck: CombinedNextReaction, next, enable!, disable!, reset!
+    using CompetingClocks: CombinedNextReaction, next, enable!, disable!, reset!
 
     rng = MersenneTwister(349827)
     for i in 1:100
@@ -23,7 +23,7 @@ using SafeTestsets
 end
 
 @safetestset CombinedNextReaction_interface = "CombinedNextReaction basic interface" begin
-    using Fleck
+    using CompetingClocks
     using Distributions
     using Random: Xoshiro
 

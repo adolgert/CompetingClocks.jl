@@ -2,7 +2,7 @@ using SafeTestsets
 
 
 @safetestset firsttofire_smoke = "FirstToFire smoke" begin
-    using Fleck: FirstToFire, enable!, disable!, next
+    using CompetingClocks: FirstToFire, enable!, disable!, next
     using Random: Xoshiro
     using Distributions: Exponential
 
@@ -27,8 +27,8 @@ end
 @safetestset firsttofire_insertion = "FirstToFire known insertions" begin
     # Let's put entries into its heap in order to ensure the heap does the right thing.
     # This is a clear-box test. It depends heavily on implementation.
-    using Fleck: FirstToFire, enable!, disable!, next
-    using Fleck
+    using CompetingClocks: FirstToFire, enable!, disable!, next
+    using CompetingClocks
     using Random: Xoshiro
 
     propagator = FirstToFire{Int64,Float64}()
@@ -36,7 +36,7 @@ end
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
         heap_handle = push!(
             propagator.firing_queue,
-            Fleck.OrderedSample{Int64,Float64}(clock, when_fire)
+            CompetingClocks.OrderedSample{Int64,Float64}(clock, when_fire)
             )
         propagator.transition_entry[clock] = heap_handle
     end
@@ -54,7 +54,7 @@ end
 end
 
 @safetestset FirstToFire_interface = "FirstToFire basic interface" begin
-    using Fleck
+    using CompetingClocks
     using Distributions
     using Random: Xoshiro
 

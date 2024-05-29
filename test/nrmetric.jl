@@ -15,7 +15,7 @@
 using Distributions
 using Printf
 using StatsBase
-using Fleck
+using CompetingClocks
 
 include("nextreaction.jl")
 include("anderson.jl")
