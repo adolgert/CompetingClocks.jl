@@ -100,6 +100,13 @@ function Base.empty!(kp::KeyedRemovalPrefixSearch)
     empty!(kp.prefix)
 end
 
+function Base.copy!(dst::KeyedRemovalPrefixSearch{T,P}, src::KeyedRemovalPrefixSearch{T,P}) where {T,P}
+    copy!(dst.index, src.index)
+    copy!(dst.key, src.key)
+    copy!(dst.free, src.free)
+    copy!(dst.prefix, src.prefix)
+    dst
+end
 
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
 

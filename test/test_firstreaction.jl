@@ -154,3 +154,28 @@ end
     ks2_test = ExactOneSampleKSTest(shifted, dist)
     @test pvalue(ks2_test; tail = :both) > 0.04
 end
+
+
+
+@safetestset first_reaction_copy = "FirstReaction copy" begin
+    using CompetingClocks: FirstReaction, enable!, next
+    using Random: MersenneTwister
+    using Distributions: Exponential
+
+    src = FirstReaction{Int,Float64}()
+    dst = FirstReaction{Int,Float64}()
+    rng = MersenneTwister(90422342)
+    enable!(src, 1, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 2, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 2
+    @test length(dst) == 1
+    copy!(dst, src)
+    @test length(dst) == 2
+    enable!(src, 5, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 3
+    @test length(dst) == 2
+    enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 3
+    @test length(dst) == 3
+end

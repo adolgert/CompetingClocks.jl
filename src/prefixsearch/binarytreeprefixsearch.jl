@@ -48,7 +48,7 @@ function Base.copy!(dst::BinaryTreePrefixSearch{T}, src::BinaryTreePrefixSearch{
 	copy!(dst.array, src.array)
 	dst.depth = src.depth
 	dst.offset = src.offset
-	dst.cnt == src.cnt
+	dst.cnt = src.cnt
 	dst.initial_allocation = src.initial_allocation
 end
 

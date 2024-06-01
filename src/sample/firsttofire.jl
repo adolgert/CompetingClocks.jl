@@ -11,7 +11,7 @@ fire and saves that time in a sorted heap of future times. Then it works
 through the heap, one by one. When a clock is disabled, its future firing time
 is removed from the list. There is no memory of previous firing times.
 """
-struct FirstToFire{K,T} <: SSA{K,T}
+mutable struct FirstToFire{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     # This maps from transition to entry in the firing queue.
     transition_entry::Dict{K,Int}
@@ -32,7 +32,7 @@ function reset!(propagator::FirstToFire{K,T}) where {K,T}
 end
 
 function Base.copy!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
-    copy!(dst.firing_queue, src.firing_queue)
+    dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
     dst
 end
