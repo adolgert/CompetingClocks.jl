@@ -33,6 +33,11 @@ function SingleSampler(propagator::SSA{Key,Time}) where {Key,Time}
     SingleSampler{SSA{Key,Time},Time}(propagator, zero(Time))
 end
 
+function Base.copy!(dst::SingleSampler{Algorithm,Time}, src::SingleSampler{Algorithm,Time}) where {Algorithm,Time}
+    copy!(dst.propagator, src.propagator)
+    dst.when = src.when
+    dst
+end
 
 function sample!(sampler::SingleSampler, rng::AbstractRNG)
     when, transition = next(sampler.propagator, sampler.when, rng)
@@ -140,6 +145,17 @@ function reset!(sampler::MultiSampler)
     end
     sampler.when = zero(sampler.when)
     empty!(sampler.chosen)
+end
+
+
+function Base.copy!(
+    dst::MultiSampler{SamplerKey,Key,Time,Chooser},
+    src::MultiSampler{SamplerKey,Key,Time,Chooser}
+    ) where {SamplerKey,Key,Time,Chooser}
+    
+    copy!(dst.propagator, src.propagator)
+    dst.when = src.when
+    dst
 end
 
 

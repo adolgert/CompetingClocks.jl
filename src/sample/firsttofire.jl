@@ -31,6 +31,12 @@ function reset!(propagator::FirstToFire{K,T}) where {K,T}
     empty!(propagator.transition_entry)
 end
 
+function Base.copy!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
+    copy!(dst.firing_queue, src.firing_queue)
+    copy!(dst.transition_entry, src.transition_entry)
+    dst
+end
+
 
 # Finds the next one without removing it from the queue.
 function next(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,T}

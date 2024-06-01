@@ -44,6 +44,14 @@ function Base.empty!(ps::BinaryTreePrefixSearch)
 	ps.cnt = 0
 end
 
+function Base.copy!(dst::BinaryTreePrefixSearch{T}, src::BinaryTreePrefixSearch{T}) where {T}
+	copy!(dst.array, src.array)
+	dst.depth = src.depth
+	dst.offset = src.offset
+	dst.cnt == src.cnt
+	dst.initial_allocation = src.initial_allocation
+end
+
 
 time_type(ps::BinaryTreePrefixSearch{T}) where {T} = T
 time_type(::Type{BinaryTreePrefixSearch{T}}) where {T} = T
