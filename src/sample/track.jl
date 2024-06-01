@@ -47,6 +47,10 @@ end
 
 reset!(ts::TrackWatcher) = (empty!(ts.enabled); nothing)
 
+function Base.copy!(dst::TrackWatcher{K,T}, src::TrackWatcher{K,T}) where {K,T}
+    copy!(dst.enabled, src.enabled)
+end
+
 function Base.iterate(ts::TrackWatcher)
     return iterate(values(ts.enabled))
 end
@@ -99,6 +103,10 @@ end
 
 reset!(ts::DebugWatcher) = (empty!(ts.enabled); empty!(ts.disabled); nothing)
 
+function Base.copy!(dst::DebugWatcher{K,T}, src::DebugWatcher{K,T}) where {K,T}
+    copy!(dst.enabled, src.enabled)
+    copy!(dst.disabled, src.disabled)
+end
 
 function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
     push!(ts.enabled, EnablingEntry(clock, dist, te, when))
