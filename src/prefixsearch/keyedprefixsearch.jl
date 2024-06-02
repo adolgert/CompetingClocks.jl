@@ -28,6 +28,13 @@ function Base.empty!(kp::KeyedKeepPrefixSearch)
     empty!(kp.prefix)
 end
 
+function Base.copy!(dst::KeyedKeepPrefixSearch{T,P}, src::KeyedKeepPrefixSearch{T,P}) where {T,P}
+    copy!(dst.index, src.index)
+    copy!(dst.key, src.key)
+    copy!(dst.prefix, src.prefix)
+    dst
+end
+
 
 Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
 time_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = time_type(P)
@@ -93,6 +100,13 @@ function Base.empty!(kp::KeyedRemovalPrefixSearch)
     empty!(kp.prefix)
 end
 
+function Base.copy!(dst::KeyedRemovalPrefixSearch{T,P}, src::KeyedRemovalPrefixSearch{T,P}) where {T,P}
+    copy!(dst.index, src.index)
+    copy!(dst.key, src.key)
+    copy!(dst.free, src.free)
+    copy!(dst.prefix, src.prefix)
+    dst
+end
 
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
 

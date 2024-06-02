@@ -25,6 +25,7 @@ end
 
 
 reset!(fr::FirstReaction) = reset!(fr.core_matrix)
+Base.copy!(dst::FirstReaction{K,T}, src::FirstReaction{K,T}) where {K,T} = (copy!(dst.core_matrix, src.core_matrix); dst)
 
 
 function enable!(fr::FirstReaction{K,T}, clock::K, distribution::UnivariateDistribution,

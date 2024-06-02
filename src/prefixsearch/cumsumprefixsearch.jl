@@ -28,6 +28,10 @@ function Base.empty!(ps::CumSumPrefixSearch)
     empty!(ps.cumulant)
 end
 
+function Base.copy!(dst::CumSumPrefixSearch{T}, src::CumSumPrefixSearch{T}) where {T}
+    copy!(dst.array, src.array)
+    copy!(dst.cumulant, src.cumulant)
+end
 
 Base.length(ps::CumSumPrefixSearch) = length(ps.array)
 time_type(ps::CumSumPrefixSearch{T}) where {T} = T

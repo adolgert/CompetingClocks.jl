@@ -40,6 +40,17 @@ function reset!(sampler::SSA{K,T}) where {K,T} end
 
 
 """
+    copy!(destination_sampler, source_sampler)
+
+This copies the state of the source sampler to the destination sampler, replacing
+the current state of the destination sampler. This is useful for splitting
+techniques where you make copies of a simulation and restart it with different
+random number generators.
+"""
+function Base.copy!(sampler::SSA{K,T}) where {K,T} end
+
+
+"""
     disable!(sampler, clock, when)
 
 Tell the sampler to forget a clock. We include the current simulation time

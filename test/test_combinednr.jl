@@ -1,7 +1,7 @@
 using SafeTestsets
 
 
-@safetestset CombinedNextReactionSmoke = "combinednext reaction does basic things" begin
+@safetestset CombinedNextReactionSmoke = "CombinedNextReaction reaction does basic things" begin
     using Distributions
     using Random
     using CompetingClocks: CombinedNextReaction, next, enable!, disable!, reset!
@@ -48,4 +48,32 @@ end
     @test_throws BoundsError sampler[1]
     @test sampler[2] == 12.3
 
+end
+
+
+@safetestset CombinedNextReaction_copy = "CombinedNextReaction copy" begin
+    using CompetingClocks
+    using Distributions
+    using Random: Xoshiro
+
+    src = CombinedNextReaction{Int64,Float64}()
+    dst = clone(src)
+    rng = Xoshiro(123)
+
+    enable!(src, 37, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 38, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 29, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 2
+    @test length(dst) == 1
+    copy!(dst, src)
+    @test length(src) == 2
+    @test length(dst) == 2
+    # Changing src doesn't change dst.
+    enable!(src, 48, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 3
+    @test length(dst) == 2
+    # Changing dst doesn't change src.
+    enable!(dst, 49, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 3
+    @test length(dst) == 3
 end

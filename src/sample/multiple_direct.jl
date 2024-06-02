@@ -34,6 +34,19 @@ function reset!(md::MultipleDirect)
 end
 
 
+function Base.copy!(
+    dst::MultipleDirect{SamplerKey,K,Time,Chooser},
+    src::MultipleDirect{SamplerKey,K,Time,Chooser}
+    ) where {SamplerKey,K,Time,Chooser}
+    copy!(dst.scan, src.scan)
+    copy!(dst.totals, src.totals)
+    dst.chooser = deepcopy(src.chooser)
+    copy!(dst.chosen, src.chosen)
+    copy!(dst.scanmap, src.scanmap)
+    dst
+end
+
+
 function Base.setindex!(
     md::MultipleDirect{SamplerKey,K,Time,Chooser}, keyed_prefix_search, key
     ) where {SamplerKey,K,Time,Chooser}

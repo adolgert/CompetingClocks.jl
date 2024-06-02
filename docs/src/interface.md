@@ -13,6 +13,7 @@ enable!
 disable!
 next
 reset!
+copy!
 ```
 
 ## Query a Sampler

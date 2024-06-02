@@ -132,7 +132,7 @@ sampling_space(::LinearGamma) = LinearSampling
 If you want to test a distribution, look at `tests/nrmetric.jl` to see how
 distributions are timed.
 """
-struct CombinedNextReaction{K,T} <: SSA{K,T}
+mutable struct CombinedNextReaction{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     transition_entry::Dict{K,NRTransition{T}}
 end
@@ -152,6 +152,12 @@ function reset!(nr::CombinedNextReaction)
     empty!(nr.transition_entry)
     nothing
 end
+
+function Base.copy!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
+    dst.firing_queue = deepcopy(src.firing_queue)
+    copy!(dst.transition_entry, src.transition_entry)
+end
+
 
 @doc raw"""
 For the first reaction sampler, you can call next() multiple times and get

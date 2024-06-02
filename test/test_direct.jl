@@ -99,3 +99,27 @@ end
     md = DirectCall{Int,Float64}()
     test_exponential_binomial(md, rng)
 end
+
+
+@safetestset direct_call_copy = "DirectCall copy" begin
+    using CompetingClocks: DirectCall, enable!, next
+    using Random: MersenneTwister
+    using Distributions: Exponential
+
+    src = DirectCall{Int,Float64}()
+    dst = DirectCall{Int,Float64}()
+    rng = MersenneTwister(90422342)
+    enable!(src, 1, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 2, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 2
+    @test length(dst) == 1
+    copy!(dst, src)
+    @test length(dst) == 2
+    enable!(src, 5, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 3
+    @test length(dst) == 2
+    enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
+    @test length(src) == 3
+    @test length(dst) == 3
+end
