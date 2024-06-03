@@ -77,6 +77,21 @@ function disable!(ts::TrackWatcher{K,T}, clock::K, when) where {K,T}
 end
 
 
+function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which) where {K,T}
+    # It's the log of \lambda(t_1) \prod S(t_0, t_1). Here, S is conditional survival, so
+    # it's S(t_1)/S(t_0). That's \lambda(t_1) \prod S(t_1)/S(t_0). There isn't a good
+    # function to get hazard by itself, so use pdf(t_1)/S(t_1).
+    # Take the log, and you get:
+    # logpdf(t_1) - logccdf(t_1) + \sum logccdf(t_1) - logccdf(t_0)
+    chosen = tw.enabled[which]
+    total = logpdf(chosen.distribution, now - chosen.te) - logccdf(chosen.distribution, now - chosen.te)
+    for entry in values(tw.enabled)
+        total += logccdf(entry.distribution, now - entry.te) - logccdf(entry.distribution, when - entry.te)
+    end
+    return total
+end
+
+
 """
     DebugWatcher()
 

@@ -122,3 +122,11 @@ end
 function Base.length(dc::DirectCall)
     return length(dc.prefix_tree)
 end
+
+
+function steploglikelihood(dc::DirectCall, now, when, which)
+    total = sum!(dc.prefix_tree)
+    Δt = when - now
+    λ = dc.prefix_tree[which]
+    return log(λ) - total * Δt
+end
