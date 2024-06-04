@@ -314,7 +314,7 @@ Now that we have the cumulative distribution function, it may be easier to see t
 	c_{\alpha}(t)dt &=& f_{\alpha}(t)\prod_{a\ne\alpha}\left[\int_{t}^\infty f_a(\xi_a)dx_a\right] \\
 	&=& f_{\alpha}(t)\prod_{a\ne\alpha}S_a(t) \\
 	&=& \frac{f_{\alpha}(t)}{S_\alpha(t)}\prod_{a}S_a(t) \\
-	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)
+	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)\label{eqn:basic-likelihood}
 \end{eqnarray}
 At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. If we think about the sequence of $\left\{T_n\right\}$, the $c_\alpha(t)$ form a matrix called the core matrix.
 
@@ -327,6 +327,40 @@ This is the probability density function for a distribution whose hazard is the 
 We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
 
 In the case of Next Reaction method, we already have the machinery to calculate survival for every enabled transition, excepting the one that fires. We need only multiply that by the pdf of the transition that fires, and we have the likelihood of the trajectory.
+
+\section{Likelihood Calculation}
+
+While the likelihood for competing processes is written in Eq.~\ref{eqn:basic-likelihood}, we have more work to do in order to implement this likelihood.
+
+First consider Exponential distributions where hazard rates are constant.
+\begin{equation}
+  c_{\alpha}(t)=\lambda_{\alpha}\prod_{\beta}e^{-\lambda_{\beta}t}=\lambda_{\alpha}\exp\left(-\sum_\beta \lambda_\beta t\right)
+\end{equation}
+A Direct method already calculates the sum of enabled hazards. We want the log of this.
+\begin{equation}
+  \log\:c_{\alpha}(t)=\log\lambda_{\alpha} - \sum_{\beta}\lambda_{\beta}(t-t_0)
+\end{equation}
+That seems simple enough.
+
+How do we interpret Eq.~\ref{eqn:basic-likelihood} for \gsmp? The survivals are conditional survivals from the last time point, $t_0$ to the chosen time $t_1$. They are also relative to an enabling time $t_{e}$.
+\begin{equation}
+  c_{\alpha}(t) = \lambda_\alpha(t-t_{ae})\prod_a S_a(t_0-t_{ae},t-t_{ae}) = \lambda_\alpha(t)\prod_a \frac{S_a(t-t_{ae})}{S_a(t_0-t_{ae})}
+\end{equation}
+There's an alternative version that uses the pdf instead of the hazard out front.
+\begin{equation}
+  c_{\alpha}(t) = f_\alpha(t-t_{ae})\prod_{a\ne\alpha} \frac{S_a(t-t_{ae})}{S_a(t_0-t_{ae})}
+\end{equation}
+Given that the Julia Distributions package doesn't give hazard rates, this choice would be more direct. The log-likelihood becomes
+\begin{equation}
+  \log\:c_{\alpha}(t) = \log\:f_\alpha(t-t_{ae})+\sum_{a\ne\alpha} \log\:S_a(t-t_{ae}) - \sum_{a\ne\alpha} \log\:S_a(t_0-t_{ae}).
+\end{equation}
+In Julia, there is a \texttt{logpdf} and a \texttt{logccdf}. It looks like, for long-lived processes, this log-likelihood will add and subtract the same values several times.
+
+If we look across stopping times, we can instead look at strings of stopping times where a clock is enabled. For any one clock, its contribution to the total likelihood will depend on when it was enabled, when it was disabled, and whether it was disabled because it fired. Here, $t_e$ is enabling time, $t_0$ is when the the transition was first active, $t_1$ is the last time the transition did not fire, and $t_f$ is when the transition fired, if it fired.
+\begin{equation}
+  \log\:S_a(t_1-t_{ae}) - \log\:S_a(t_0-t_{ae}) + I\{X=a\}\log\:f_a(t_f-t_{ae})
+\end{equation}
+I'm pretty sure we could calculate this very efficiently for Anderson's method.
 
 
 \section{Gillespie's Direct Method}
