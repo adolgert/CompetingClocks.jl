@@ -29,7 +29,6 @@ freeze
 misscount
 misses
 MultiSampler
-SingleSampler
 ChatReaction
 DebugWatcher
 TrackWatcher
