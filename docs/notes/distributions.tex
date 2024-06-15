@@ -330,37 +330,50 @@ In the case of Next Reaction method, we already have the machinery to calculate 
 
 \section{Likelihood Calculation}
 
-While the likelihood for competing processes is written in Eq.~\ref{eqn:basic-likelihood}, we have more work to do in order to implement this likelihood.
+Below, we will do importance sampling, and importance sampling relies on calculations of a likelihood ratio. The likelihood ratio depends on computing the likelihood, which is the core matrix. Let's work through how to calculate the log-likelihood for a \gsmp.
 
-First consider Exponential distributions where hazard rates are constant.
+Start by thinking about the survival for a shifted distribution. Our library, however, allows for a user to specify what it calls shifted distributions. For these, the pdf, as specified by the standard Distributions library, can be shifted left or right by some amount. When you enable a distribution, you specify both the current time, $t_0$ and an enabling time $t_e$. These are absolute times. The distribution is shifted left for $t_e<t_0$ and shifted right for $t_e>t_0$. For a distribution shifted left, we have
 \begin{equation}
-  c_{\alpha}(t)=\lambda_{\alpha}\prod_{\beta}e^{-\lambda_{\beta}t}=\lambda_{\alpha}\exp\left(-\sum_\beta \lambda_\beta t\right)
+	S_{\alpha}(t-t_{e\alpha}) = S_{\alpha}(t_{0\alpha} - t_{e\alpha})S_{\alpha}(t_{0\alpha}, t)
 \end{equation}
-A Direct method already calculates the sum of enabled hazards. We want the log of this.
+Here, the $S$ with one argument is the survival function you would find in the Distributions package, and the $S$ with two arguments is the conditional survival written with absolute times as arguments. The equation above is the definition of the conditional survival.
 \begin{equation}
-  \log\:c_{\alpha}(t)=\log\lambda_{\alpha} - \sum_{\beta}\lambda_{\beta}(t-t_0)
+	S_{\alpha}(t_{0\alpha}, t) =  \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_{0\alpha} - t_{e\alpha})}
 \end{equation}
-That seems simple enough.
+Between any two times, $t_1$ and $t$, the conditional survival is then you get a nice cancellation.
+\begin{equation}
+	S_{\alpha}(t_{1}, t) = \frac{S_{\alpha}(t_{0\alpha}, t)}{S_{\alpha}(t_{0\alpha}, t_1)}
+	= \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_1-t_{e\alpha})}\label{eqn:survival-with-enabling}
+\end{equation}
+For a distribution shifted right, that means the distribution can't fire until a certain time, so its survival is one until that time.
+\begin{equation}
+	S_{\alpha}(t_{0\alpha}, t) =  S_{\alpha}(t - t_{e\alpha})
+\end{equation}
+If $t<t_{e\alpha}$, then we have to substitute $S_{\alpha}(t_{0\alpha}, t)=1$. For a distribution shifted right, then between any two times, $t_1$ and $t$, the conditional survival looks the same as Eq.~\ref{eqn:survival-with-enabling}, except for the part where it might be 1. Do we now feel equipped to write the core matrix with more realistic enabling times?
 
-How do we interpret Eq.~\ref{eqn:basic-likelihood} for \gsmp? The survivals are conditional survivals from the last time point, $t_0$ to the chosen time $t_1$. They are also relative to an enabling time $t_{e}$.
+
+The survivals in Eq.~\ref{eqn:basic-likelihood} are conditional survivals starting at a last jump time $t_1$, and they are relative to enabling times.
 \begin{equation}
-  c_{\alpha}(t) = \lambda_\alpha(t-t_{ae})\prod_a S_a(t_0-t_{ae},t-t_{ae}) = \lambda_\alpha(t)\prod_a \frac{S_a(t-t_{ae})}{S_a(t_0-t_{ae})}
+	c_{\alpha}(t|t_1) = \lambda_{\alpha}(t-t_{e\alpha})\prod_\beta S_{\beta}(t_1,t)
 \end{equation}
-There's an alternative version that uses the pdf instead of the hazard out front.
+For a single time step from $t_1$ to $t$, the likelihood has one factor from the event that fires and then a factor from each event.
+
+For a trajectory consisting of multiple time steps, the likelihood is the product of all individual time steps. We know the product of conditional survivals, for the same event enabled over time, is equal to the conditional survival between the start and end times. It feels like we could use this to optimize our calculation.
+
+Picture one transition, enabled at time $t_0$ and firing at time $t$. Its contribution to the likelihood of the whole trajectory would be just two factors. The function $f_\alpha$ is the pdf according to the Distributions package.
 \begin{equation}
-  c_{\alpha}(t) = f_\alpha(t-t_{ae})\prod_{a\ne\alpha} \frac{S_a(t-t_{ae})}{S_a(t_0-t_{ae})}
+	\lambda_{\alpha}(t-t_{e\alpha})S_{\alpha}(t_0,t)
+	=\lambda_{\alpha}(t-t_{e\alpha})\frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_0-t_{e\alpha})}
+	=\frac{f_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_0-t_{e\alpha})}
 \end{equation}
+If this transition were disabled without firing, it would contribute only the one factor, its conditional survival from enabling to disabling.
+
+
 Given that the Julia Distributions package doesn't give hazard rates, this choice would be more direct. The log-likelihood becomes
 \begin{equation}
   \log\:c_{\alpha}(t) = \log\:f_\alpha(t-t_{ae})+\sum_{a\ne\alpha} \log\:S_a(t-t_{ae}) - \sum_{a\ne\alpha} \log\:S_a(t_0-t_{ae}).
 \end{equation}
 In Julia, there is a \texttt{logpdf} and a \texttt{logccdf}. It looks like, for long-lived processes, this log-likelihood will add and subtract the same values several times.
-
-If we look across stopping times, we can instead look at strings of stopping times where a clock is enabled. For any one clock, its contribution to the total likelihood will depend on when it was enabled, when it was disabled, and whether it was disabled because it fired. Here, $t_e$ is enabling time, $t_0$ is when the the transition was first active, $t_1$ is the last time the transition did not fire, and $t_f$ is when the transition fired, if it fired.
-\begin{equation}
-  \log\:S_a(t_1-t_{ae}) - \log\:S_a(t_0-t_{ae}) + I\{X=a\}\log\:f_a(t_f-t_{ae})
-\end{equation}
-I'm pretty sure we could calculate this very efficiently for Anderson's method.
 
 
 \section{Gillespie's Direct Method}
