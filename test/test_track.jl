@@ -23,6 +23,30 @@ using SafeTestsets
 end
 
 
+@safetestset track_trajectory_comparison = "TrajectoryWatcher comparison" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(BigInt(2576889945234392378678934324582349))
+    watcher = TrajectoryWatcher{Int64,Float64}()
+    # This test will create a chain where there is one transition enabled
+    # and that one transition fires, then the next is enabled.
+    # At the end, it compares the trajectory likelihood with the step likelihood.
+    running = zero(Float64)
+    for step_idx in 1:10
+        hazard = 1.0 / step_idx
+        dist = Exponential(step_idx)
+        enable!(watcher, step_idx, dist, Float64(step_idx - 1), Float64(step_idx - 1), rng)
+        running += steploglikelihood(watcher, Float64(step_idx - 1), Float64(step_idx), step_idx)
+        fire!(watcher, step_idx, Float64(step_idx))
+        disable!(watcher, step_idx, Float64(step_idx))
+    end
+    ll = trajectoryloglikelihood(watcher)
+    @test abs(running - ll) < 1e-6
+end
+
+
+
 @safetestset track_debugwatcher_smoke = "DebugWatcher smoke" begin
     using Distributions
     using CompetingClocks

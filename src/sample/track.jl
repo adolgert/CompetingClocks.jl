@@ -1,5 +1,6 @@
 using Distributions: UnivariateDistribution
-export TrackWatcher, DebugWatcher, enable!, disable!
+export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
+export trajectoryloglikelihood, fire!
 
 # A Watcher has an enable!() and a disable!() function but lacks
 # the next() function that a Sampler has. You can attach a watcher
@@ -110,15 +111,16 @@ function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where 
 end
 
 
-struct TrajectoryWatcher{K,T}
+mutable struct TrajectoryWatcher{K,T}
     track::TrackWatcher{K,T}
     loglikelihood::Float64
     TrajectoryWatcher{K,T}() where {K,T} = new(TrackWatcher{K,T}(), zero(Float64))
 end
+export TrajectoryWatcher
 
+trajectoryloglikelihood(tw::TrajectoryWatcher) = tw.loglikelihood
 
 reset!(ts::TrajectoryWatcher) = (reset!(tw.track); tw.loglikelihood=zero(Float64); nothing)
-
 function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
     copy!(dst.track, src.track)
     dst.loglikelihood = src.loglikelihood
@@ -129,7 +131,7 @@ Base.iterate(ts::TrajectoryWatcher, i::Int64) = iterate(ts.track, i)
 Base.length(ts::TrajectoryWatcher) = length(ts.track)
 
 
-function enable!(ts::TrajectoryWatcher, clock, dist::UnivariateDistribution, te, when, rng)
+function enable!(ts::TrajectoryWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng) where {K,T}
     enable!(ts.track, clock, dist, te, when, rng)
 end
 
@@ -138,10 +140,10 @@ function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
     entry = get(ts.track.enabled, clock, nothing)
     if entry !== nothing
         if when > entry.te
-            loglikelihood += logccdf(entry.distribution, when - entry.te)
+            ts.loglikelihood += logccdf(entry.distribution, when - entry.te)
         end
         if entry.when > entry.te
-            loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
+            ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
         end
         disable!(ts.track, clock, when)
     end
@@ -152,9 +154,14 @@ function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
     entry = get(ts.track.enabled, clock, nothing)
     if entry !== nothing
         if when > entry.te
-            loglikelihood += logpdf(entry.distribution, when - entry.te)
+            ts.loglikelihood += logpdf(entry.distribution, when - entry.te)
         end
     end
+end
+
+
+function steploglikelihood(tw::TrajectoryWatcher{K,T}, now, when, which_fires) where {K,T}
+    steploglikelihood(tw.track, now, when, which_fires)
 end
 
 
