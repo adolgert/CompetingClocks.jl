@@ -83,7 +83,7 @@ end
 
 Calculate the log-likelihood of a single step in which the `which_fires`
 transition fires next. `now` is the current time. `when` is the time when
-`which_fires` happens. You have to call this before the transition fires so that
+`which_fires` happens so when > now. You have to call this before the transition fires so that
 it is before transitions are enabled and disabled from the previous step.
 """
 function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where {K,T}
@@ -91,7 +91,10 @@ function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where 
     if which_fires !== nothing
         chosen = tw.enabled[which_fires]
         if now >= chosen.te
-            total = logpdf(chosen.distribution, now - chosen.te)
+            total = logpdf(chosen.distribution, when - chosen.te)
+            if chosen.te < now
+                total -= logccdf(chosen.distribution, now - chosen.te)
+            end
         else
             # If a transition fires before it's enabled, that's impossible.
             total = -NaN
@@ -99,11 +102,13 @@ function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where 
     else
         total = zero(Float64)
     end
-    for entry in values(tw.enabled)
-        if now > entry.te
-            total -= logccdf(entry.distribution, now - entry.te)
+    for (key, entry) in pairs(tw.enabled)
+        if key !== which_fires
             if when > entry.te
                 total += logccdf(entry.distribution, when - entry.te)
+                if now > entry.te
+                    total -= logccdf(entry.distribution, now - entry.te)
+                end
             end
         end
     end
@@ -120,7 +125,7 @@ export TrajectoryWatcher
 
 trajectoryloglikelihood(tw::TrajectoryWatcher) = tw.loglikelihood
 
-reset!(ts::TrajectoryWatcher) = (reset!(tw.track); tw.loglikelihood=zero(Float64); nothing)
+reset!(tw::TrajectoryWatcher) = (reset!(tw.track); tw.loglikelihood=zero(Float64); nothing)
 function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
     copy!(dst.track, src.track)
     dst.loglikelihood = src.loglikelihood
@@ -156,6 +161,11 @@ function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
         if when > entry.te
             ts.loglikelihood += logpdf(entry.distribution, when - entry.te)
         end
+        # Adjust for an enabling time that was shifted left.
+        if entry.when > entry.te
+            ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
+        end
+        disable!(ts.track, clock, when)
     end
 end
 

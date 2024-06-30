@@ -32,19 +32,84 @@ end
     # This test will create a chain where there is one transition enabled
     # and that one transition fires, then the next is enabled.
     # At the end, it compares the trajectory likelihood with the step likelihood.
-    running = zero(Float64)
+    running_loglikelihood = zero(Float64)
+    check = zero(Float64)
+    # Each loop represents a duration, so it creates an event and fires it.
     for step_idx in 1:10
-        hazard = 1.0 / step_idx
+        period_start = Float64(step_idx - 1)
+        period_finish = Float64(step_idx)
         dist = Exponential(step_idx)
-        enable!(watcher, step_idx, dist, Float64(step_idx - 1), Float64(step_idx - 1), rng)
-        running += steploglikelihood(watcher, Float64(step_idx - 1), Float64(step_idx), step_idx)
-        fire!(watcher, step_idx, Float64(step_idx))
-        disable!(watcher, step_idx, Float64(step_idx))
+        λ = inv(dist.θ)
+        enable!(watcher, step_idx, dist, period_start, period_start, rng)
+        step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
+        fire!(watcher, step_idx, period_finish)
+        check_step = log(λ) - λ * (period_finish - period_start)
+        @test abs(check_step - step_ll) < 1e-4 * abs(step_ll)
+        running_loglikelihood += step_ll
+        check += check_step
     end
     ll = trajectoryloglikelihood(watcher)
-    @test abs(running - ll) < 1e-6
+    @test abs(running_loglikelihood - ll) < 1e-6
 end
 
+
+@safetestset track_trajectory_gamma = "TrajectoryWatcher compare gamma" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(BigInt(2123459945234392378678934324582349))
+    watcher = TrajectoryWatcher{Int64,Float64}()
+    # As above, but this uses a non-Exponential distribution for each step.
+    running_loglikelihood = zero(Float64)
+    check = zero(Float64)
+    # Each loop represents a duration, so it creates an event and fires it.
+    for step_idx in 1:10
+        period_start = Float64(step_idx - 1)
+        period_finish = Float64(step_idx)
+        dist = Gamma(step_idx, 1.5)
+        enable!(watcher, step_idx, dist, period_start, period_start, rng)
+        step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
+        fire!(watcher, step_idx, period_finish)
+        check_step = loglikelihood(dist, period_finish - period_start)
+        @test abs(check_step - step_ll) < 1e-4 * abs(step_ll)
+        running_loglikelihood += step_ll
+        check += check_step
+    end
+    ll = trajectoryloglikelihood(watcher)
+    @test abs(running_loglikelihood - ll) < 1e-6
+end
+
+
+@safetestset track_trajectory_compete = "TrajectoryWatcher compare compete" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(BigInt(2123459945234392378678934324582349))
+    watcher = TrajectoryWatcher{Int64,Float64}()
+    # Reset at each time step, but have one competing process in the likelihood.
+    running_loglikelihood = zero(Float64)
+    check = zero(Float64)
+    compete = Exponential(1.0)
+    compete_idx = 1003
+    # Each loop represents a duration, so it creates an event and fires it.
+    for step_idx in 1:10
+        period_start = Float64(step_idx - 1)
+        period_finish = Float64(step_idx)
+        dist = Gamma(step_idx, 1.5)
+        enable!(watcher, step_idx, dist, period_start, period_start, rng)
+        enable!(watcher, compete_idx, compete, period_start, period_start, rng)
+        step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
+        fire!(watcher, step_idx, period_finish)
+        disable!(watcher, compete_idx, period_finish)
+        check_step = loglikelihood(dist, period_finish - period_start)
+        check_step += logccdf(compete, period_finish - period_start)
+        @test abs(check_step - step_ll) < 1e-4 * abs(step_ll)
+        running_loglikelihood += step_ll
+        check += check_step
+    end
+    ll = trajectoryloglikelihood(watcher)
+    @test abs(running_loglikelihood - ll) < 1e-6
+end
 
 
 @safetestset track_debugwatcher_smoke = "DebugWatcher smoke" begin

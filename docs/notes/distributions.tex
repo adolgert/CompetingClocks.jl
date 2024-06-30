@@ -371,7 +371,7 @@ For a single time step from $t_1$ to $t$, the likelihood has one factor from the
 
 For a trajectory consisting of multiple time steps, the likelihood is the product of all individual time steps. We know the product of conditional survivals, for the same event enabled over time, is equal to the conditional survival between the start and end times. It feels like we could use this to optimize our calculation.
 
-Picture one transition, enabled at time $t_0$ and firing at time $t$. Its contribution to the likelihood of the whole trajectory would be just two factors. The function $f_\alpha$ is the pdf according to the Distributions package.
+Picture one transition, enabled at time $t_e$ and firing at time $t$. Its contribution to the likelihood of the whole trajectory would be just two factors. The function $f_\alpha$ is the pdf according to the Distributions package.
 \begin{equation}
 	\lambda_{\alpha}(t-t_{e\alpha})S_{\alpha}(t_0,t)
 	=\lambda_{\alpha}(t-t_{e\alpha})\frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}((t_0-t_{e\alpha})\wedge 0)}
@@ -380,7 +380,16 @@ Picture one transition, enabled at time $t_0$ and firing at time $t$. Its contri
 If this transition were disabled without firing, it would contribute only the one factor, its conditional survival from enabling to disabling.
 
 \subsection{Use Functions from Distributions Package}
-Now that we know what math we want to calculate, let's look at which functions the Julia Distributions package offers. It doesn't give hazard rates, so we may prefer to work with the pdf, for instance. The log-likelihood of Eq.~\ref{eqn:core-with-enabling} becomes
+Now that we know what math we want to calculate, let's look at which functions the Julia Distributions package offers. It doesn't give hazard rates, so we may prefer to work with the pdf, for instance. When the pdf is time-shifted, it complicates evaluation. Think about the log-likelihood for a single step, an incremental log-likelihood.
+\begin{eqnarray}
+	c_\alpha(t-t_0) &=& \lambda_\alpha(t-t_{e\alpha})S_\alpha(t_0,t,t_{e\alpha})\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta}) \\
+	&=&
+	\lambda_\alpha(t-t_{e\alpha})\frac{S_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta}) \\
+	&=&
+	\frac{f_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta})
+\end{eqnarray}
+
+The log-likelihood of Eq.~\ref{eqn:core-with-enabling} becomes
 \begin{equation}
   \log\:c_{\alpha}(t) = \log\:f_\alpha(t-t_{e\alpha})+\sum_{a\ne\alpha} \log\:S_a(t-t_{ea}) - \sum_{a\ne\alpha} \log\:S_a((t_t-t_{ea})\wedge 0).
 \end{equation}
