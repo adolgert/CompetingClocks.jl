@@ -112,6 +112,56 @@ end
 end
 
 
+@safetestset track_trajectory_free = "TrajectoryWatcher compare free" begin
+    using Distributions
+    using DataStructures
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(BigInt(212345994379212378678934324582349))
+    watcher = TrajectoryWatcher{Int64,Float64}()
+    # Make a more general set of transitions and compare step-wise with total
+    # log-likelihood. Make 10 transitions. At each step, fire 1, disable 4,
+    # and enable 5.
+    enabled = Deque{Int}()
+    curtime = zero(Float64)
+    for initial_idx in 1:10
+        dist = Gamma(6 + initial_idx * 0.2, 1.0)
+        enable!(watcher, initial_idx, dist, curtime, curtime, rng)
+        push!(enabled, initial_idx)
+    end
+    max_idx = 10
+    @test length(watcher) == max_idx
+
+    running_loglikelihood = zero(Float64)
+    for step_idx in 1:10
+        tofire = popfirst!(enabled)
+        firetime = curtime + 0.2
+        step_ll = steploglikelihood(watcher, curtime, firetime, tofire)
+        running_loglikelihood += step_ll
+        fire!(watcher, tofire, firetime)
+        curtime = firetime
+        for i in 1:4
+            disable_idx = popfirst!(enabled)
+            disable!(watcher, disable_idx, curtime)
+        end
+        @test length(watcher) == 5
+
+        # The sum of the stepwise and the trajectory-based should be equal
+        # the whole way through.
+        ll = trajectoryloglikelihood(watcher)
+        @test abs(running_loglikelihood - ll) < 1e-4 * abs(ll)
+
+        for i in 1:5
+            dist = Gamma(5 + 0.2 * i - 0.1 * step_idx, 1.5)
+            add_idx = max_idx + 1
+            enable!(watcher, add_idx, dist, curtime, curtime, rng)
+            push!(enabled, add_idx)
+            max_idx = add_idx
+        end
+    end
+end
+
+
 @safetestset track_debugwatcher_smoke = "DebugWatcher smoke" begin
     using Distributions
     using CompetingClocks
