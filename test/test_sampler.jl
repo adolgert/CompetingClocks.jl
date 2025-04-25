@@ -55,6 +55,11 @@ end
     @test 1 ∈ keys(sampler.propagator[1])
     @test 2 ∈ keys(sampler.propagator[1])
     @test 3 ∈ keys(sampler.propagator[2])
+
+    @test haskey(sampler, 1)
+    @test !haskey(sampler, 1_000)
+    @test !haskey(sampler, "1")
+
     when, which = next(sampler, 0.0, rng)
     @test which !== nothing
     disable!(sampler, which, when)

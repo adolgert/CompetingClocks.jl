@@ -45,4 +45,8 @@ end
         @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run"]
         reset!(sampler)
     end
+
+    @test haskey(sampler, "walk home")
+    @test !haskey(sampler, "walk backwards")
+    @test !haskey(sampler, 1)
 end

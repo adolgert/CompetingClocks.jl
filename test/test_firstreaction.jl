@@ -46,6 +46,10 @@ end
     @test length(keys(sampler)) == 5
     @test sampler[1] == Dirac(7.9)
 
+    @test haskey(sampler, 1)
+    @test !haskey(sampler, 1_000)
+    @test !haskey(sampler, "1")
+
     disable!(sampler, 1, 0.0)
 
     @test_throws KeyError sampler[1]

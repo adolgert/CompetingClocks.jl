@@ -1,6 +1,6 @@
 using Random: AbstractRNG
 using Distributions: UnivariateDistribution
-import Base: getindex, keys, length, keytype
+import Base: getindex, keys, length, keytype, haskey
 
 export SSA, enable!, disable!, next, 
     getindex, keys, length, keytype
@@ -126,3 +126,10 @@ end
 Return the type of clock keys.
 """
 Base.keytype(::SSA{K,T}) where {K,T} = K
+
+"""
+    haskey(sampler, key)
+
+Return a boolean.
+"""
+Base.haskey(sampler::SSA{K,T}, key) where {K,T}

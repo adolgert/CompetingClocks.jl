@@ -80,6 +80,14 @@ function Base.length(fr::FirstReaction)
     return length(fr.core_matrix.enabled)
 end
 
+function Base.haskey(fr::FirstReaction{K,T}, clock) where {K,T}
+    if clock isa K
+        haskey(fr.core_matrix.enabled, clock)
+    else
+        return false
+    end
+end
+
 
 """
 This sampler can help if it's the first time you're trying a model. It checks

@@ -75,6 +75,10 @@ end
     @test length(keys(propagator)) == 5
     @test propagator[1] == 7.9
 
+    @test haskey(propagator, 1)
+    @test !haskey(propagator, 1_000)
+    @test !haskey(propagator, "1")
+
     disable!(propagator, 1, 0.0)
 
     @test_throws KeyError propagator[1]
