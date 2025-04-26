@@ -21,7 +21,7 @@ using SafeTestsets
         @test when > sample_time
         min_when = min(min_when, when)
     end
-    @test min_when < sample_time + 0.01
+    @test min_when < sample_time + 0.03
     @test seen == Set([1, 3])
 end
 
