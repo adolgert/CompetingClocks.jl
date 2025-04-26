@@ -26,6 +26,7 @@ CombinedNextReaction
 ```@docs
 CommonRandomRecorder
 freeze
+haskey
 misscount
 misses
 MultiSampler
