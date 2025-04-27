@@ -124,7 +124,7 @@ function Base.length(dc::DirectCall)
 end
 
 function Base.haskey(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
-    return haskey(dc.prefix_tree.index, clock)
+    return isenabled(dc.prefix_tree, clock)
 end
 
 Base.haskey(dc::DirectCall{K,T,P}, clock) where {K,T,P} = false
