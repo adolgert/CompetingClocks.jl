@@ -371,10 +371,8 @@ function Base.length(nr::CombinedNextReaction)
     return length(nr.transition_entry)
 end
 
-function Base.haskey(nr::CombinedNextReaction{K,T}, clock) where {K,T}
-    if clock isa K
-        haskey(nr.transition_entry, clock)
-    else
-        return false
-    end
+function Base.haskey(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
+    return haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0
 end
+
+Base.haskey(dc::CombinedNextReaction{K,T}, clock) where {K,T} = false
