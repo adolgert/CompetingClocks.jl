@@ -98,10 +98,6 @@ function Base.length(propagator::FirstToFire)
     return length(propagator.transition_entry)
 end
 
-function Base.haskey(propagator::FirstToFire{K,T}, clock) where {K,T}
-    if clock isa K
-        haskey(propagator.transition_entry, clock)
-    else
-        return false
-    end
-end
+
+Base.haskey(propagator::FirstToFire{K,T}, clock::K) where {K,T} = haskey(propagator.transition_entry, clock)
+Base.haskey(propagator::FirstToFire{K,T}, clock) where {K,T} = false

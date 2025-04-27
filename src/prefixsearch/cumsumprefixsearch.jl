@@ -71,3 +71,12 @@ from the CumSumPrefixSearch set of values.
 """
 Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{CumSumPrefixSearch{T}}) where {T} =
     choose(d[], rand(rng, Uniform{T}(zero(T), d[].cumulant[end])))
+
+
+function isenabled(kp::CumSumPrefixSearch{T}, clock) where {T}
+    if 0 < clock ≤ length(ps.array)
+        return ps.array[clock] > zero(T)
+    else
+        return false
+    end
+end

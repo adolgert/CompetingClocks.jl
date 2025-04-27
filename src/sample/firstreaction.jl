@@ -80,13 +80,7 @@ function Base.length(fr::FirstReaction)
     return length(fr.core_matrix.enabled)
 end
 
-function Base.haskey(fr::FirstReaction{K,T}, clock) where {K,T}
-    if clock isa K
-        haskey(fr.core_matrix.enabled, clock)
-    else
-        return false
-    end
-end
+Base.haskey(fr::FirstReaction, clock) = isenabled(fr.core_matrix, clock)
 
 
 """
@@ -151,3 +145,6 @@ function next(fr::ChatReaction{K,T}, when::T, rng) where {K,T}
 	@debug "Step $(fr.step_cnt) time $(soonest_time) fire $(soonest_clock)"
 	return (soonest_time, soonest_clock)
 end
+
+
+Base.haskey(fr::ChatReaction, clock) = isenabled(fr.core_matrix, clock)
