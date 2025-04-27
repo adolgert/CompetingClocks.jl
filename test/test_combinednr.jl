@@ -42,6 +42,10 @@ end
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
     @test sampler[1] == 7.9
+    
+    @test haskey(sampler, 1)
+    @test !haskey(sampler, 1_000)
+    @test !haskey(sampler, "1")
 
     disable!(sampler, 1, 0.0)
 

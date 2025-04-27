@@ -1,13 +1,20 @@
 export MultipleDirect
 
 
+# MultipleDirect is a sampler that contains multiple prefix-search
+# data structures.
+# Here SamplerKey is an identifier for the sampler.
+# K is the type of the Clock key.
+# Time is a Float64 or other clock time.
+# Chooser is a function that selects a prefix-search given a clock key.
 mutable struct MultipleDirect{SamplerKey,K,Time,Chooser}
-    scan::Vector{KeyedPrefixSearch}
+    scan::Vector{KeyedPrefixSearch} # List of prefix-search data structures.
     totals::Vector{Time}
-    chooser::Chooser
-    chosen::Dict{K,Int}
+    chooser::Chooser # Function that selects a prefix-search given a key.
+    chosen::Dict{K,Int} # Map from clock key to index of prefix-search in `scan`.
     # Use this indirection from samplerkey to integer so that the
     # list of scan totals is stable, not jumbled by dict keys changing.
+    # Map from the identifier for the sampler to the vector of samplers.
     scanmap::Dict{SamplerKey,Int}
 end
 
@@ -105,5 +112,19 @@ function next(md::MultipleDirect, when, rng::AbstractRNG)
         return (tau, chosen)
     else
         return (typemax(when), nothing)
+    end
+end
+
+
+Base.haskey(md::MultipleDirect, clock) = false
+
+function Base.haskey(
+    md::MultipleDirect{SamplerKey,K,Time,Chooser},
+    clock::K
+    ) where {SamplerKey,K,Time,Chooser}
+    if haskey(md.chosen, clock)
+        return isenabled(md.scan[md.chosen[clock]])
+    else
+        return false
     end
 end

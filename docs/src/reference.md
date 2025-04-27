@@ -26,10 +26,10 @@ CombinedNextReaction
 ```@docs
 CommonRandomRecorder
 freeze
+haskey
 misscount
 misses
 MultiSampler
-SingleSampler
 ChatReaction
 DebugWatcher
 TrackWatcher

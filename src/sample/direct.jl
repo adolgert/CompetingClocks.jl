@@ -130,3 +130,8 @@ function steploglikelihood(dc::DirectCall, now, when, which)
     λ = dc.prefix_tree[which]
     return log(λ) - total * Δt
 end
+function Base.haskey(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
+    return isenabled(dc.prefix_tree, clock)
+end
+
+Base.haskey(dc::DirectCall{K,T,P}, clock) where {K,T,P} = false

@@ -196,3 +196,14 @@ from the BinaryTreePrefixSearch set of values.
 """
 Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{BinaryTreePrefixSearch{T}}) where {T} =
     choose(d[], rand(rng, Uniform{T}(zero(T), d[].array[1])))
+
+
+Base.haskey(md::BinaryTreePrefixSearch, clock) = false
+
+function Base.haskey(md::BinaryTreePrefixSearch{T}, clock::Int) where {T}
+	if 0 < clock ≤ length(md)
+        return getindex(pst, clock) > zero(T)
+    else
+        return false
+    end
+end

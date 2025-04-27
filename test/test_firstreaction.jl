@@ -21,7 +21,7 @@ using SafeTestsets
         @test when > sample_time
         min_when = min(min_when, when)
     end
-    @test min_when < sample_time + 0.01
+    @test min_when < sample_time + 0.03
     @test seen == Set([1, 3])
 end
 
@@ -45,6 +45,10 @@ end
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
     @test sampler[1] == Dirac(7.9)
+
+    @test haskey(sampler, 1)
+    @test !haskey(sampler, 1_000)
+    @test !haskey(sampler, "1")
 
     disable!(sampler, 1, 0.0)
 

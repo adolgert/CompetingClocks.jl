@@ -80,6 +80,8 @@ function Base.length(fr::FirstReaction)
     return length(fr.core_matrix.enabled)
 end
 
+Base.haskey(fr::FirstReaction, clock) = isenabled(fr.core_matrix, clock)
+
 
 """
 This sampler can help if it's the first time you're trying a model. It checks
@@ -143,3 +145,6 @@ function next(fr::ChatReaction{K,T}, when::T, rng) where {K,T}
 	@debug "Step $(fr.step_cnt) time $(soonest_time) fire $(soonest_clock)"
 	return (soonest_time, soonest_clock)
 end
+
+
+Base.haskey(fr::ChatReaction, clock) = isenabled(fr.core_matrix, clock)

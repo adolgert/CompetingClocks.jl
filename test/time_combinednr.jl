@@ -11,6 +11,11 @@ function sample_a_while(sampler, distribution, rng)
     for create_idx in 1:100
         enable!(sampler, create_idx, distribution, 0.0, 0.0, rng)
     end
+
+    @test haskey(sampler, 1)
+    @test !haskey(sampler, 1_000)
+    @test !haskey(sampler, "1")
+
     when = 0.0
     for select_idx in 1:10000
         when, chosen = next(sampler, when, rng)
