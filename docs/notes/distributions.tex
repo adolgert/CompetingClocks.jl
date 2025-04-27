@@ -1,8 +1,12 @@
+% This needs jlcode.sty, for Julia code.
+% I put it into a texmf subdirectry and run "export TEXINPUTS=.:./texmf/:".
+% Build with pdflatex distributions.tex, or latexmk -pdf distributions.tex.
 \documentclass{article}
 \usepackage{hyperref}
 \usepackage{jlcode} % https://github.com/wg030/jlcode
 \usepackage{listings}
 \usepackage{amsfonts}
+\usepackage{mathtools}
 %\usepackage{sourcecodepro}
 % \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage[T1]{fontenc}
@@ -314,7 +318,7 @@ Now that we have the cumulative distribution function, it may be easier to see t
 	c_{\alpha}(t)dt &=& f_{\alpha}(t)\prod_{a\ne\alpha}\left[\int_{t}^\infty f_a(\xi_a)dx_a\right] \\
 	&=& f_{\alpha}(t)\prod_{a\ne\alpha}S_a(t) \\
 	&=& \frac{f_{\alpha}(t)}{S_\alpha(t)}\prod_{a}S_a(t) \\
-	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)
+	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)\label{eqn:basic-likelihood}
 \end{eqnarray}
 At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. If we think about the sequence of $\left\{T_n\right\}$, the $c_\alpha(t)$ form a matrix called the core matrix.
 
@@ -328,6 +332,80 @@ We can translate the log-likelihood into Julia code. The first step is to expres
 
 In the case of Next Reaction method, we already have the machinery to calculate survival for every enabled transition, excepting the one that fires. We need only multiply that by the pdf of the transition that fires, and we have the likelihood of the trajectory.
 
+\section{Likelihood Calculation}
+
+Below, we will do importance sampling, and importance sampling relies on calculations of a likelihood ratio. The likelihood ratio depends on computing the likelihood, which is the core matrix. Let's work through how to calculate the log-likelihood for a \gsmp.
+
+\subsection{Include Enabling Times in the Calculation}
+
+Start by thinking about the survival for a shifted distribution. Our library, however, allows for a user to specify what it calls shifted distributions. For these, the pdf, as specified by the standard Distributions library, can be shifted left or right by some amount. When you enable a distribution, you specify both the current time, $t_0$ and an enabling time $t_e$. These are absolute times. The distribution is shifted left for $t_e<t_0$ and shifted right for $t_e>t_0$. For a distribution shifted left, we have
+\begin{equation}
+	S_{\alpha}(t-t_{e\alpha}) = S_{\alpha}(t_{0\alpha} - t_{e\alpha})S_{\alpha}(t_{0\alpha}, t)
+\end{equation}
+Here, the $S$ with one argument is the survival function you would find in the Distributions package, and the $S$ with two arguments is the conditional survival written with absolute times as arguments. The equation above is the definition of the conditional survival.
+\begin{equation}
+	S_{\alpha}(t_{0\alpha}, t) =  \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_{0\alpha} - t_{e\alpha})}
+\end{equation}
+Between any two times, $t_1$ and $t$, the conditional survival is then you get a nice cancellation.
+\begin{equation}
+	S_{\alpha}(t_{1}, t) = \frac{S_{\alpha}(t_{0\alpha}, t)}{S_{\alpha}(t_{0\alpha}, t_1)}
+	= \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_1-t_{e\alpha})}\label{eqn:survival-with-enabling}
+\end{equation}
+For a distribution shifted right, that means the distribution can't fire until a certain time, so its survival is one until that time.
+\begin{equation}
+	S_{\alpha}(t_{0\alpha}, t) =  S_{\alpha}(t - t_{e\alpha})
+\end{equation}
+If $t<t_{e\alpha}$, then we have to substitute $S_{\alpha}(t_{0\alpha}, t)=1$. We can unify the two survivals if we recall that survival at the moment of enabling is always 1. Using notation that $a\wedge b\coloneqq\mbox{min}(a,b)$,
+\begin{equation}
+	S_{\alpha}(t_{0\alpha}, t) =  \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}((t_{0\alpha} - t_{e\alpha})\wedge 0)}
+\end{equation}
+
+For a distribution shifted right, then between any two times, $t_1$ and $t$, the conditional survival looks the same as Eq.~\ref{eqn:survival-with-enabling}, except for the part where it might be 1. Do we now feel equipped to write the core matrix with more realistic enabling times?
+
+
+The survivals in Eq.~\ref{eqn:basic-likelihood} are conditional survivals starting at a last jump time $t_1$, and they are relative to enabling times.
+\begin{equation}
+	c_{\alpha}(t|t_1) = \lambda_{\alpha}(t-t_{e\alpha})\prod_\beta S_{\beta}(t_1,t)\label{eqn:core-with-enabling}
+\end{equation}
+For a single time step from $t_1$ to $t$, the likelihood has one factor from the event that fires and then a factor from each event.
+
+For a trajectory consisting of multiple time steps, the likelihood is the product of all individual time steps. We know the product of conditional survivals, for the same event enabled over time, is equal to the conditional survival between the start and end times. It feels like we could use this to optimize our calculation.
+
+Picture one transition, enabled at time $t_e$ and firing at time $t$. Its contribution to the likelihood of the whole trajectory would be just two factors. The function $f_\alpha$ is the pdf according to the Distributions package.
+\begin{equation}
+	\lambda_{\alpha}(t-t_{e\alpha})S_{\alpha}(t_0,t)
+	=\lambda_{\alpha}(t-t_{e\alpha})\frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}((t_0-t_{e\alpha})\wedge 0)}
+	=\frac{f_{\alpha}(t-t_{e\alpha})}{S_{\alpha}((t_0-t_{e\alpha})\wedge 0)}\label{eqn:event-lifetime-likelihood}
+\end{equation}
+If this transition were disabled without firing, it would contribute only the one factor, its conditional survival from enabling to disabling.
+
+\subsection{Use Functions from Distributions Package}
+Now that we know what math we want to calculate, let's look at which functions the Julia Distributions package offers. It doesn't give hazard rates, so we may prefer to work with the pdf, for instance. When the pdf is time-shifted, it complicates evaluation. Think about the log-likelihood for a single step, an incremental log-likelihood.
+\begin{eqnarray}
+	c_\alpha(t-t_0) &=& \lambda_\alpha(t-t_{e\alpha})S_\alpha(t_0,t,t_{e\alpha})\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta}) \\
+	&=&
+	\lambda_\alpha(t-t_{e\alpha})\frac{S_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta}) \\
+	&=&
+	\frac{f_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta})
+\end{eqnarray}
+
+The log-likelihood of Eq.~\ref{eqn:core-with-enabling} becomes
+\begin{equation}
+  \log\:c_{\alpha}(t) = \log\:f_\alpha(t-t_{e\alpha})+\sum_{a\ne\alpha} \log\:S_a(t-t_{ea}) - \sum_{a\ne\alpha} \log\:S_a((t_t-t_{ea})\wedge 0).
+\end{equation}
+In Julia, there is a \texttt{logpdf}$\coloneqq\log\:f$ and a \texttt{logccdf}$\coloneqq\log\:S$.
+
+There is also a version that uses integrated hazards\ldots
+
+We can even more easily translate the log-likelihood associated with the lifetime of a single event, Eq.~\ref{eqn:event-lifetime-likelihood}.
+\begin{equation}
+	\log\:f_\alpha(t-t_{e\alpha}) - \log\:S_\alpha((t_0-t_{e\alpha})\wedge 0)
+\end{equation}
+That's for transitions that fired. For transitions that didn't fire, it's just the survival.
+\begin{equation}
+	\log\:S_\alpha(t-t_{e\alpha}) - \log\:S_\alpha((t_0-t_{e\alpha})\wedge 0)
+\end{equation}
+By summing these quantities over all events for every set of time periods the event is enabled, we can quickly get the likelihood of a trajectory.
 
 \section{Gillespie's Direct Method}
 

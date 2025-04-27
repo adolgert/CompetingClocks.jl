@@ -1,6 +1,7 @@
 using Base
 using Distributions: UnivariateDistribution
-export TrackWatcher, DebugWatcher, enable!, disable!
+export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
+export trajectoryloglikelihood, fire!
 
 # A Watcher has an enable!() and a disable!() function but lacks
 # the next() function that a Sampler has. You can attach a watcher
@@ -10,8 +11,8 @@ export TrackWatcher, DebugWatcher, enable!, disable!
 struct EnablingEntry{K,T}
     clock::K
     distribution::UnivariateDistribution
-    te::T
-    when::T
+    te::T    # The zero-point, in absolute time, for the distribution.
+    when::T  # When the distribution was enabled.
 end
 
 
@@ -80,6 +81,123 @@ end
 
 isenabled(ts::TrackWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, clock)
 isenabled(ts::TrackWatcher{K,T}, clock) where {K,T} = false
+
+
+"""
+    steploglikelihood(tw::TrackWatcher, now, when, which_fires)
+
+Calculate the log-likelihood of a single step in which the `which_fires`
+transition fires next. `now` is the current time. `when` is the time when
+`which_fires` happens so when > now. You have to call this before the transition fires so that
+it is before transitions are enabled and disabled from the previous step.
+"""
+function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where {K,T}
+    # Look for a description of this in docs/notes/distributions.pdf, under log-likelihood.
+    if which_fires !== nothing
+        chosen = tw.enabled[which_fires]
+        if now >= chosen.te
+            total = logpdf(chosen.distribution, when - chosen.te)
+            if chosen.te < now
+                # This time-shifts the pdf, usually seen as f(t,t0) = f(t)/(1-F(t0))
+                total -= logccdf(chosen.distribution, now - chosen.te)
+            end
+        else
+            # If a transition fires before it's enabled, that's impossible.
+            total = -NaN
+        end
+    else
+        total = zero(Float64)
+    end
+    for (key, entry) in pairs(tw.enabled)
+        if key !== which_fires
+            if when > entry.te
+                total += logccdf(entry.distribution, when - entry.te)
+                if now > entry.te
+                    total -= logccdf(entry.distribution, now - entry.te)
+                end
+            end
+        end
+    end
+    return total
+end
+
+
+mutable struct TrajectoryWatcher{K,T}
+    track::TrackWatcher{K,T}
+    loglikelihood::Float64
+    curtime::Float64
+    TrajectoryWatcher{K,T}() where {K,T} = new(TrackWatcher{K,T}(), zero(Float64), zero(Float64))
+end
+export TrajectoryWatcher
+
+
+function trajectoryloglikelihood(tw::TrajectoryWatcher)
+    # When this is called, there will be transitions that have not yet fired, and
+    # they need to be included as though they were just disabled.
+    when = tw.curtime
+    remaining = zero(Float64)
+    for entry in values(tw.track.enabled)
+        if when > entry.te
+            remaining += logccdf(entry.distribution, when - entry.te)
+            if entry.when > entry.te
+                remaining -= logccdf(entry.distribution, entry.when - entry.te)
+            end
+        end
+    end
+
+    return tw.loglikelihood + remaining
+end
+
+
+reset!(tw::TrajectoryWatcher) = (reset!(tw.track); tw.loglikelihood=zero(Float64); nothing)
+function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
+    copy!(dst.track, src.track)
+    dst.loglikelihood = src.loglikelihood
+end
+
+Base.iterate(ts::TrajectoryWatcher) = iterate(ts.track)
+Base.iterate(ts::TrajectoryWatcher, i::Int64) = iterate(ts.track, i)
+Base.length(ts::TrajectoryWatcher) = length(ts.track)
+
+
+function enable!(ts::TrajectoryWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng) where {K,T}
+    enable!(ts.track, clock, dist, te, when, rng)
+end
+
+
+function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
+    entry = get(ts.track.enabled, clock, nothing)
+    if entry !== nothing
+        if when > entry.te
+            ts.loglikelihood += logccdf(entry.distribution, when - entry.te)
+            if entry.when > entry.te
+                ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
+            end
+        end
+        disable!(ts.track, clock, when)
+    end
+end
+
+
+function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
+    entry = get(ts.track.enabled, clock, nothing)
+    if entry !== nothing
+        if when > entry.te
+            ts.loglikelihood += logpdf(entry.distribution, when - entry.te)
+        end
+        # Adjust for an enabling time that was shifted left.
+        if entry.when > entry.te
+            ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
+        end
+        disable!(ts.track, clock, when)
+    end
+    ts.curtime = when
+end
+
+
+function steploglikelihood(tw::TrajectoryWatcher{K,T}, now, when, which_fires) where {K,T}
+    steploglikelihood(tw.track, now, when, which_fires)
+end
 
 
 """
