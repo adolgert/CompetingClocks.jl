@@ -1,3 +1,4 @@
+using Base
 using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!
 

@@ -123,10 +123,8 @@ function Base.length(dc::DirectCall)
     return length(dc.prefix_tree)
 end
 
-function Base.haskey(dc::DirectCall{K,T,P}, clock) where {K,T,P}
-    if clock isa K
-        haskey(dc.prefix_tree.index, clock)
-    else
-        return false
-    end
+function Base.haskey(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
+    return haskey(dc.prefix_tree.index, clock)
 end
+
+Base.haskey(dc::DirectCall{K,T,P}, clock) where {K,T,P} = false
