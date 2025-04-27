@@ -5,6 +5,7 @@ using SafeTestsets
     using Distributions
     using CompetingClocks
     using Random
+    using Base
     rng = Xoshiro(3242234)
     tw = TrackWatcher{Int,Float64}()
     enable!(tw, 3, Exponential(), 0.0, 0.0, rng)

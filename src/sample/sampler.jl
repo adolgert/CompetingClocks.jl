@@ -166,3 +166,18 @@ end
 function Base.length(sampler::MultiSampler)
     return sum([length(propagator) for propagator in values(sampler.propagator)])
 end
+
+function Base.haskey(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}, clock) where {SamplerKey,Key,Time,Chooser}
+    if clock isa Key
+        for propagator in values(sampler.propagator)
+            if haskey(propagator, clock)
+                return true
+            else
+                continue
+            end
+        end
+        return false
+    else
+        return false
+    end
+end

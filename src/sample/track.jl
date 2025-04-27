@@ -1,3 +1,4 @@
+using Base
 using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!
 
@@ -75,6 +76,10 @@ function disable!(ts::TrackWatcher{K,T}, clock::K, when) where {K,T}
         delete!(ts.enabled, clock)
     end
 end
+
+
+isenabled(ts::TrackWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, clock)
+isenabled(ts::TrackWatcher{K,T}, clock) where {K,T} = false
 
 
 """

@@ -53,6 +53,11 @@ function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
 end
 
 
+isenabled(kp::KeyedKeepPrefixSearch, clock) = (
+    haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
+)
+
+
 Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(time_type(kp))
 function Base.sum!(kp::KeyedKeepPrefixSearch)
     (length(kp.index) > 0) ? sum!(kp.prefix) : zero(time_type(kp))
@@ -109,6 +114,7 @@ function Base.copy!(dst::KeyedRemovalPrefixSearch{T,P}, src::KeyedRemovalPrefixS
 end
 
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
+time_type(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P} = time_type(P)
 
 function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
     idx = get(kp.index, clock, 0)
@@ -126,6 +132,12 @@ function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
         @assert length(kp.key) == length(kp.prefix)
     end
 end
+
+
+isenabled(kp::KeyedRemovalPrefixSearch, clock) = (
+    haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
+)
+
 
 function Base.getindex(kp::KeyedRemovalPrefixSearch, clock)
     if haskey(kp.index, clock)
