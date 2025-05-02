@@ -128,6 +128,13 @@ Return the type of clock keys.
 Base.keytype(::SSA{K,T}) where {K,T} = K
 
 """
+    timetype(sampler)
+
+Return the type of clock times.
+"""
+timetype(::SSA{K,T}) where {K,T} = T
+
+"""
     haskey(sampler, key)
 
 Return a boolean.

@@ -24,6 +24,45 @@ using SafeTestsets
 end
 
 
+@safetestset memory_sampler = "MemorySampler known insertions" begin
+    # Let's put entries into its heap in order to ensure the heap does the right thing.
+    # This is a clear-box test. It depends heavily on implementation.
+    using CompetingClocks: FirstToFire, enable!, disable!, next
+    using CompetingClocks
+    using Random: Xoshiro
+    using Distributions
+
+    propagator = MemorySampler(FirstToFire{Int64,Float64}())
+    
+    rng = Xoshiro(39472)
+
+    incremental_enable = 0.0
+    firing_times = [(1, 7.9), (2, 12.3), (3, 3.7), (4, 1.3), (5, 0.2)]
+    for (clock, when_fire) in firing_times
+        enable!(propagator, clock, Dirac(when_fire), incremental_enable, incremental_enable, rng)
+        incremental_enable += 0.01
+    end
+    @test absolute_enabling(propagator, 1) == 0.0
+    
+    @test absolute_enabling(propagator, 3) ≈ 0.02
+    @test absolute_enabling(propagator, 5) ≈ 0.04
+    
+    sort!(firing_times, by=x -> x[2])
+    last_fired = 0.0
+    for (key, fire_time) in firing_times
+        (t1, k1) = next(propagator, last_fired, rng)
+        @test k1 == key
+        last_fired = t1
+        if k1 !== nothing
+            disable!(propagator, k1, last_fired)
+        end
+    end
+    # (t2, k2) = next(propagator, 0.0, rng)
+    # @test k2 === nothing
+
+    # reset!(propagator)
+end
+
 @safetestset track_trajectory_comparison = "TrajectoryWatcher comparison" begin
     using Distributions
     using CompetingClocks
