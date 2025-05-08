@@ -3,7 +3,7 @@ using Random
 import Distributions: params, partype, mean, median, mode, var, skewness, kurtosis
 import Distributions: pdf, logpdf, cdf, ccdf, quantile, mgf, cf
 import Base: rand
-import Random: rand!
+import Random
 
 struct Never{T<:Real} <: ContinuousUnivariateDistribution
     Never{T}() where {T <: Real} = new{T}()
@@ -28,6 +28,6 @@ mgf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 cf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 rand(rng::Random.AbstractRNG, d::Never) = typemax(T)
 
-function rand!(rng::Random.AbstractRNG, d::Never, arr::AbstractArray)
+function Random.rand!(rng::Random.AbstractRNG, d::Never, arr::AbstractArray)
     arr .= typemax(T)
 end
