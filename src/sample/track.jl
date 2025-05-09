@@ -1,7 +1,7 @@
 using Base
 using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
-export trajectoryloglikelihood, fire!
+export trajectoryloglikelihood, fire!, absolute_enabling
 
 # A Watcher has an enable!() and a disable!() function but lacks
 # the next() function that a Sampler has. You can attach a watcher
@@ -46,6 +46,9 @@ mutable struct TrackWatcher{K,T}
     TrackWatcher{K,T}() where {K,T}=new(Dict{K,EnablingEntry{K,T}}())
 end
 
+function absolute_enabling(dst::TrackWatcher{K,T}, clock::K) where {K,T}
+    return dst.enabled[clock].when
+end
 
 reset!(ts::TrackWatcher) = (empty!(ts.enabled); nothing)
 
@@ -119,6 +122,45 @@ function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where 
         end
     end
     return total
+end
+
+
+mutable struct MemorySampler{S,K,T}
+    sampler::S
+    track::TrackWatcher{K,T}
+    curtime::T
+end
+
+function MemorySampler(sampler::Sampler) where {Sampler}
+    K = keytype(sampler)
+    T = timetype(sampler)
+    MemorySampler{Sampler,K,T}(
+        sampler, TrackWatcher{K,T}(), zero(T)
+        )
+end
+
+export MemorySampler
+
+function absolute_enabling(propagator::MemorySampler, clock)
+    return absolute_enabling(propagator.track, clock)
+end
+
+function next(propagator::MemorySampler, when, rng)
+    next(propagator.sampler, when, rng)
+end
+
+function enable!(propagator::MemorySampler, clock, distribution, te, when, rng)
+    enable!(propagator.track, clock, distribution, te, when, rng)
+    enable!(propagator.sampler, clock, distribution, te, when, rng)
+end
+
+function disable!(propagator::MemorySampler, clock, when)
+    disable!(propagator.track, clock, when)
+    disable!(propagator.sampler, clock, when)
+end
+
+function Base.getindex(propagator::MemorySampler, clock)
+    getindex(propagator.sampler, clock)
 end
 
 

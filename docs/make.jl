@@ -62,9 +62,10 @@ end
 makedocs(;
     modules=[CompetingClocks],
     authors="Andrew Dolgert <adolgert@uw.edu>",
-    sitename="CompetingClocks.jl",
+    sitename="CompetingClocks.jl Documentation",
     format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
+        prettyurls=get(ENV, "CI", nothing) == "true",
+        edit_link="main",
         size_threshold_warn=2^17,
         size_threshold=2^18,
         canonical="https://adolgert.github.io/CompetingClocks.jl",
@@ -102,5 +103,6 @@ makedocs(;
 deploydocs(;
     target = "build",
     repo = "github.com/adolgert/CompetingClocks.jl.git",
+    devbranch="main",
     branch = "gh-pages"
 )

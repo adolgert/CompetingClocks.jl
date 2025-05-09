@@ -22,5 +22,6 @@ copy!
 getindex
 keys
 keytype
+timetype
 length
 ```
