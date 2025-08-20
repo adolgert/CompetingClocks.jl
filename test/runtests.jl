@@ -48,6 +48,9 @@ end
     include("test_firsttofire.jl")
 end
 
+@testset "test_petri.jl" begin
+    include("test_petri.jl")
+end
 
 @testset "test_sampler.jl" begin
     include("test_sampler.jl")

@@ -86,6 +86,7 @@ makedocs(;
             "hierarchical.md",
             "memory.md",
             "commonrandom.md",
+            "debugging.md"
         ],
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",
