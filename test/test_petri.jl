@@ -34,3 +34,21 @@
     copy!(dst, tw)
     @test length(tw) == 2 && 11 ∉ keys(tw)
 end
+
+
+@safetestset track_Petri_more = "Petri more functions" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+    using Base
+    rng = Xoshiro(3242234)
+    tw = Petri{Int,Float64}()
+    # Show that distributions with very different rates
+    # are all sampled equally by Petri.
+    enable!(tw, 3, Exponential(100.0), 0.0, 0.0, rng)
+    @test tw[3].clock == 3
+    @test tw[3].distribution == Exponential(100.0)
+    @test haskey(tw, 3)
+    @test !haskey(tw, 4)
+    @test !haskey(tw, "wrong type")
+end

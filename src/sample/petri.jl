@@ -54,5 +54,4 @@ function Base.length(propagator::Petri)
 end
 
 
-Base.haskey(propagator::Petri{K,T}, clock::K) where {K,T} = haskey(propagator.watcher, clock)
-Base.haskey(propagator::Petri{K,T}, clock) where {K,T} = false
+Base.haskey(propagator::Petri, clock) = isenabled(propagator.watcher, clock)

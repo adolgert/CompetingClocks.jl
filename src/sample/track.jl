@@ -81,7 +81,6 @@ function disable!(ts::TrackWatcher{K,T}, clock::K, when) where {K,T}
     end
 end
 
-
 isenabled(ts::TrackWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, clock)
 isenabled(ts::TrackWatcher{K,T}, clock) where {K,T} = false
 
