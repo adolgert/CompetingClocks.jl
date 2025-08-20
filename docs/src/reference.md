@@ -31,6 +31,7 @@ misscount
 misses
 MultiSampler
 ChatReaction
+Petri
 DebugWatcher
 TrackWatcher
 consume_survival
