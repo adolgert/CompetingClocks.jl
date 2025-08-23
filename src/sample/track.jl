@@ -140,6 +140,8 @@ end
 
 export MemorySampler
 
+keytype(propagator::MemorySampler{S,K,T}) where {S,K,T} = K
+
 function absolute_enabling(propagator::MemorySampler, clock)
     return absolute_enabling(propagator.track, clock)
 end
