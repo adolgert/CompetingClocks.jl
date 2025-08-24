@@ -86,36 +86,34 @@ isenabled(ts::TrackWatcher{K,T}, clock) where {K,T} = false
 
 
 """
-    steploglikelihood(tw::TrackWatcher, now, when, which_fires)
+    steploglikelihood(tw::TrackWatcher, now, when_fires, which_fires)
 
 Calculate the log-likelihood of a single step in which the `which_fires`
-transition fires next. `now` is the current time. `when` is the time when
-`which_fires` happens so when > now. You have to call this before the transition fires so that
+transition fires next. `now` is the current time. `when_fires` is the time when
+`which_fires` happens so `when > now`. You have to call this before the transition fires so that
 it is before transitions are enabled and disabled from the previous step.
 """
-function steploglikelihood(tw::TrackWatcher{K,T}, now, when, which_fires) where {K,T}
+function steploglikelihood(tw::TrackWatcher{K,T}, t0, t, which_fires) where {K,T}
     # Look for a description of this in docs/notes/distributions.pdf, under log-likelihood.
-    if which_fires !== nothing
-        chosen = tw.enabled[which_fires]
-        if now >= chosen.te
-            total = logpdf(chosen.distribution, when - chosen.te)
-            if chosen.te < now
-                # This time-shifts the pdf, usually seen as f(t,t0) = f(t)/(1-F(t0))
-                total -= logccdf(chosen.distribution, now - chosen.te)
+    @assert t >= t0
+    total = zero(Float64)
+    for (key, entry) in pairs(tw.enabled)
+        if key == which_fires
+            if t >= entry.te
+                total += logpdf(entry.distribution, t - entry.te)
+                if t0 > entry.te
+                    # This time-shifts the pdf, usually seen as f(t,t0) = f(t)/(1-F(t0))
+                    total -= logccdf(entry.distribution, t0 - entry.te)
+                end
+            else
+                # If a transition fires before it's enabled, that's impossible.
+                total = -Inf
             end
         else
-            # If a transition fires before it's enabled, that's impossible.
-            total = -NaN
-        end
-    else
-        total = zero(Float64)
-    end
-    for (key, entry) in pairs(tw.enabled)
-        if key !== which_fires
-            if when > entry.te
-                total += logccdf(entry.distribution, when - entry.te)
-                if now > entry.te
-                    total -= logccdf(entry.distribution, now - entry.te)
+            if t > entry.te
+                total += logccdf(entry.distribution, t - entry.te)
+                if t0 > entry.te
+                    total -= logccdf(entry.distribution, t0 - entry.te)
                 end
             end
         end
