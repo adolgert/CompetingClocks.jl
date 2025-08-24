@@ -11,7 +11,8 @@
 % \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage[T1]{fontenc}
 \usepackage{xspace}
-
+\usepackage{bookman}
+\usepackage{tikz}
 
 \newcommand{\gsmp}{\textsc{gsmp}\xspace}
 \newcommand{\gspn}{\textsc{gspn}\xspace}
@@ -309,24 +310,55 @@ Start by asking the cumulative distribution function of a single step of a traje
 \begin{eqnarray}
 	F_n(x_1, x_2,\ldots,x_m) &= &\int_0^{x_1}\cdots\int_0^{x_m}f(\xi_1,\xi_2,\ldots,\xi_m)d\xi_m\ldots d\xi_1 \\
 	&= &\int_0^{x_1}\cdots\int_0^{x_m}\prod_a f_a(\xi_a)d\xi_m\ldots d\xi_1\ \\
-	&= &\prod_a \left[\int_0^{\xi_a}f_a(\xi_a)d\xi_m\ldots d\xi_1\right]
+	&= &\prod_a \left[\int_0^{\xi_a}f_a(\xi_a)d\xi_a\right]
 \end{eqnarray}
-If the next time step is at time $t=T_{n+1}-T_n$, then the joint cumulative distribution function is $F_n(t)=\prod_a F_a(t).$
+If the next time step is at time $t=T_{n+1}-T_n$, then the joint cumulative distribution function is $P(T\le t)=F_n(t)=\prod_a F_a(t).$
 
-Now that we have the cumulative distribution function, it may be easier to see the likelihood of a single step of the trajectory. In probability language, it's $P(t\le T_\alpha<t+dt,T_{a\ne\alpha} > t)$. Given competing processes, the likelihood is the probability that one particular trajectory, called $\alpha$, fires between time $t$ and $t+\delta t$, and all other transitions fire later. We'll use $S(t)$ for the survival and $\lambda(t)$ for the hazard.
+Now that we have the cumulative distribution function, it may be easier to see the likelihood of a single step of the trajectory. Given competing processes, the outcome of a step is a joint distribution over which transition fires and at what time. We can start by defining the core matrix, which is the derivative of the joint cumulative distribution function with respect to the firing time of one clock, which we will call $\alpha$.
+We'll use $S(t)$ for the survival and $\lambda(t)$ for the hazard.
 \begin{eqnarray}
 	c_{\alpha}(t)dt &=& f_{\alpha}(t)\prod_{a\ne\alpha}\left[\int_{t}^\infty f_a(\xi_a)dx_a\right] \\
 	&=& f_{\alpha}(t)\prod_{a\ne\alpha}S_a(t) \\
 	&=& \frac{f_{\alpha}(t)}{S_\alpha(t)}\prod_{a}S_a(t) \\
 	&=& \lambda_{\alpha}(t)\prod_{a}S_a(t)\label{eqn:basic-likelihood}
 \end{eqnarray}
-At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. If we think about the sequence of $\left\{T_n\right\}$, the $c_\alpha(t)$ form a matrix called the core matrix.
+At time $T_n$, there is a continuous likelihood $c_\alpha(t)$ for each $\alpha\in a$. At any one time, the $c_\alpha(t)$ form a vector of ways to leave the current state. If we consider all states of the system, the $c_\alpha(t)$ form a matrix of rates from one state to another.
 
 The core matrix makes more sense if you look at its normalization. Add the core matrix terms for each transition, and write it in terms of hazards.
-\begin{eqnarray}
+\begin{equation}
 	\sum_a c_a(t)dt = \left(\sum_a \lambda_a(t)\right)\mbox{exp}\left(-\int_{t_0}^t\sum_a \lambda_a(s)ds \right)dt
-\end{eqnarray}
-This is the probability density function for a distribution whose hazard is the sum of all of the hazards. It's called the waiting time distribution because it is the probability for any transition to fire and move to the next state.
+\end{equation}
+This is the probability density function for a distribution whose hazard is the sum of all of the hazards. It's the derivative of the survival function.
+\begin{equation}
+W(t) = 1-\exp\left(-\int_{t_0}^t\sum_a \lambda_a(s)ds \right)dt
+\end{equation}
+It's called the waiting time distribution because it is the probability for any transition to fire and move to the next state. The core matrix for any particular $\alpha$ is therefore incomplete, meaning its integral doesn't sum to one, because the integral of the waiting time sums to one.
+
+We can think of sampling a joint distribution over time and clock, $(T,C)$. We could sample the time and then, given the time, sample the clock, $P[T]P[C|T]$. That gives us a sample from $W(t)$ and then from the time-dependent fractions $\lambda_\alpha(t)/\sum_a \lambda_a(t)$. We could do it the other way around, $P[C]P[T|C]$. In this case, we would want to integrate over all times for each clock to fire.
+\begin{equation}
+  P[\alpha] = \int_0^\infty \lambda_\alpha(t)\prod_a S_a(t)
+\end{equation}
+Maybe a GPU would help that calculation, but it's not the direction we usually go.
+
+We will calculate the likelihood of a sample $(t,\alpha)$ by using the derivative of the waiting time and the ratio of hazards.
+\begin{equation}
+{\mathcal L(t,\alpha)}=\frac{dP[t]}{dt}P[\alpha|t]=\frac{\lambda_{\alpha}(t)}{\sum_a \lambda_a(t)}\left(\sum_a \lambda_a(t)\right)\mbox{exp}\left(-\int_{t_0}^t\sum_a \lambda_a(s)ds \right)dt
+\end{equation}
+The cancellation gives us the core matrix back again.
+\begin{equation}
+{\mathcal L(t,\alpha)}=\lambda_{\alpha}(t)\mbox{exp}\left(-\int_{t_0}^t\sum_a \lambda_a(s)ds \right)dt=\lambda_{\alpha}(t)\prod_{a}S_a(t)=c_\alpha(t)
+\end{equation}
+The core matrix is the likelihood.
+
+The log-likelihood helpfully turns products into sums.
+\begin{equation}
+\ell = \ln {\mathcal L} = \ln \lambda_\alpha(t) + \sum_a \ln S_a(t) = \ln \lambda_\alpha(t)-\int_{t_0}^t\sum_a \lambda_a(s)ds
+\end{equation}
+For completeness, and foreshadowing, let's rewrite this back to use the pdf.
+\begin{equation}
+\ell = \ln {\mathcal L} = \ln f_\alpha(t) + \sum_{a\ne\alpha} \ln S_a(t) = \ln f_\alpha(t)-\int_{t_0}^t\sum_{a\ne\alpha} \lambda_a(s)ds
+\end{equation}
+If we knew hazards and their integrals, we would be all set.
 
 We can translate the log-likelihood into Julia code. The first step is to express competing processes as long-lived competing processes. Account for the enabling times and for distributions that were enabled at a previous transition. Then rewrite this equation in terms of Julia functions.
 
@@ -338,36 +370,105 @@ Below, we will do importance sampling, and importance sampling relies on calcula
 
 \subsection{Include Enabling Times in the Calculation}
 
-Start by thinking about the survival for a shifted distribution. Our library, however, allows for a user to specify what it calls shifted distributions. For these, the pdf, as specified by the standard Distributions library, can be shifted left or right by some amount. When you enable a distribution, you specify both the current time, $t_0$ and an enabling time $t_e$. These are absolute times. The distribution is shifted left for $t_e<t_0$ and shifted right for $t_e>t_0$. For a distribution shifted left, we have
+Simulation uses continuous univariate distributions where the random variable is time. For simulations, we often care about survivals and cumulative distributions that use a univariate distribution with an origin at $t_e$ but calculate a survival or CDF using an anchor time $t_0$ that differs from $t_e$. The variable $t_0$ could represent the simulation time when a clock was enabled or it could represent the last time step. Either way, we care about three times, $(t_e, t_0, t)$. There are three orderings we care about out of the possible six ordering of three variables. They are all orderings where $t>t_0$. These are left-shifted distributions $(t_e, t_0, t)$, right-shifted distributions $(t_0, t_e, t)$, and right-shifted distributions where the event is before the zero-time of the distribution $t_0, t, t_e)$.
+
+The survival analysis community uses ``left-truncation'' to refer to what I called left shifting. Simulations folks feel more shifty about it.
+
+\subsubsection{Left Shifted}
+\begin{center}
+\begin{tikzpicture}
+  \draw[->] (-2,0) -- (2,0);
+  \node[below] at (-1.5,0) {$t_e$};
+  \node[below] at (0,0) {$t_0$};
+  \node[below] at (1.5,0) {$t$};
+  \fill (-1.5,0) circle (2pt);
+  \fill (0,0) circle (2pt);
+  \fill (1.5,0) circle (2pt);
+\end{tikzpicture}
+\end{center}
+
+The easiest way to calculate shifted distributions correctly is to start from the survival because ``the survival is multiplicative'' which means that surviving from start to finish is the same chance as surviving from start to a midpoint multiplied by the chance of surviving from midpoint to finish.
+For a distribution shifted left, with midpoint $t_{0\alpha}$ and current time $t$,
 \begin{equation}
 	S_{\alpha}(t-t_{e\alpha}) = S_{\alpha}(t_{0\alpha} - t_{e\alpha})S_{\alpha}(t_{0\alpha}, t)
 \end{equation}
-Here, the $S$ with one argument is the survival function you would find in the Distributions package, and the $S$ with two arguments is the conditional survival written with absolute times as arguments. The equation above is the definition of the conditional survival.
+Here, the $S$ with one argument is the survival function you would find in the Distributions package, and the $S$ with two arguments is the conditional survival written with absolute times as arguments. The equation above defines the conditional survival.
 \begin{equation}
 	S_{\alpha}(t_{0\alpha}, t) =  \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_{0\alpha} - t_{e\alpha})}
 \end{equation}
-Between any two times, $t_1$ and $t$, the conditional survival is then you get a nice cancellation.
-\begin{equation}
-	S_{\alpha}(t_{1}, t) = \frac{S_{\alpha}(t_{0\alpha}, t)}{S_{\alpha}(t_{0\alpha}, t_1)}
-	= \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}(t_1-t_{e\alpha})}\label{eqn:survival-with-enabling}
-\end{equation}
+
+
+\subsubsection{Right Shifted}
+
+\begin{center}
+\begin{tikzpicture}
+  \draw[->] (-2,0) -- (2,0);
+  \node[below] at (-1.5,0) {$t_0$};
+  \node[below] at (0,0) {$t_e$};
+  \node[below] at (1.5,0) {$t$};
+  \fill (-1.5,0) circle (2pt);
+  \fill (0,0) circle (2pt);
+  \fill (1.5,0) circle (2pt);
+\end{tikzpicture}
+\end{center}
+
 For a distribution shifted right, that means the distribution can't fire until a certain time, so its survival is one until that time.
+The conditional survival from $t_0$ to $t$ is just the survival,
 \begin{equation}
-	S_{\alpha}(t_{0\alpha}, t) =  S_{\alpha}(t - t_{e\alpha})
+  S_\alpha(t_0,t)=S_\alpha(t_0-t_e)
 \end{equation}
-If $t<t_{e\alpha}$, then we have to substitute $S_{\alpha}(t_{0\alpha}, t)=1$. We can unify the two survivals if we recall that survival at the moment of enabling is always 1. Using notation that $a\wedge b\coloneqq\mbox{min}(a,b)$,
+There is a degenerate case where the time is less than the zero of the distribution, in which case, for $t<t_e$, $S(t_0,t)=1$.
+
+We can unify the left shift and the right shift into one equation.
+Use notation that $a\wedge b\coloneqq\mbox{min}(a,b)$ and $a\vee b\coloneqq\mbox{max}(a,b)$. Survival at time $t_e$ is always 1, by definition.
 \begin{equation}
-	S_{\alpha}(t_{0\alpha}, t) =  \frac{S_{\alpha}(t-t_{e\alpha})}{S_{\alpha}((t_{0\alpha} - t_{e\alpha})\wedge 0)}
+  S_\alpha(t_0,t)=\frac{S_\alpha((t-t_e)\vee 0)}{S_\alpha((t_0-t_e)\vee 0)}
+\end{equation}
+In each of the three cases, this simplifies to the correct equation given $t>t_0$, which is always the case.
+
+\subsubsection{From Survival to Everything Else}
+
+The hazard rate doesn't care about your shifts. It lives in the moment, counted since the zero of the distribution.
+\begin{equation}
+  \lambda(t_0, t, t_e) = \lambda(t-t_e)
+\end{equation}
+The CDF definitely cares but takes its cue from the survival.
+\begin{equation}
+ F(t_0,t,t_e) = 1-S(t_0,t,t_e) = 1-\frac{S_\alpha((t-t_e)\vee 0)}{S_\alpha((t_0-t_e)\vee 0)}
+\end{equation}
+This can be worked through.
+\begin{eqnarray}
+ F(t_0,t,t_e) & =& \frac{S_\alpha((t_0-t_e)\vee 0)-S_\alpha((t-t_e)\vee 0)}{S_\alpha((t_0-t_e)\vee 0)} \\
+  & =& \frac{F_\alpha((t_0-t_e)\vee 0) - 1 -F_\alpha((t-t_e)\vee 0) + 1}{F_\alpha((t_0-t_e)\vee 0) - 1} \\
+  & =& \frac{F_\alpha((t-t_e)\vee 0) - F_\alpha((t_0-t_e)\vee 0)}{1-F_\alpha((t_0-t_e)\vee 0)}
+\end{eqnarray}
+Remember that $S(0)=1$ so $F(0)=0$.
+
+Lastly, the density of the CDF is the PDF. Most of the PDF terms are constant.
+\begin{equation}
+  f(t_0, t, t_e) = \frac{f_\alpha((t-t_e)\vee 0)}{1-F_\alpha((t_0-t_e)\vee 0)}=\frac{f_\alpha((t-t_e)\vee 0)}{S_\alpha((t_0-t_e)\vee 0)}
 \end{equation}
 
-For a distribution shifted right, then between any two times, $t_1$ and $t$, the conditional survival looks the same as Eq.~\ref{eqn:survival-with-enabling}, except for the part where it might be 1. Do we now feel equipped to write the core matrix with more realistic enabling times?
+\subsubsection{Likelihood with Shifted Distributions}
 
-
-The survivals in Eq.~\ref{eqn:basic-likelihood} are conditional survivals starting at a last jump time $t_1$, and they are relative to enabling times.
+The survivals in Eq.~\ref{eqn:basic-likelihood} are conditional survivals starting at a last jump time $t_0$, and they are relative to enabling times. The hazard lives in the moment, so it doesn't care about some $t_0$ at the start of the time step, just about the distribution's definition of zero.
 \begin{equation}
-	c_{\alpha}(t|t_1) = \lambda_{\alpha}(t-t_{e\alpha})\prod_\beta S_{\beta}(t_1,t)\label{eqn:core-with-enabling}
+	c_{\alpha}(t|t_0) = \lambda_{\alpha}(t-t_{e\alpha})\prod_\beta S_{\beta}(t_0,t, t_{\beta e})\label{eqn:core-with-enabling}
 \end{equation}
-For a single time step from $t_1$ to $t$, the likelihood has one factor from the event that fires and then a factor from each event.
+For a single time step from $t_0$ to $t$, the likelihood has one factor from the event that fires and then a factor from each event.
+We saw above this can be rewritten into a pdf and survivals, which is more natural for the API in distributions.
+\begin{equation}
+	c_{\alpha}(t|t_0) = f_{\alpha}(t,t_0,t_{e\alpha})\prod_{\beta\ne\alpha} S_{\beta}(t_0,t, t_{\beta e})
+\end{equation}
+Using the replacements from above for time-shifting, and dropping the guards against negative durations, this becomes
+\begin{equation}
+	c_{\alpha}(t|t_0) = \frac{f_{\alpha}(t-t_{e\alpha})}{S_\alpha(t_{0\alpha}-t_{e\alpha})}\prod_{\beta\ne\alpha} \frac{S_{\beta}(t - t_{\beta e})}{S_\beta(t_{0\beta}-t_{e\beta})}
+\end{equation}
+The denominators in the two terms are the same but numerators are not. If we take the log of this, that affects what we sum over.
+\begin{equation}
+\ln c_{\alpha}(t|t_0) = \ln\:f_{\alpha}(t-t_{e\alpha})+\sum_{\beta\ne\alpha}\ln\:S_{\beta}(t - t_{\beta e}) - \sum_{\forall a}S_a(t_{0a}-t_{ea})
+\end{equation}
+
 
 For a trajectory consisting of multiple time steps, the likelihood is the product of all individual time steps. We know the product of conditional survivals, for the same event enabled over time, is equal to the conditional survival between the start and end times. It feels like we could use this to optimize our calculation.
 
@@ -386,13 +487,14 @@ Now that we know what math we want to calculate, let's look at which functions t
 	&=&
 	\lambda_\alpha(t-t_{e\alpha})\frac{S_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta}) \\
 	&=&
-	\frac{f_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta\ne\alpha} S_\beta(t_0,t,t_{e\beta})
+	\frac{f_\alpha(t-t_{e\alpha})}{S_\alpha(t_0-t_{e\alpha})}\prod_{\beta} S_\beta(t_0,t,t_{e\beta})
 \end{eqnarray}
 
 The log-likelihood of Eq.~\ref{eqn:core-with-enabling} becomes
 \begin{equation}
   \log\:c_{\alpha}(t) = \log\:f_\alpha(t-t_{e\alpha})+\sum_{a\ne\alpha} \log\:S_a(t-t_{ea}) - \sum_{a\ne\alpha} \log\:S_a((t_t-t_{ea})\wedge 0).
 \end{equation}
+Note that the $S_\alpha$ in the denominator under $f_\alpha$ is removed from the product.
 In Julia, there is a \texttt{logpdf}$\coloneqq\log\:f$ and a \texttt{logccdf}$\coloneqq\log\:S$.
 
 There is also a version that uses integrated hazards\ldots

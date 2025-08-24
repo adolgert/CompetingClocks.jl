@@ -77,6 +77,7 @@ end
         λ = inv(dist.θ)
         enable!(watcher, step_idx, dist, period_start, period_start, rng)
         step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
+        @test step_ll <= 0.0
         fire!(watcher, step_idx, period_finish)
         check_step = log(λ) - λ * (period_finish - period_start)
         @test abs(check_step - step_ll) < 1e-4 * abs(step_ll)
@@ -104,6 +105,7 @@ end
         dist = Gamma(step_idx, 1.5)
         enable!(watcher, step_idx, dist, period_start, period_start, rng)
         step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
+        @test step_ll <= 0.0
         fire!(watcher, step_idx, period_finish)
         check_step = loglikelihood(dist, period_finish - period_start)
         @test abs(check_step - step_ll) < 1e-4 * abs(step_ll)
@@ -134,6 +136,7 @@ end
         enable!(watcher, step_idx, dist, period_start, period_start, rng)
         enable!(watcher, compete_idx, compete, period_start, period_start, rng)
         step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
+        @test step_ll <= 0.0
         fire!(watcher, step_idx, period_finish)
         disable!(watcher, compete_idx, period_finish)
         check_step = loglikelihood(dist, period_finish - period_start)
@@ -172,6 +175,7 @@ end
         tofire = popfirst!(enabled)
         firetime = curtime + 0.2
         step_ll = steploglikelihood(watcher, curtime, firetime, tofire)
+        @test step_ll <= 0.0
         running_loglikelihood += step_ll
         fire!(watcher, tofire, firetime)
         curtime = firetime
