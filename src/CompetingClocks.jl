@@ -22,6 +22,7 @@ include("sample/multiple_direct.jl")
 include("sample/combinednr.jl")
 include("variance/common_random.jl")
 include("sample/petri.jl")
+include("context.jl")
 
 export Never
 

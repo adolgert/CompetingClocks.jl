@@ -70,3 +70,7 @@ end
 @testset "test_vas_integrate.jl" begin
     include("test_vas_integrate.jl")
 end
+
+@testset "test_context.jl" begin
+    include("test_context.jl")
+end
