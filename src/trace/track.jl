@@ -54,6 +54,7 @@ reset!(ts::TrackWatcher) = (empty!(ts.enabled); nothing)
 
 function Base.copy!(dst::TrackWatcher{K,T}, src::TrackWatcher{K,T}) where {K,T}
     copy!(dst.enabled, src.enabled)
+    return dst
 end
 
 function Base.iterate(ts::TrackWatcher)

@@ -1,9 +1,10 @@
+# For this macro, need to import it into main for it to work.
+import InteractiveUtils: @code_typed
 
-@safetestset context_no_penalty = "SamplerContext doesn't penalize missing pieces" begin
+@testset "SamplerContext doesn't penalize missing pieces" begin
     using CompetingClocks
     using Random
     using Distributions
-    using InteractiveUtils
 
     K = Int64
     T = Float64
@@ -17,7 +18,7 @@
     end
     # Assert that when compiled, the if-then statements in the context
     # are compiled away!
-    res = InteractiveUtils.@code_typed enable!(sampler, 1, Exponential(0.5), 0.0, 0.0)
+    res = @code_typed enable!(sampler, 1, Exponential(0.5), 0.0, 0.0)
     ci = first(res)
     branch_count = count(expr -> isa(expr, Core.GotoIfNot), ci.code)
     @test branch_count == 0
