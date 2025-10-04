@@ -109,10 +109,10 @@ end
 
 
 # Get key type (already defined, not overridden)
-Base.keytype(ctx::SamplingContext{K}) where {K,T} = K
+Base.keytype(ctx::SamplingContext{K}) where {K} = K
 
 # Get time type
-timetype(ctx::SamplingContext{K}) where {K,T} = T
+timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
 function steploglikelihood(dc::SamplingContext, now, when, which)
 end
