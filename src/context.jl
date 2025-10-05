@@ -46,23 +46,20 @@ end
 
 
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist, te::T, when::T) where {K,T}
-    ctx.likelihood !== nothing && likelihood_enable!(ctx.likelihood, clock, dist, te, when)
-
     enable!(ctx.sampler, clock, dist, te, when, ctx.rng)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_enable!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_enable!(ctx.tracking, clock, dist, te, when)
+    ctx.debug !== nothing && track_enable!(ctx.debug, clock, dist, te, when)
 end
 
 
 function disable!(ctx::SamplingContext{K,T}, clock::K, when::T) where {K,T}
-    ctx.likelihood !== nothing && likelihood_enable!(ctx.likelihood, clock, dist, te, when)
     disable!(ctx.sampler, clock, when)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_enable!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_enable!(ctx.tracking, clock, dist, te, when)
+    ctx.debug !== nothing && track_enable!(ctx.debug, clock, dist, te, when)
 end
 
 
@@ -72,34 +69,28 @@ end
 
 
 function fire!(ctx::SamplingContext{K,T}, clock::K, dist, te::T, when::T) where {K,T}
-    ctx.likelihood !== nothing && likelihood_fire!(ctx.likelihood, clock, dist, te, when)
-
     fire!(ctx.sampler, clock, dist, te, when, ctx.rng)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_fire!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_fire!(ctx.tracking, clock, dist, te, when)
+    ctx.debug !== nothing && track_fire!(ctx.debug, clock, dist, te, when)
 end
 
 function reset!(ctx::SamplingContext{K,T}) where {K,T}
-    # Core sampler logic first
-    ctx.likelihood !== nothing && likelihood_reset!(ctx.likelihood, clock, dist, te, when)
     reset!(ctx.sampler)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_enable!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_enable!(ctx.tracking, clock, dist, te, when)
+    ctx.debug !== nothing && track_enable!(ctx.debug, clock, dist, te, when)
 end
 
 
 function Base.copy!(src::SamplingContext{K,T}, dst::SamplingContext{K,T}) where {K,T}
-    # Core sampler logic first
     copy!(src.sampler, dst.sampler)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     src.recording !== nothing && record_copy!(src.recording, clock, src.rng)
     src.tracking !== nothing && track_copy!(src.tracking, clock, dist, te, when)
-    src.likelihood !== nothing && likelihood_copy!(src.likelihood, clock, dist, te, when)
 end
 
 
@@ -109,8 +100,7 @@ function Base.getindex(ctx::SamplingContext{K}, clock::K) where {K}
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_enable!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_enable!(ctx.tracking, clock, dist, te, when)
-    ctx.likelihood !== nothing && likelihood_enable!(ctx.likelihood, clock, dist, te, when)
+    ctx.debug !== nothing && track_enable!(ctx.debug, clock, dist, te, when)
 end
 
 
@@ -120,8 +110,7 @@ function Base.keys(ctx::SamplingContext)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_keys(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_keys(ctx.tracking, clock, dist, te, when)
-    ctx.likelihood !== nothing && likelihood_keys(ctx.likelihood, clock, dist, te, when)
+    ctx.debug !== nothing && track_keys(ctx.debug, clock, dist, te, when)
 end
 
 
@@ -131,8 +120,7 @@ function Base.length(ctx::SamplingContext)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_enable!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_enable!(ctx.tracking, clock, dist, te, when)
-    ctx.likelihood !== nothing && likelihood_enable!(ctx.likelihood, clock, dist, te, when)
+    ctx.debug !== nothing && track_enable!(ctx.debug, clock, dist, te, when)
 end
 
 
@@ -142,8 +130,7 @@ function Base.haskey(ctx::SamplingContext{K}, clock::K) where {K}
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     ctx.recording !== nothing && record_enable!(ctx.recording, clock, ctx.rng)
-    ctx.tracking !== nothing && track_enable!(ctx.tracking, clock, dist, te, when)
-    ctx.likelihood !== nothing && likelihood_enable!(ctx.likelihood, clock, dist, te, when)
+    ctx.debug !== nothing && track_enable!(ctx.debug, clock, dist, te, when)
 end
 
 
@@ -154,12 +141,10 @@ Base.keytype(ctx::SamplingContext{K}) where {K} = K
 timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
 function steploglikelihood(dc::SamplingContext, now, when, which)
-    ctx.likelihood !== nothing && return steploglikelihood(ctx.likelihood, now, when, which)
     return steploglikelihood(ctx.sampler, now, when, which)
 end
 
 
 function trajectoryloglikelihood(dc::SamplingContext)
-    ctx.likelihood !== nothing && return trajectoryloglikelihood(ctx.likelihood)
     return trajectoryloglikelihood(ctx.sampler)
 end
