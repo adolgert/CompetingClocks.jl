@@ -43,7 +43,7 @@ end
 """
 mutable struct TrackWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
-    TrackWatcher{K,T}() where {K,T}=new(Dict{K,EnablingEntry{K,T}}())
+    TrackWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}())
 end
 
 function absolute_enabling(dst::TrackWatcher{K,T}, clock::K) where {K,T}
@@ -134,7 +134,7 @@ function MemorySampler(sampler::Sampler) where {Sampler}
     T = timetype(sampler)
     MemorySampler{Sampler,K,T}(
         sampler, TrackWatcher{K,T}(), zero(T)
-        )
+    )
 end
 
 export MemorySampler
@@ -162,5 +162,3 @@ end
 function Base.getindex(propagator::MemorySampler, clock)
     getindex(propagator.sampler, clock)
 end
-
-
