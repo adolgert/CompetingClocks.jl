@@ -35,13 +35,16 @@ sampler_noremove = DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 """
 struct DirectCall{K,T,P} <: SSA{K,T}
     prefix_tree::P
+    now::Float64
+    log_likelihood::Float64
+    calculate_likelihood::Bool
 end
 
 
-function DirectCall{K,T}() where {K,T<:ContinuousTime}
+function DirectCall{K,T}(; trajectory=false) where {K,T<:ContinuousTime}
     prefix_tree = BinaryTreePrefixSearch{T}()
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
-    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
 end
 
 
@@ -64,7 +67,7 @@ If a particular clock had one rate before an event and it has another rate
 after the event, call `enable!` to update the rate.
 """
 function enable!(dc::DirectCall{K,T,P}, clock::K, distribution::Exponential,
-        te::T, when::T, rng::AbstractRNG) where {K,T,P}
+    te::T, when::T, rng::AbstractRNG) where {K,T,P}
     dc.prefix_tree[clock] = rate(distribution)
 end
 
@@ -85,6 +88,13 @@ function disable!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
     delete!(dc.prefix_tree, clock)
 end
 
+function fire!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
+    if dc.trajectory
+        dc.log_likelihood += steploglikelihood(dc, dc.now, when, clock)
+    end
+    disable!(dc, clock, when)
+    dc.now = when
+end
 
 """
     next(dc::DirectCall, when::TimeType, rng::AbstractRNG)
