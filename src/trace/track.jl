@@ -22,6 +22,8 @@ struct DisablingEntry{K,T}
 end
 
 
+abstract type EnabledWatcher{K,T} end
+
 """
     TrackWatcher{K,T}()
 
@@ -41,12 +43,12 @@ for entry in tracker
 end
 ```
 """
-mutable struct TrackWatcher{K,T}
+mutable struct TrackWatcher{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
     TrackWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}())
 end
 
-function absolute_enabling(dst::TrackWatcher{K,T}, clock::K) where {K,T}
+function absolute_enabling(dst::EnabledWatcher{K,T}, clock::K) where {K,T}
     return dst.enabled[clock].when
 end
 
@@ -57,21 +59,21 @@ function Base.copy!(dst::TrackWatcher{K,T}, src::TrackWatcher{K,T}) where {K,T}
     return dst
 end
 
-function Base.iterate(ts::TrackWatcher)
+function Base.iterate(ts::EnabledWatcher)
     return iterate(values(ts.enabled))
 end
 
-function Base.iterate(ts::TrackWatcher, i::Int64)
+function Base.iterate(ts::EnabledWatcher, i::Int64)
     return iterate(values(ts.enabled), i)
 end
 
 
-function Base.length(ts::TrackWatcher)
+function Base.length(ts::EnabledWatcher)
     return length(ts.enabled)
 end
 
 
-function enable!(ts::TrackWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
+function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
     ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
 
@@ -82,8 +84,8 @@ function disable!(ts::TrackWatcher{K,T}, clock::K, when) where {K,T}
     end
 end
 
-isenabled(ts::TrackWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, clock)
-isenabled(ts::TrackWatcher{K,T}, clock) where {K,T} = false
+isenabled(ts::EnabledWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, clock)
+isenabled(ts::EnabledWatcher{K,T}, clock) where {K,T} = false
 
 
 """
@@ -94,32 +96,35 @@ transition fires next. `now` is the current time. `when_fires` is the time when
 `which_fires` happens so `when > now`. You have to call this before the transition fires so that
 it is before transitions are enabled and disabled from the previous step.
 """
-function steploglikelihood(tw::TrackWatcher{K,T}, t0, t, which_fires) where {K,T}
+function _steploglikelihood(enabled, t0, t, which_fires)
     # Look for a description of this in docs/notes/distributions.pdf, under log-likelihood.
     @assert t >= t0
-    total = zero(Float64)
-    for (key, entry) in pairs(tw.enabled)
-        if key == which_fires
-            if t >= entry.te
-                total += logpdf(entry.distribution, t - entry.te)
-                if t0 > entry.te
-                    # This time-shifts the pdf, usually seen as f(t,t0) = f(t)/(1-F(t0))
-                    total -= logccdf(entry.distribution, t0 - entry.te)
-                end
+    return sum(
+        function (entry)
+            t < entry.te && return (entry.clock == which_fires) ? -Inf : zero(t)
+            fired = if entry.clock == which_fires
+                logpdf(entry.distribution, t - entry.te)
             else
-                # If a transition fires before it's enabled, that's impossible.
-                total = -Inf
+                logccdf(entry.distribution, t - entry.te)
             end
-        else
-            if t > entry.te
-                total += logccdf(entry.distribution, t - entry.te)
-                if t0 > entry.te
-                    total -= logccdf(entry.distribution, t0 - entry.te)
-                end
-            end
-        end
-    end
-    return total
+            base = (t0 > entry.te) ? logccdf(entry.distribution, t0 - entry.te) : zero(t)
+            fired - base
+        end,
+        enabled
+    )
+end
+
+
+"""
+    steploglikelihood(tw::TrackWatcher, now, when_fires, which_fires)
+
+Calculate the log-likelihood of a single step in which the `which_fires`
+transition fires next. `now` is the current time. `when_fires` is the time when
+`which_fires` happens so `when > now`. You have to call this before the transition fires so that
+it is before transitions are enabled and disabled from the previous step.
+"""
+function steploglikelihood(tw::EnabledWatcher{K,T}, t0, t, which_fires) where {K,T}
+    _steploglikelihood(values(tw.enabled), t0, t, which_fires)
 end
 
 
