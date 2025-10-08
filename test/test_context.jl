@@ -9,10 +9,10 @@ import InteractiveUtils: @code_typed
     K = Int64
     T = Float64
     S = FirstToFire{Int64,Float64}
-    SC = CompetingClocks.SamplingContext{K,T,S,Xoshiro,Nothing,Nothing,Nothing}
+    SC = CompetingClocks.SamplingContext{K,T,S,Xoshiro,Nothing,Nothing}
 
     rng = Xoshiro(899987987)
-    sampler = SC(FirstToFire{Int64,Float64}(), rng, nothing, nothing, nothing, 0.0)
+    sampler = SC(FirstToFire{Int64,Float64}(), rng, nothing, nothing, 0.0)
     for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
         enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0)
     end
@@ -38,8 +38,9 @@ end
     NR = CombinedNextReaction{Int,Float64}
     for SamplerType in [FTF, DC, FR, NR]
         sampler = SamplerType()
-        SC = CompetingClocks.SamplingContext{K,T,SamplerType,Xoshiro,Nothing,Nothing,Nothing}
         rng = Xoshiro(90422342)
+        SC = CompetingClocks.SamplingContext{K,T,SamplerType,Xoshiro,Nothing,Nothing}
+        context = SC(sampler, rng, nothing, nothing, 0.0)
         enabled = Set{Int64}()
         for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
             enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0, rng)

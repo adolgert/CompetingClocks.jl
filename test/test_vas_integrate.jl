@@ -2,7 +2,7 @@ using SafeTestsets
 using Test
 
 
-@safetestset vas_sample = "VAS samples with direct" begin
+@safetestset vas_sample_direct = "VAS samples with direct" begin
 using Random: MersenneTwister
 using CompetingClocks: DirectCall
 using ..VectorAddition
@@ -27,7 +27,7 @@ using ..SampleVAS: sample_sir
 end
 
 
-@safetestset vas_sample = "VAS samples with first reaction" begin
+@safetestset vas_sample_fr = "VAS samples with first reaction" begin
     using Random: MersenneTwister
     using CompetingClocks: FirstReaction
     using ..VectorAddition
@@ -53,7 +53,7 @@ end
 
 
 
-@safetestset vas_sample = "VAS samples with first to fire" begin
+@safetestset vas_sample_ftf = "VAS samples with first to fire" begin
     using Random: MersenneTwister
     using CompetingClocks: FirstToFire
     using ..VectorAddition

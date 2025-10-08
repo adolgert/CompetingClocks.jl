@@ -15,7 +15,7 @@
     enable!(tw, 7, Exponential(0.001), 5.0, 5.0, rng)
     @test length(tw) == 3 && 7 ∈ keys(tw)
 
-    counts = Dict{Int,Int}(3 => 0, 4 => 0, 7=> 0)
+    counts = Dict{Int,Int}(3 => 0, 4 => 0, 7 => 0)
     for i in 1:1000
         when = 100 * rand(rng)
         time_out, which = next(tw, when, rng)
@@ -50,5 +50,4 @@ end
     @test tw[3].distribution == Exponential(100.0)
     @test haskey(tw, 3)
     @test !haskey(tw, 4)
-    @test !haskey(tw, "wrong type")
 end

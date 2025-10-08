@@ -6,6 +6,10 @@ CurrentModule = CompetingClocks
 
 These are methods which are defined for any samplers subtyping `<:SSA`, the abstract sampler type.
 
+```@docs
+SamplingContext
+```
+
 ## Use a Sampler
 
 ```@docs
