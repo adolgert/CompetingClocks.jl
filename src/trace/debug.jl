@@ -1,5 +1,6 @@
 using Base
 using Logging
+using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 
 """
@@ -41,13 +42,13 @@ function Base.copy!(dst::DebugWatcher{K,T}, src::DebugWatcher{K,T}) where {K,T}
     copy!(dst.disabled, src.disabled)
 end
 
-function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
+function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
     ts.log && @debug "enable! $(clock) $(dist) $(te) $(when)"
     push!(ts.enabled, EnablingEntry(clock, dist, te, when))
 end
 
 
-function disable!(ts::DebugWatcher{K,T}, clock::K, when) where {K,T}
+function disable!(ts::DebugWatcher{K,T}, clock::K, when::T) where {K,T}
     ts.log && @debug "disable! $(clock) $(when)"
     push!(ts.disabled, DisablingEntry(clock, when))
 end

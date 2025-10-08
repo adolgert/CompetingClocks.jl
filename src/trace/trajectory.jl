@@ -1,5 +1,4 @@
 using Base
-using Distributions: UnivariateDistribution
 
 mutable struct TrajectoryWatcher{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
@@ -36,7 +35,7 @@ function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) wh
 end
 
 
-function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
+function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
     entry = get(ts.enabled, clock, nothing)
     if entry !== nothing
         if when > entry.te

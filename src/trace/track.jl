@@ -1,4 +1,5 @@
 using Base
+using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
 export trajectoryloglikelihood, fire!, absolute_enabling
@@ -22,7 +23,7 @@ struct DisablingEntry{K,T}
 end
 
 
-abstract type EnabledWatcher{K,T} end
+abstract type EnabledWatcher{K,T} <: SSA{K,T} end
 
 """
     TrackWatcher{K,T}()
@@ -52,12 +53,16 @@ function absolute_enabling(dst::EnabledWatcher{K,T}, clock::K) where {K,T}
     return dst.enabled[clock].when
 end
 
-reset!(ts::TrackWatcher) = (empty!(ts.enabled); nothing)
+reset!(ts::EnabledWatcher) = (empty!(ts.enabled); nothing)
 
-function Base.copy!(dst::TrackWatcher{K,T}, src::TrackWatcher{K,T}) where {K,T}
+function Base.copy!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where {K,T}
     copy!(dst.enabled, src.enabled)
     return dst
 end
+
+Base.keys(ts::EnabledWatcher) = keys(ts.enabled)
+Base.getindex(ts::EnabledWatcher{K}, key::K) where {K} = getindex(ts.enabled, key)
+Base.haskey(ts::EnabledWatcher{K}, key::K) where {K} = haskey(ts.enabled, key)
 
 function Base.iterate(ts::EnabledWatcher)
     return iterate(values(ts.enabled))
@@ -73,12 +78,12 @@ function Base.length(ts::EnabledWatcher)
 end
 
 
-function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution, te, when, rng) where {K,T}
+function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
     ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
 
 
-function disable!(ts::TrackWatcher{K,T}, clock::K, when) where {K,T}
+function disable!(ts::EnabledWatcher{K,T}, clock::K, when::T) where {K,T}
     if haskey(ts.enabled, clock)
         delete!(ts.enabled, clock)
     end
@@ -154,12 +159,12 @@ function next(propagator::MemorySampler, when, rng)
     next(propagator.sampler, when, rng)
 end
 
-function enable!(propagator::MemorySampler, clock, distribution, te, when, rng)
+function enable!(propagator::MemorySampler{S,K,T}, clock::K, distribution::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {S,K,T}
     enable!(propagator.track, clock, distribution, te, when, rng)
     enable!(propagator.sampler, clock, distribution, te, when, rng)
 end
 
-function disable!(propagator::MemorySampler, clock, when)
+function disable!(propagator::MemorySampler{S,K,T}, clock::K, when::T) where {S,K,T}
     disable!(propagator.track, clock, when)
     disable!(propagator.sampler, clock, when)
 end
