@@ -93,14 +93,6 @@ isenabled(ts::EnabledWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, cl
 isenabled(ts::EnabledWatcher{K,T}, clock) where {K,T} = false
 
 
-"""
-    steploglikelihood(tw::TrackWatcher, now, when_fires, which_fires)
-
-Calculate the log-likelihood of a single step in which the `which_fires`
-transition fires next. `now` is the current time. `when_fires` is the time when
-`which_fires` happens so `when > now`. You have to call this before the transition fires so that
-it is before transitions are enabled and disabled from the previous step.
-"""
 function _steploglikelihood(enabled, t0, t, which_fires)
     # Look for a description of this in docs/notes/distributions.pdf, under log-likelihood.
     @assert t >= t0
