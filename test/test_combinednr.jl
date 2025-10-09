@@ -42,7 +42,7 @@ end
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
     @test sampler[1] == 7.9
-    
+
     @test haskey(sampler, 1)
     @test !haskey(sampler, 1_000)
     @test !haskey(sampler, "1")
@@ -80,4 +80,27 @@ end
     enable!(dst, 49, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3
     @test length(dst) == 3
+end
+
+
+@safetestset CombinedNextReaction_set = "CombinedNextReaction set" begin
+    using CompetingClocks
+    using Distributions
+    using Random: Xoshiro
+
+    src = CombinedNextReaction{Int64,Float64}()
+    rng = Xoshiro(123)
+
+    enable!(src, 37, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 38, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 29, Exponential(), 0.0, 0.0, rng)
+    disable!(src, 37, 0.1)
+
+    enabled_set = enabled(src)
+    @test 38 in enabled_set
+    @test 37 ∉ enabled_set
+    @test length(enabled_set) == 2
+    @test eltype(enabled_set) == Int64
+    b = Set([x for x in enabled_set])
+    @assert b == Set([38, 29])
 end

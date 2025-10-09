@@ -2,7 +2,7 @@
 using DataStructures: MutableBinaryMinHeap, extract_all!, update!
 
 export sampling_space
-export CombinedNextReaction
+export CombinedNextReaction, enabled
 
 """
 This function decides whether a particular distribution can be sampled faster
@@ -383,6 +383,56 @@ end
 function Base.length(nr::CombinedNextReaction)
     return length(nr.transition_entry)
 end
+
+
+function isenabled(nr::CombinedNextReaction, clock)
+    haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0
+end
+
+"""
+A set of all enabled clock keys for a CombinedNextReaction method.
+We make a custom Set implementation because the information is in the
+CombinedNextReaction object, but it's spread across a Heap and a Dictionary.
+This helper class should make it much more efficient to iterate the set.
+"""
+struct NextReactionEnabled{C,T,K} <: AbstractSet{C}
+    nr::T
+    keys::K
+end
+
+_has_handle(nre::NextReactionEnabled, key) = nre.nr.transition_entry[key].heap_handle > 0
+
+function Base.iterate(nre::NextReactionEnabled)
+    res = iterate(nre.keys)
+    res === nothing && return res
+    while !_has_handle(nre, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+
+function Base.iterate(nre::NextReactionEnabled, state)
+    res = iterate(nre.keys, state)
+    res === nothing && return res
+    while !_has_handle(nre, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+Base.length(nre::NextReactionEnabled) = length(nre.nr.firing_queue)
+Base.in(x, nre::NextReactionEnabled) = isenabled(nre.nr, x)
+Base.eltype(::Type{NextReactionEnabled{C}}) where {C} = C
+
+
+function enabled(nr::CombinedNextReaction{K,T}) where {K,T}
+    kks = keys(nr.transition_entry)
+    NextReactionEnabled{K,typeof(nr),typeof(kks)}(nr, kks)
+end
+
 
 function Base.haskey(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
     return haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0
