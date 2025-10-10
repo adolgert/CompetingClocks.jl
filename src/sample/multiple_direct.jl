@@ -20,7 +20,7 @@ end
 
 function MultipleDirect{SamplerKey,K,Time}(
     chooser::Chooser
-) where {SamplerKey,K,Time,Chooser <: SamplerChoice{K,SamplerKey}}
+) where {SamplerKey,K,Time,Chooser<:SamplerChoice{K,SamplerKey}}
     MultipleDirect{SamplerKey,K,Time,Chooser}(
         Vector{KeyedPrefixSearch}(),
         Vector{Time}(),
@@ -44,7 +44,7 @@ end
 function Base.copy!(
     dst::MultipleDirect{SamplerKey,K,Time,Chooser},
     src::MultipleDirect{SamplerKey,K,Time,Chooser}
-    ) where {SamplerKey,K,Time,Chooser}
+) where {SamplerKey,K,Time,Chooser}
     copy!(dst.scan, src.scan)
     copy!(dst.totals, src.totals)
     dst.chooser = deepcopy(src.chooser)
@@ -56,7 +56,7 @@ end
 
 function Base.setindex!(
     md::MultipleDirect{SamplerKey,K,Time,Chooser}, keyed_prefix_search, key
-    ) where {SamplerKey,K,Time,Chooser}
+) where {SamplerKey,K,Time,Chooser}
 
     push!(md.scan, keyed_prefix_search)
     push!(md.totals, zero(Time))
@@ -121,10 +121,57 @@ Base.haskey(md::MultipleDirect, clock) = false
 function Base.haskey(
     md::MultipleDirect{SamplerKey,K,Time,Chooser},
     clock::K
-    ) where {SamplerKey,K,Time,Chooser}
+) where {SamplerKey,K,Time,Chooser}
     if haskey(md.chosen, clock)
         return isenabled(md.scan[md.chosen[clock]])
     else
         return false
     end
 end
+
+
+struct MDEnable{C,P} <: AbstractSet{C}
+    subset::Vector{P}  # Abstract type for different contained DirectCall.
+end
+
+function enabled(md::MultipleDirect{SK,K,T,Choose}) where {SK,K,T,Choose}
+    subset = collect(enabled(prefix) for prefix in md.scan)
+    MDEnable{K,eltype(subset)}(subset)
+end
+
+function Base.iterate(mde::MDEnable)
+    isempty(mde.subset) && return nothing
+    sub_idx = 1
+    res = iterate(mde.subset[sub_idx])
+    # This chains iterables from sets that may be empty.
+    while res === nothing
+        if sub_idx >= lastindex(mde.subset)
+            return nothing
+        else
+            sub_idx += 1
+            res = iterate(mde.subset[sub_idx])
+        end
+    end
+    (item, substate) = res
+    return (item, (substate, sub_idx))
+end
+
+
+function Base.iterate(mde::MDEnable, (substate, sub_idx))
+    res = iterate(mde.subset[sub_idx], substate)
+    while res === nothing
+        if sub_idx >= lastindex(mde.subset)
+            return nothing
+        else
+            sub_idx += 1
+            res = iterate(mde.subset[sub_idx])
+        end
+    end
+    return (res[1], (res[2], sub_idx))
+end
+
+# The length() method on a prefix sum is the storage length not the number of enabled clocks.
+Base.length(mde::MDEnable) = sum(x -> length(x), mde.subset)
+Base.in(x, mde::MDEnable) = any(in(x, subset) for subset in mde.subset)
+Base.eltype(::Type{MDEnable{C}}) where {C} = C
+isenabled(mde::MultipleDirect, x) = any(isenabled(scan, x) for scan in mde.scan)

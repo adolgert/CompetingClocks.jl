@@ -29,6 +29,7 @@ freeze
 haskey
 misscount
 misses
+enabled
 MultiSampler
 ChatReaction
 Petri

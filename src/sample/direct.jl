@@ -1,7 +1,7 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next
+export DirectCall, enable!, disable!, next, enabled
 
 
 """
@@ -126,12 +126,17 @@ function Base.getindex(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
 end
 
 function Base.keys(dc::DirectCall)
-    return collect(keys(dc.prefix_tree.index))
+    return keys(dc.prefix_tree.index)
 end
 
 function Base.length(dc::DirectCall)
     return length(dc.prefix_tree)
 end
+
+# Implements the interface to return a set of enabled clock keys.
+enabled(dc::DirectCall{K,T,P}) where {K,T,P} = enabled(dc.prefix_tree)
+
+isenabled(dc::DirectCall{K,T,P}, clock::K) where {K,T,P} = isenabled(dc.prefix_tree, clock)
 
 
 function steploglikelihood(dc::DirectCall, now, when, which)

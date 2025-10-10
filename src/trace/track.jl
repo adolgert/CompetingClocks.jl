@@ -89,9 +89,8 @@ function disable!(ts::EnabledWatcher{K,T}, clock::K, when::T) where {K,T}
     end
 end
 
-isenabled(ts::EnabledWatcher{K,T}, clock::K) where {K,T} = haskey(ts.enabled, clock)
-isenabled(ts::EnabledWatcher{K,T}, clock) where {K,T} = false
-
+isenabled(ts::EnabledWatcher, clock) = haskey(ts.enabled, clock)
+enabled(ts::EnabledWatcher) = keys(ts.enabled)
 
 function _steploglikelihood(enabled, t0, t, which_fires)
     # Look for a description of this in docs/notes/distributions.pdf, under log-likelihood.

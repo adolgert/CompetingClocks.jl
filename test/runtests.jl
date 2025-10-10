@@ -20,6 +20,10 @@ end
     include("test_keyedprefixsearch.jl")
 end
 
+@testset "test_setofsets.jl" begin
+    include("test_setofsets.jl")
+end
+
 @testset "test_track.jl" begin
     include("test_track.jl")
 end

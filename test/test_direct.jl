@@ -39,7 +39,7 @@ end
 
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
-    @test sampler[1] == 1/7.9
+    @test sampler[1] == 1 / 7.9
 
     @test haskey(sampler, 1)
     @test !haskey(sampler, 1_000)
@@ -48,7 +48,7 @@ end
     disable!(sampler, 1, 0.0)
 
     @test_throws KeyError sampler[1]
-    @test sampler[2] == 1/12.3
+    @test sampler[2] == 1 / 12.3
 
 end
 
@@ -86,14 +86,14 @@ end
     curtime = 2.5
     for i in 1:10000
         when, which = next(md, curtime, rng)
-        hilo[(which - 1) ÷ 10 + 1] += 1
+        hilo[(which-1)÷10+1] += 1
     end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
     @test ci[1] < 3 / 5 < ci[2]
 end
 
 
-@safetestset direct_call_prob = "DirectCall probabilities correct" begin
+@safetestset direct_call_prob_correct = "DirectCall probabilities correct" begin
     using CompetingClocks: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
@@ -126,4 +126,24 @@ end
     enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3
     @test length(dst) == 3
+end
+
+
+@safetestset direct_call_enabled = "DirectCall enabled" begin
+    using CompetingClocks: DirectCall, enable!, next, disable!, enabled, isenabled
+    using Random: MersenneTwister
+    using Distributions: Exponential
+
+    sampler = DirectCall{Int,Float64}()
+    rng = MersenneTwister(90422342)
+    enable!(sampler, 1, Exponential(), 0.0, 0.0, rng)
+    @test enabled(sampler) == Set([1])
+    enable!(sampler, 2, Exponential(), 0.0, 0.0, rng)
+    @test enabled(sampler) == Set([1, 2])
+    enable!(sampler, 3, Exponential(), 0.5, 0.5, rng)
+    disable!(sampler, 2, 1.0)
+    enable!(sampler, 4, Exponential(), 1.0, 1.0, rng)
+    @test 4 in enabled(sampler)
+    @test isenabled(sampler, 3)
+    @test !isenabled(sampler, 2)
 end

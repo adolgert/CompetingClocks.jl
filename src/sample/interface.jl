@@ -2,7 +2,7 @@ using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 import Base: getindex, keys, length, keytype, haskey
 
-export SSA, enable!, disable!, next, 
+export SSA, enable!, disable!, next,
     getindex, keys, length, keytype
 
 """
@@ -39,7 +39,7 @@ function enable!(
     te::T, # enabling time
     when::T, # current simulation time
     rng::AbstractRNG
-    ) where {K,T}
+) where {K,T}
     @assert false
 end
 
@@ -140,3 +140,10 @@ timetype(::SSA{K,T}) where {K,T} = T
 Return a boolean.
 """
 Base.haskey(sampler::SSA{K,T}, key) where {K,T}
+
+"""
+    enabled(sampler)
+
+Returns a read-only set of currently-enabled clocks.
+"""
+enabled(sampler::SSA{K,T}) where {K,T}
