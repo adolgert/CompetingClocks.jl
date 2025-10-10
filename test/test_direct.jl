@@ -93,7 +93,7 @@ end
 end
 
 
-@safetestset direct_call_prob = "DirectCall probabilities correct" begin
+@safetestset direct_call_prob_correct = "DirectCall probabilities correct" begin
     using CompetingClocks: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential

@@ -177,4 +177,3 @@ function Base.haskey(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}, clock) 
     end
     return false
 end
-
