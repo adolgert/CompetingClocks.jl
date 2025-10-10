@@ -2,33 +2,33 @@ using SafeTestsets
 
 
 module MultiSamplerHelp
-    using CompetingClocks
-    using Distributions: Exponential, UnivariateDistribution
+using CompetingClocks
+using Distributions: Exponential, UnivariateDistribution
 
-    struct ByDistribution <: SamplerChoice{Int64,Int64} end
+struct ByDistribution <: SamplerChoice{Int64,Int64} end
 
-    function CompetingClocks.choose_sampler(
-        chooser::ByDistribution, clock::Int64, distribution::Exponential
-        )::Int64
-        return 1
+function CompetingClocks.choose_sampler(
+    chooser::ByDistribution, clock::Int64, distribution::Exponential
+)::Int64
+    return 1
+end
+function CompetingClocks.choose_sampler(
+    chooser::ByDistribution, clock::Int64, distribution::UnivariateDistribution
+)::Int64
+    return 2
+end
+
+struct ByRate <: SamplerChoice{String,Int64} end
+
+function CompetingClocks.choose_sampler(
+    chooser::ByRate, clock::Int64, distribution::UnivariateDistribution
+)::String
+    if clock ≥ 50 && clock < 100
+        return "fast"
+    else
+        return "slow"
     end
-    function CompetingClocks.choose_sampler(
-        chooser::ByDistribution, clock::Int64, distribution::UnivariateDistribution
-        )::Int64
-        return 2
-    end
-
-    struct ByRate <: SamplerChoice{String,Int64} end
-
-    function CompetingClocks.choose_sampler(
-        chooser::ByRate, clock::Int64, distribution::UnivariateDistribution
-        )::String
-        if clock ≥ 50 && clock < 100
-            return "fast"
-        else
-            return "slow"
-        end
-    end
+end
 end
 
 
@@ -82,7 +82,7 @@ end
     # Let's make a hierarchical sampler that contains a hierarchical sampler.
     using Random: Xoshiro
     using CompetingClocks: FirstToFire, DirectCall, MultiSampler, enable!
-    using CompetingClocks: disable!, next, choose_sampler, reset!
+    using CompetingClocks: disable!, next, choose_sampler, reset!, enabled
     using ..MultiSamplerHelp: ByDistribution, ByRate
     using Distributions: Exponential, Gamma
 
@@ -96,7 +96,7 @@ end
     highest["slow"] = sampler
 
     rng = Xoshiro(90422342)
-    enabled = Set{Int64}()
+    enabled_set = Set{Int64}()
     for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
         @debug "Calling enable on $clock_id"
         if clock_id < 3
@@ -104,12 +104,15 @@ end
         else
             enable!(highest, clock_id, Gamma(propensity), 0.0, 0.0, rng)
         end
-        push!(enabled, clock_id)
+        push!(enabled_set, clock_id)
     end
+    @test length(enabled(sampler)) == 5
+    @test 3 in enabled(sampler)
+    @test 149 ∉ enabled(sampler)
     enable!(highest, 53, Exponential(10.0), 0.0, 0.0, rng)
-    push!(enabled, 53)
+    push!(enabled_set, 53)
     enable!(highest, 57, Exponential(10.0), 0.0, 0.0, rng)
-    push!(enabled, 57)
+    push!(enabled_set, 57)
     @test 1 ∈ keys(highest.propagator["slow"].propagator[1])
     @test 2 ∈ keys(highest.propagator["slow"].propagator[1])
     @test 3 ∈ keys(highest.propagator["slow"].propagator[2])
@@ -117,16 +120,16 @@ end
     when, which = next(highest, 0.0, rng)
     @test which !== nothing
     disable!(highest, which, when)
-    delete!(enabled, which)
-    @test enabled == Set(keys(highest))
-    todisable = pop!(enabled)
+    delete!(enabled_set, which)
+    @test enabled_set == Set(keys(highest))
+    todisable = pop!(enabled_set)
     disable!(highest, todisable, when)
-    @test enabled == Set(keys(highest))
+    @test enabled_set == Set(keys(highest))
     enable!(highest, 35, Exponential(), when, when, rng)
-    push!(enabled, 35)
+    push!(enabled_set, 35)
     when, which = next(highest, when, rng)
-    @test which ∈ enabled
+    @test which ∈ enabled_set
     when, which = next(highest, when, rng)
-    @test which ∈ enabled
+    @test which ∈ enabled_set
     reset!(highest)
 end

@@ -177,3 +177,8 @@ function Base.haskey(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}, clock) 
     end
     return false
 end
+
+function enabled(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}) where {SamplerKey,Key,Time,Chooser}
+    subset = collect(enabled(prop) for prop in values(sampler.propagator))
+    return SetOfSets(subset)
+end
