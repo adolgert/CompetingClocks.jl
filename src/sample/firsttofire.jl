@@ -46,7 +46,7 @@ function next(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,
         OrderedSample(nothing, typemax(T))
     end
     @debug("FirstToFire.next queue length ",
-            length(propagator.firing_queue), " least ", least)
+        length(propagator.firing_queue), " least ", least)
     (least.time, least.key)
 end
 
@@ -101,3 +101,5 @@ end
 
 Base.haskey(propagator::FirstToFire{K,T}, clock::K) where {K,T} = haskey(propagator.transition_entry, clock)
 Base.haskey(propagator::FirstToFire{K,T}, clock) where {K,T} = false
+
+enabled(propagator::FirstToFire) = keys(propagator.transition_entry)

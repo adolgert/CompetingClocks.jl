@@ -1,7 +1,7 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next
+export DirectCall, enable!, disable!, next, enabled
 
 
 """
@@ -126,12 +126,58 @@ function Base.getindex(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
 end
 
 function Base.keys(dc::DirectCall)
-    return collect(keys(dc.prefix_tree.index))
+    return keys(dc.prefix_tree.index)
 end
 
 function Base.length(dc::DirectCall)
     return length(dc.prefix_tree)
 end
+
+
+"""
+A set of all enabled clock keys for a CombinedNextReaction method.
+We make a custom Set implementation because the information is in the
+CombinedNextReaction object, but it's spread across a Heap and a Dictionary.
+This helper class should make it much more efficient to iterate the set.
+"""
+struct DirectCallEnabled{C,T,K} <: AbstractSet{C}
+    prefix_tree::T
+    keys::K
+end
+
+
+function Base.iterate(nre::DirectCallEnabled)
+    res = iterate(nre.keys)
+    res === nothing && return res
+    while !isenabled(nre.prefix_tree, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+
+function Base.iterate(nre::DirectCallEnabled, state)
+    res = iterate(nre.keys, state)
+    res === nothing && return res
+    while !isenabled(nre.prefix_tree, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+Base.length(nre::DirectCallEnabled) = count(x -> isenabled(nre.prefix_tree, x), nre.keys)
+Base.in(x, nre::DirectCallEnabled) = isenabled(nre.prefix_tree, x)
+Base.eltype(::Type{DirectCallEnabled{C}}) where {C} = C
+
+# Implements the interface to return a set of enabled clock keys.
+function enabled(dc::DirectCall{K,T,P}) where {K,T,P}
+    kk = keys(dc.prefix_tree.index)
+    DirectCallEnabled{K,P,typeof(kk)}(dc.prefix_tree, kk)
+end
+
+isenabled(dc::DirectCall{K,T,P}, clock::K) where {K,T,P} = isenabled(dc.prefix_tree, clock)
 
 
 function steploglikelihood(dc::DirectCall, now, when, which)

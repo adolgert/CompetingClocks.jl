@@ -12,7 +12,7 @@ re-enables the same set of clocks, this is the faster choice.
 """
 struct KeyedKeepPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
-    index::Dict{T, Int}
+    index::Dict{T,Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     prefix::P
@@ -56,7 +56,7 @@ end
 isenabled(kp::KeyedKeepPrefixSearch, clock) = (
     haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
 )
-
+enabled_cnt(kp::KeyedKeepPrefixSearch) = count(isenabled(kp, clock) for clock in keys(kp.index))
 
 Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(time_type(kp))
 function Base.sum!(kp::KeyedKeepPrefixSearch)
@@ -72,7 +72,7 @@ end
 
 function Random.rand(
     rng::AbstractRNG, d::Random.SamplerTrivial{KeyedKeepPrefixSearch{T,P}}
-    ) where {T,P}
+) where {T,P}
     total = sum!(d[])
     LocalTime = time_type(P)
     choose(d[], rand(rng, Uniform{LocalTime}(zero(LocalTime), total)))
@@ -87,7 +87,7 @@ a large key space, this will use less memory.
 """
 struct KeyedRemovalPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
-    index::Dict{T, Int}
+    index::Dict{T,Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     free::Set{Int}
@@ -135,7 +135,7 @@ end
 
 
 isenabled(kp::KeyedRemovalPrefixSearch, clock) = (
-    haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
+    haskey(kp.index, clock) && kp.prefix[kp.index[clock]] > zero(time_type(kp))
 )
 
 
@@ -170,7 +170,7 @@ end
 
 function Random.rand(
     rng::AbstractRNG, d::Random.SamplerTrivial{KeyedRemovalPrefixSearch{T,P}}
-    ) where {T,P}
+) where {T,P}
     total = sum!(d[])
     LocalTime = time_type(P)
     choose(d[], rand(rng, Uniform{LocalTime}(zero(LocalTime), total)))
