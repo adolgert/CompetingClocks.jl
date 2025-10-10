@@ -389,12 +389,11 @@ function isenabled(nr::CombinedNextReaction, clock)
     haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0
 end
 
-"""
-A set of all enabled clock keys for a CombinedNextReaction method.
-We make a custom Set implementation because the information is in the
-CombinedNextReaction object, but it's spread across a Heap and a Dictionary.
-This helper class should make it much more efficient to iterate the set.
-"""
+
+# A set of all enabled clock keys for a CombinedNextReaction method.
+# We make a custom Set implementation because the information is in the
+# CombinedNextReaction object, but it's spread across a Heap and a Dictionary.
+# This helper class should make it much more efficient to iterate the set.
 struct NextReactionEnabled{C,T,K} <: AbstractSet{C}
     nr::T
     keys::K
