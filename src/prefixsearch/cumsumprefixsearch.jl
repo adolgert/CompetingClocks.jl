@@ -13,7 +13,7 @@ and, each time the Direct method samples, this evaluates the cumulative
 sum of the array.
 """
 struct CumSumPrefixSearch{T<:Real}
-	array::Vector{T}
+    array::Vector{T}
     cumulant::Vector{T}
 end
 
@@ -49,7 +49,7 @@ function Base.setindex!(ps::CumSumPrefixSearch{T}, value::T, index) where {T}
     ps.array[index] = value
     value
 end
-
+Base.getindex(ps::CumSumPrefixSearch, index) = ps.array[index]
 
 function Base.sum!(ps::CumSumPrefixSearch{T})::T where {T}
     cumsum!(ps.cumulant, ps.array)

@@ -130,12 +130,13 @@ function Base.haskey(
 end
 
 
-struct MDEnable{C} <: AbstractSet{C}
-    subset::Vector{DirectCallEnabled}  # Abstract type for different contained DirectCall.
+struct MDEnable{C,P} <: AbstractSet{C}
+    subset::Vector{P}  # Abstract type for different contained DirectCall.
 end
 
-function MDEnable(md::MultipleDirect{SK,K,T,Choose}) where {SK,K,T,Choose}
-    MDEnable(collect(keys(prefix.index) for prefix in md.scan))
+function enabled(md::MultipleDirect{SK,K,T,Choose}) where {SK,K,T,Choose}
+    subset = collect(enabled(prefix) for prefix in md.scan)
+    MDEnable{K,eltype(subset)}(subset)
 end
 
 function Base.iterate(mde::MDEnable)
@@ -170,7 +171,7 @@ function Base.iterate(mde::MDEnable, (substate, sub_idx))
 end
 
 # The length() method on a prefix sum is the storage length not the number of enabled clocks.
-Base.length(mde::MDEnable) = sum(x -> enabled_cnt(x), mde.subset)
+Base.length(mde::MDEnable) = sum(x -> length(x), mde.subset)
 Base.in(x, mde::MDEnable) = any(in(x, subset) for subset in mde.subset)
 Base.eltype(::Type{MDEnable{C}}) where {C} = C
-isenabled(mde::MDEnable, x) = in(x, mde)
+isenabled(mde::MultipleDirect, x) = any(isenabled(scan, x) for scan in mde.scan)

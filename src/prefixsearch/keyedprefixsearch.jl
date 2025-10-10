@@ -37,6 +37,7 @@ end
 
 
 Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
+key_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = T
 time_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = time_type(P)
 
 
@@ -54,9 +55,51 @@ end
 
 
 isenabled(kp::KeyedKeepPrefixSearch, clock) = (
-    haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
+    haskey(kp.index, clock) && kp.prefix[kp.index[clock]] > zero(time_type(kp))
 )
-enabled_cnt(kp::KeyedKeepPrefixSearch) = count(isenabled(kp, clock) for clock in keys(kp.index))
+
+"""
+Construct a set that checks which values are zeroed out because this
+prefix sum doesn't mark what has been deleted. That's faster for small
+sets of keys but makes getting the set that's enabled more difficult.
+A hazard rate that is set to zero at enabling will give a funny count
+because it's `enabled!()` by the user but set to never fire.
+"""
+struct PrefixEnabled{K,P,KK} <: AbstractSet{K}
+    prefix::P
+    keys::KK
+end
+
+# Implements the interface to return a set of enabled clock keys.
+function enabled(prefix::KeyedKeepPrefixSearch{T,P}) where {T,P}
+    kk = keys(prefix.index)
+    PrefixEnabled{T,typeof(prefix),typeof(kk)}(prefix, kk)
+end
+
+function Base.iterate(nre::PrefixEnabled)
+    res = iterate(nre.keys)
+    res === nothing && return res
+    while !isenabled(nre.prefix, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+
+function Base.iterate(nre::PrefixEnabled, state)
+    res = iterate(nre.keys, state)
+    res === nothing && return res
+    while !isenabled(nre.prefix, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+Base.length(nre::PrefixEnabled) = count(x -> isenabled(nre.prefix, x), nre.keys)
+Base.in(x, nre::PrefixEnabled) = isenabled(nre.prefix, x)
+Base.eltype(::Type{PrefixEnabled{C}}) where {C} = C
 
 Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(time_type(kp))
 function Base.sum!(kp::KeyedKeepPrefixSearch)
@@ -114,6 +157,7 @@ function Base.copy!(dst::KeyedRemovalPrefixSearch{T,P}, src::KeyedRemovalPrefixS
 end
 
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
+key_type(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P} = T
 time_type(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P} = time_type(P)
 
 function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
@@ -134,10 +178,8 @@ function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
 end
 
 
-isenabled(kp::KeyedRemovalPrefixSearch, clock) = (
-    haskey(kp.index, clock) && kp.prefix[kp.index[clock]] > zero(time_type(kp))
-)
-
+isenabled(kp::KeyedRemovalPrefixSearch, clock) = haskey(kp.index, clock)
+enabled(kp::KeyedRemovalPrefixSearch) = keys(kp.index)
 
 function Base.getindex(kp::KeyedRemovalPrefixSearch, clock)
     if haskey(kp.index, clock)

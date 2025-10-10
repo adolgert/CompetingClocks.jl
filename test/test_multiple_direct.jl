@@ -1,21 +1,21 @@
 using SafeTestsets
 
 module MultipleKeyedHelp
-    using CompetingClocks
-    using Distributions: Exponential, UnivariateDistribution
+using CompetingClocks
+using Distributions: Exponential, UnivariateDistribution
 
-    struct ByName <: SamplerChoice{String,Symbol} end
-    export ByName
+struct ByName <: SamplerChoice{String,Symbol} end
+export ByName
 
-    function CompetingClocks.choose_sampler(
-        chooser::ByName, clock::String, distribution::UnivariateDistribution
-        )::Symbol
-        if startswith(clock, "fast")
-            return :fast
-        else
-            return :slow
-        end
+function CompetingClocks.choose_sampler(
+    chooser::ByName, clock::String, distribution::UnivariateDistribution
+)::Symbol
+    if startswith(clock, "fast")
+        return :fast
+    else
+        return :slow
     end
+end
 end
 
 
@@ -40,7 +40,7 @@ end
     md[:fast] = keep_prefix_tree
 
     when = 0.0
-    enable!(md, "moveleft", Exponential(.35), 0.0, when, rng)
+    enable!(md, "moveleft", Exponential(0.35), 0.0, when, rng)
     @test length(keyed_prefix_tree) == 1
     @test length(keep_prefix_tree) == 0
 
@@ -56,9 +56,11 @@ end
     @test "moveleft" ∈ seen
     @test "fastlighton" ∈ seen
 
+    @test length(enabled(md)) == 2
     # Disabling from the removal tree will remove it.
     disable!(md, "moveleft", when)
     @test length(keyed_prefix_tree) == 0
+    @test enabled(md) == Set(["fastlighton"])
 
     # Disabling from the keep tree won't remove it.
     disable!(md, "fastlighton", when)

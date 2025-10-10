@@ -103,4 +103,4 @@ function next(fr::ChatReaction{K,T}, when::T, rng) where {K,T}
 end
 
 
-Base.haskey(fr::ChatReaction, clock) = isenabled(fr.enabled, clock)
+Base.haskey(fr::ChatReaction, clock) = haskey(fr.enabled, clock)
