@@ -19,6 +19,8 @@ mutable struct BinaryTreePrefixSearch{T<:Real}
 	offset::Int64 # 2^(depth - 1). Index of first leaf and number of leaves.
 	cnt::Int64 # Number of leaves in use. Logical number of entries. cnt > 0.
 	initial_allocation::Int64
+	cache::Dict{Int64,T}
+	cached_cnt::Int64
 end
 
 
@@ -31,7 +33,7 @@ The optional hint, N, is the number of values to pre-allocate.
 function BinaryTreePrefixSearch{T}(N=32) where {T<:Real}
 	depth, offset, array_cnt = _btps_sizes(N)
 	b = zeros(T, array_cnt)
-	BinaryTreePrefixSearch{T}(b, depth, offset, 0, N)
+	BinaryTreePrefixSearch{T}(b, depth, offset, 0, N, Dict{Int64,T}(), 0)
 end
 
 
@@ -42,6 +44,8 @@ function Base.empty!(ps::BinaryTreePrefixSearch)
 	ps.depth = depth
 	ps.offset = offset
 	ps.cnt = 0
+	empty!(ps.cache)
+	ps.cached_cnt = 0
 end
 
 function Base.copy!(dst::BinaryTreePrefixSearch{T}, src::BinaryTreePrefixSearch{T}) where {T}
@@ -50,6 +54,8 @@ function Base.copy!(dst::BinaryTreePrefixSearch{T}, src::BinaryTreePrefixSearch{
 	dst.offset = src.offset
 	dst.cnt = src.cnt
 	dst.initial_allocation = src.initial_allocation
+	copy!(dst.cache, src.cache)
+	dst.cached_cnt = src.cached_cnt
 end
 
 
@@ -93,7 +99,7 @@ function Base.resize!(pst::BinaryTreePrefixSearch{T}, newcnt) where {T}
 end
 
 
-Base.length(ps::BinaryTreePrefixSearch) = ps.cnt
+Base.length(ps::BinaryTreePrefixSearch) = ps.cnt + ps.cached_cnt
 allocated(ps::BinaryTreePrefixSearch) = ps.offset
 
 
@@ -125,7 +131,15 @@ function choose(pst::BinaryTreePrefixSearch{T}, value) where {T}
 end
 
 
-Base.sum!(pst::BinaryTreePrefixSearch) = pst.array[1]
+# You have to call sum! before calling getindex, or it won't be updated. 
+function Base.sum!(pst::BinaryTreePrefixSearch)
+	if !isempty(pst.cache)
+		set_multiple!(pst, pairs(pst.cache))
+		empty!(pst.cache)
+		pst.cached_cnt = 0
+	end
+	pst.array[1]
+end
 
 
 """
@@ -161,16 +175,19 @@ end
 
 
 function Base.push!(pst::BinaryTreePrefixSearch{T}, value::T) where T
-	set_multiple!(pst, [(pst.cnt + 1, value)])
+	pst.cached_cnt += 1
+	pst.cache[pst.cnt + pst.cached_cnt] = value
 	return value
 end
 
 
 """
     setindex!(A, X, inds...)
+
+You have to call sum! before calling getindex.
 """
 function Base.setindex!(pst::BinaryTreePrefixSearch{T}, value::T, index) where T
-    set_multiple!(pst, [(index, value)])
+	pst.cache[index] = value
 end
 
 function Base.getindex(pst::BinaryTreePrefixSearch{T}, index) where {T}
@@ -200,8 +217,8 @@ Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{BinaryTreePrefixSearch{T}
 
 Base.haskey(md::BinaryTreePrefixSearch, clock) = false
 
-function Base.haskey(md::BinaryTreePrefixSearch{T}, clock::Int) where {T}
-	if 0 < clock ≤ length(md)
+function Base.haskey(pst::BinaryTreePrefixSearch{T}, clock::Int) where {T}
+	if 0 < clock ≤ length(pst)
         return getindex(pst, clock) > zero(T)
     else
         return false

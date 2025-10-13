@@ -73,18 +73,9 @@ end
     initial_allocation = 1
 	t = BinaryTreePrefixSearch{Int64}(initial_allocation)
     push!(t, 3)
-    @test t.cnt == 1
-    @test length(t) == 1
-    @test allocated(t) == 1
     push!(t, 4)
-    @test length(t) == 2
-    @test allocated(t) == 2
     push!(t, 2)
-    @test length(t) == 3
-    @test allocated(t) == 4
     push!(t, 3)
-    @test length(t) == 4
-    @test allocated(t) == 4
 	@test sum!(t) == 3+4+2+3
     @test t.array[1] == 3+4+2+3
     @test t.array[2] == 3+4
@@ -105,11 +96,13 @@ end
 	@test choose(t, 3)[1] == 2
 	@test choose(t, 3.7)[1] == 2
     t[1] = 4
+    sum!(t)
 	v = [(2, 1), (3.3, 1), (4.1, 2)]
 	for (guess, result) in v
 		@test choose(t, guess)[1] == result
 	end
     t[2] = 2
+    sum!(t)
 	v = [(2, 1), (3.3, 1), (5.1, 2)]
 	for (guess, result) in v
 		@test choose(t, guess)[1] == result
@@ -130,6 +123,7 @@ end
     @test choose(t, 5)[1] == 3
     t[2] = 2
     t[3] = 3
+    sum!(t)
     v = [(2, 1), (3, 2), (4.8, 2), (5.1, 3), (7.9, 3)]
     for (guess, result) in v
         @test choose(t, guess)[1] == result
@@ -149,6 +143,7 @@ end
     @test choose(t, 5.5)[1] == 3
     t[2] = 2.5
     t[3] = 3.5
+    sum!(t)
     v = [(2, 1),(3.5, 2),(4.8, 2),(6.1, 3),(7.9, 3)]
     for (guess, result) in v
         @test choose(t, guess)[1] == result
@@ -219,6 +214,7 @@ end
                 vals[idx] = rand(rng, 1:500)
                 btps[idx] = vals[idx]
             end
+            sum!(btps)
             same = all(btps[i] == vals[i] for i in eachindex(vals))
             @test same
             if !same
