@@ -55,6 +55,41 @@ end
 end
 
 
+@safetestset CombinedNextReaction_pair_keys = "CombinedNextReaction pair keys" begin
+    using CompetingClocks
+    using Distributions
+    using Random: Xoshiro
+
+    # Make a key that looks like those in Gen.jl.
+    KeyType = Pair{Symbol,Int64}
+    sampler = CombinedNextReaction{KeyType,Float64}()
+    rng = Xoshiro(123)
+
+    @test length(sampler) == 0
+    @test length(keys(sampler)) == 0
+    @test_throws KeyError sampler[:S=>1]
+    @test keytype(sampler) <: KeyType
+
+    for (clock, when_fire) in [
+        (:S => 1, 7.9), (:S => 2, 12.3), (:I => 3, 3.7), (:I => 4, 0.00013), (:S => 5, 0.2)
+    ]
+        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0, rng)
+    end
+
+    @test length(sampler) == 5
+    @test length(keys(sampler)) == 5
+    @test sampler[:S=>1] == 7.9
+
+    @test haskey(sampler, :S => 1)
+    @test !haskey(sampler, :I => 17)
+
+    disable!(sampler, :S => 1, 0.0)
+
+    @test_throws BoundsError sampler[:S=>1]
+    @test sampler[:S=>2] == 12.3
+
+end
+
 @safetestset CombinedNextReaction_copy = "CombinedNextReaction copy" begin
     using CompetingClocks
     using Distributions
