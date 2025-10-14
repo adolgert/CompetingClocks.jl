@@ -12,25 +12,28 @@ be faster when there are few hazards enabled. It uses a simple array
 and, each time the Direct method samples, this evaluates the cumulative
 sum of the array.
 """
-struct CumSumPrefixSearch{T<:Real}
+mutable struct CumSumPrefixSearch{T<:Real}
     array::Vector{T}
     cumulant::Vector{T}
+    dirty::Bool
 end
 
 
 function CumSumPrefixSearch{T}() where {T<:Real}
-    CumSumPrefixSearch{T}(Vector{T}(), Vector{T}())
+    CumSumPrefixSearch{T}(Vector{T}(), Vector{T}(), false)
 end
 
 
 function Base.empty!(ps::CumSumPrefixSearch)
     empty!(ps.array)
     empty!(ps.cumulant)
+    ps.dirty = false
 end
 
 function Base.copy!(dst::CumSumPrefixSearch{T}, src::CumSumPrefixSearch{T}) where {T}
     copy!(dst.array, src.array)
     copy!(dst.cumulant, src.cumulant)
+    dst.dirty = src.dirty
 end
 
 Base.length(ps::CumSumPrefixSearch) = length(ps.array)
@@ -41,18 +44,22 @@ time_type(ps::Type{CumSumPrefixSearch{T}}) where {T} = T
 function Base.push!(ps::CumSumPrefixSearch{T}, value::T) where {T}
     push!(ps.array, value)
     push!(ps.cumulant, zero(T))
+    ps.dirty = true
     ps
 end
 
 
 function Base.setindex!(ps::CumSumPrefixSearch{T}, value::T, index) where {T}
     ps.array[index] = value
+    ps.dirty = true
     value
 end
 Base.getindex(ps::CumSumPrefixSearch, index) = ps.array[index]
 
 function Base.sum!(ps::CumSumPrefixSearch{T})::T where {T}
+    !ps.dirty && return ps.cumulant[end]
     cumsum!(ps.cumulant, ps.array)
+    ps.dirty = false
     ps.cumulant[end]
 end
 
