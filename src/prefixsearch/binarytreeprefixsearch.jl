@@ -15,10 +15,10 @@ leaves is greater than a given value.
 mutable struct BinaryTreePrefixSearch{T<:Real}
     # Data structure uses an array with children of i at 2i and 2i+1.
     array::Array{T,1} # length(array) > 0
-    depth::Int64 # length(array) = 2^depth - 1
-    offset::Int64 # 2^(depth - 1). Index of first leaf and number of leaves.
-    cnt::Int64 # Number of leaves in use. Logical number of entries. cnt > 0.
-    initial_allocation::Int64
+    depth::Int # length(array) = 2^depth - 1
+    offset::Int # 2^(depth - 1). Index of first leaf and number of leaves.
+    cnt::Int # Number of leaves in use. Logical number of entries. cnt > 0.
+    initial_allocation::Int
 end
 
 
@@ -201,8 +201,8 @@ Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{BinaryTreePrefixSearch{T}
 
 Base.haskey(md::BinaryTreePrefixSearch, clock) = false
 
-function Base.haskey(md::BinaryTreePrefixSearch{T}, clock::Int) where {T}
-    if 0 < clock ≤ length(md)
+function Base.haskey(pst::BinaryTreePrefixSearch{T}, clock::Int) where {T}
+    if 0 < clock ≤ length(pst)
         return getindex(pst, clock) > zero(T)
     else
         return false
