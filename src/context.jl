@@ -23,25 +23,49 @@ step_likelihood_api(::Type) = false
 track_likelihood_api(::Type) = false
 enabled_api(::Type) = false
 
-#=
-M = maybe soon. X = yes. ' ' = no.
-FTF-S is a first-to-fire version that stores more information.
 
-        STEP TRACK ENABLED
-NR      M    M     X
-Direct  X    M     X
-FR      X          X
-FR-T    X    X     X
-FTF
-FTF-S   X          X
-FTF-ST  X    X     X
-Petri   X          X
-Petri-T X    X     X
-=#
+struct SamplerBuilderGroup
+    name::Symbol
+    selector::Function
+    frequency_tier::Int64
+    constant::Bool
+    sampler::Symbol
+end
 
-function make_sampler(
-    ;
+struct SamplerBuilder{K,T}
+    clock_type::K
+    time_type::T
+    step_likelihood::Bool
+    trajectory_likelihood::Bool
+    debug::Bool
+    recording::Bool
+    common_random::Bool
+    group::Vector{SamplerBuilderGroup}
+end
+
+function SamplerBuilder(::Type{K}, ::Type{T};
+    step_likelihood=false,
+    trajectory_likelihood=false,
+    debug=false,
+    recording=false,
+    common_random=false,
+) where {K,T}
+    SamplerBuilder{K,T}(K, T, step_likelihood, trajectory_likelihood, debug, recording, common_random)
+end
+
+function add_group!(
+    builder::SamplerBuilder,
+    name::Symbol;            # User-given name for this sampler.
+    selector::Function,      # Which clocks use this sampler.
+    frequency_tier::Int64=1, # Higher number = more churn.
+    constant::Bool=false,    # Constant hazards, ie Exponential.
+    sampler::Symbol=:any,    # Ask for specific sampler.
 )
+    push!(builder.group,
+        SamplerBuilderGroup(
+            name, selector, frequency_tier, constant, sampler
+        )
+    )
 end
 
 
