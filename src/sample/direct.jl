@@ -146,6 +146,7 @@ function steploglikelihood(dc::DirectCall, now, when, which)
     return log(λ) - total * Δt
 end
 
+trajectoryloglikelihood(dc::DirectCall) = dc.log_likelihood
 
 function Base.haskey(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
     return isenabled(dc.prefix_tree, clock)
