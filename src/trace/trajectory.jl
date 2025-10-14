@@ -51,7 +51,7 @@ function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
 end
 
 
-function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
+function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
     entry = get(ts.enabled, clock, nothing)
     if entry !== nothing
         if when > entry.te

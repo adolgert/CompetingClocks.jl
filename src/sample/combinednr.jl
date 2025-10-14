@@ -336,6 +336,9 @@ function enable!(
 end
 
 
+fire!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime} = disable!(nr, clock, when)
+
+
 function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime}
     record = nr.transition_entry[clock]
     delete!(nr.firing_queue, record.heap_handle)

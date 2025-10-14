@@ -77,6 +77,7 @@ function enable!(md::MultipleDirect, clock, distribution::Exponential,
     keyed_prefix_search[clock] = rate(distribution)
 end
 
+fire!(md::MultipleDirect, clock, when) = disable!(md, clock, when)
 
 function disable!(md::MultipleDirect, clock, when)
     which_prefix_search = md.chosen[clock]

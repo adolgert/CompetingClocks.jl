@@ -70,6 +70,9 @@ function enable!(
 end
 
 
+fire!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T} = disable!(propagator, clock, when)
+
+
 function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
     heap_handle = propagator.transition_entry[clock]
     delete!(propagator.firing_queue, heap_handle)
