@@ -7,7 +7,7 @@ using Distributions: Uniform
     CumSumPrefixSearch{T}()
 
 This stores hazard rates in order to make it easier for the Direct
-method to sample them. This version is the dumbest possible, but it can
+method to sample them. This version is the simplest possible, but it can
 be faster when there are few hazards enabled. It uses a simple array
 and, each time the Direct method samples, this evaluates the cumulative
 sum of the array.
@@ -65,6 +65,7 @@ end
 
 
 function choose(ps::CumSumPrefixSearch{T}, variate::T) where {T}
+    ps.dirty && sum!(ps)
     index = searchsortedfirst(ps.cumulant, variate)
     return (index, ps.array[index])
 end
@@ -80,7 +81,7 @@ Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{CumSumPrefixSearch{T}}) w
     choose(d[], rand(rng, Uniform{T}(zero(T), d[].cumulant[end])))
 
 
-function isenabled(kp::CumSumPrefixSearch{T}, clock) where {T}
+function isenabled(ps::CumSumPrefixSearch{T}, clock) where {T}
     if 0 < clock ≤ length(ps.array)
         return ps.array[clock] > zero(T)
     else
