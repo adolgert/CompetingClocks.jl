@@ -16,6 +16,7 @@ function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) wh
     return dst
 end
 
+
 function trajectoryloglikelihood(tw::TrajectoryWatcher)
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
@@ -35,11 +36,6 @@ end
 
 
 reset!(tw::TrajectoryWatcher) = (empty!(tw.enabled); tw.loglikelihood = zero(Float64); nothing)
-function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
-    copy!(dst.enabled, src.enabled)
-    dst.loglikelihood = src.loglikelihood
-    return dst
-end
 
 
 function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
