@@ -34,10 +34,10 @@ end
 function reset!(md::MultipleDirect)
     for prefix_search in md.scan
         empty!(prefix_search)
-        empty!(md.totals)
-        empty!(md.chosen)
-        empty!(md.scanmap)
     end
+    empty!(md.totals)
+    empty!(md.chosen)
+    empty!(md.scanmap)
 end
 
 
@@ -124,7 +124,7 @@ function Base.haskey(
     clock::K
 ) where {SamplerKey,K,Time,Chooser}
     if haskey(md.chosen, clock)
-        return isenabled(md.scan[md.chosen[clock]])
+        return isenabled(md.scan[md.chosen[clock]], clock)
     else
         return false
     end

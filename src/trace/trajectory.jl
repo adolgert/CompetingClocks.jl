@@ -27,7 +27,7 @@ function trajectoryloglikelihood(tw::TrajectoryWatcher)
 end
 
 
-reset!(tw::TrajectoryWatcher) = (empty!(ts.enabled); tw.loglikelihood = zero(Float64); nothing)
+reset!(tw::TrajectoryWatcher) = (empty!(tw.enabled); tw.loglikelihood = zero(Float64); nothing)
 function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
     copy!(dst.enabled, src.enabled)
     dst.loglikelihood = src.loglikelihood

@@ -89,7 +89,7 @@ function disable!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
 end
 
 function fire!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
-    if dc.trajectory
+    if dc.calculate_likelihood
         dc.log_likelihood += steploglikelihood(dc, dc.now, when, clock)
     end
     disable!(dc, clock, when)
