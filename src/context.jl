@@ -30,6 +30,8 @@ struct SamplerBuilderGroup
     frequency_tier::Int64
     constant::Bool
     sampler::Symbol
+    space::Symbol,
+    order::Int64,
 end
 
 struct SamplerBuilder{K,T}
@@ -60,6 +62,8 @@ function add_group!(
     frequency_tier::Int64=1, # Higher number = more churn.
     constant::Bool=false,    # Constant hazards, ie Exponential.
     sampler::Symbol=:any,    # Ask for specific sampler.
+    space::Symbol=:countable,# :countable, :finite
+    order::Int64,            # Approximate number of clocks.
 )
     push!(builder.group,
         SamplerBuilderGroup(
