@@ -10,7 +10,7 @@ plus one.
 """
 mutable struct Petri{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
-    time_duration::Float64
+    time_duration::T
     Petri{K,T}(dt=1.0) where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), dt)
 end
 
@@ -21,6 +21,8 @@ function Base.copy!(dst::Petri, src::Petri)
 end
 
 function next(propagator::Petri{K,T}, when::T, rng::AbstractRNG) where {K,T}
-    chosen = rand(rng, keys(propagator.enabled))
+    kk = keys(propagator.enabled)
+    isempty(kk) && return (typemax(T), nothing)
+    chosen = rand(rng, kk)
     (when + propagator.time_duration, chosen)
 end

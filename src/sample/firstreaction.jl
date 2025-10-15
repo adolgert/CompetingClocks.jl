@@ -57,9 +57,7 @@ end
 function enable!(fr::ChatReaction{K,T}, clock::K, distribution::UnivariateDistribution,
     te::T, when::T, rng::AbstractRNG) where {K,T}
 
-    if clock ∈ keys(fr.enabled.enabled)
-        @warn "Re-enabling transition $clock without disabling first"
-    end
+    # It's OK i fhte clock ∈ keys(fr.enabled.enabled)
     enable!(fr.enabled, clock, distribution, te, when, rng)
     push!(fr.enables, clock)
 end
@@ -67,10 +65,10 @@ end
 
 function disable!(fr::ChatReaction{K,T}, clock::K, when::T) where {K,T}
     if clock ∉ fr.enables
-        @warn "Disabling a clock that was never enabled: $(clock)."
+        @error "Disabling a clock that was never enabled: $(clock)."
     end
     if clock ∉ keys(fr.enabled.enabled)
-        @warn "Disabling clock $(clock) that wasn't currently enabled"
+        @error "Disabling clock $(clock) that wasn't currently enabled"
     end
     disable!(fr.enabled, clock, when)
     push!(fr.disables, clock)
@@ -80,10 +78,6 @@ end
 function next(fr::ChatReaction{K,T}, when::T, rng) where {K,T}
     soonest_clock = nothing
     soonest_time = typemax(T)
-
-    if length(fr.enables) == 0
-        @warn "No transitions have ever been enabled. Sampler may not be initialized."
-    end
 
     for entry::EnablingEntry{K,T} in fr.enabled
         if entry.te < when

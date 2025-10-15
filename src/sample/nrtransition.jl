@@ -5,22 +5,7 @@ struct OrderedSample{K,T}
     time::T
 end
 
-
-function Base.:<(a::OrderedSample, b::OrderedSample)
-    a.time < b.time
-end
-
-
-function Base.isless(a::OrderedSample, b::OrderedSample)
-    return isless(a.time, b.time)
-end
-
-
-function Base.:>(a::OrderedSample, b::OrderedSample)
-    a.time > b.time
-end
-
-
-function Base.:(==)(a::OrderedSample, b::OrderedSample)
-    a.time == b.time
-end
+Base.:<(a::OrderedSample, b::OrderedSample) = a.time < b.time
+Base.isless(a::OrderedSample, b::OrderedSample) = isless(a.time, b.time)
+Base.:>(a::OrderedSample, b::OrderedSample) = a.time > b.time
+Base.:(==)(a::OrderedSample, b::OrderedSample) = a.time == b.time
