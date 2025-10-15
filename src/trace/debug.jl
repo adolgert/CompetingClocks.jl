@@ -40,6 +40,7 @@ function Base.copy!(dst::DebugWatcher{K,T}, src::DebugWatcher{K,T}) where {K,T}
     src.log && @debug "copy!"
     copy!(dst.enabled, src.enabled)
     copy!(dst.disabled, src.disabled)
+    return dst
 end
 
 function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}

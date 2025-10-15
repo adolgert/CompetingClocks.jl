@@ -34,7 +34,7 @@ end
 function Base.copy!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
-    dst
+    return dst
 end
 
 
@@ -74,7 +74,8 @@ fire!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T} = disable!(pr
 
 
 function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
-    heap_handle = propagator.transition_entry[clock]
+    heap_handle = get(propagator.transition_entry, clock, nothing)
+    heap_handle === nothing && throw(KeyError(clock))
     delete!(propagator.firing_queue, heap_handle)
     delete!(propagator.transition_entry, clock)
 end

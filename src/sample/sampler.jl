@@ -100,7 +100,7 @@ function Base.copy!(
     copy!(dst.propagator, src.propagator)
     dst.chooser = src.chooser
     copy!(dst.chosen, src.chosen)
-    dst
+    return dst
 end
 
 
@@ -158,7 +158,7 @@ end
 
 
 function Base.getindex(sampler::MultiSampler, clock)
-    return getindex(sampler.chosen[clock], clock)
+    return getindex(sampler.propagator[sampler.chosen[clock]], clock)
 end
 
 

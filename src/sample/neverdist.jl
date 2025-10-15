@@ -3,7 +3,6 @@ using Random
 import Distributions: params, partype, mean, median, mode, var, skewness, kurtosis
 import Distributions: pdf, logpdf, cdf, ccdf, quantile, mgf, cf
 import Base: rand
-import Random
 
 struct Never{T<:Real} <: ContinuousUnivariateDistribution
     Never{T}() where {T<:Real} = new{T}()
@@ -20,7 +19,7 @@ var(d::Never{T}) where {T} = typemax(T)
 skewness(d::Never{T}) where {T<:Real} = zero(T)
 kurtosis(d::Never{T}) where {T<:Real} = zero(T)
 pdf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
-logpdf(d::Never{T}, x::Real) where {T<:Real} = typemin(T)
+logpdf(d::Never{T}, x::Real) where {T<:Real} = -Inf
 cdf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 ccdf(d::Never{T}, x::Real) where {T<:Real} = one(x)
 quantile(d::Never{T}, q::Real) where {T<:Real} = typemax(T)

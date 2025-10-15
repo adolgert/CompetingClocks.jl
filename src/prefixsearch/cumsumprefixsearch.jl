@@ -34,6 +34,7 @@ function Base.copy!(dst::CumSumPrefixSearch{T}, src::CumSumPrefixSearch{T}) wher
     copy!(dst.array, src.array)
     copy!(dst.cumulant, src.cumulant)
     dst.dirty = src.dirty
+    return dst
 end
 
 Base.length(ps::CumSumPrefixSearch) = length(ps.array)

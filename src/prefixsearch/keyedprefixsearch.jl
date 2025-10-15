@@ -32,7 +32,7 @@ function Base.copy!(dst::KeyedKeepPrefixSearch{T,P}, src::KeyedKeepPrefixSearch{
     copy!(dst.index, src.index)
     copy!(dst.key, src.key)
     copy!(dst.prefix, src.prefix)
-    dst
+    return dst
 end
 
 
@@ -153,7 +153,7 @@ function Base.copy!(dst::KeyedRemovalPrefixSearch{T,P}, src::KeyedRemovalPrefixS
     copy!(dst.key, src.key)
     copy!(dst.free, src.free)
     copy!(dst.prefix, src.prefix)
-    dst
+    return dst
 end
 
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)

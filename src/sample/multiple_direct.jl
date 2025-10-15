@@ -50,7 +50,7 @@ function Base.copy!(
     dst.chooser = deepcopy(src.chooser)
     copy!(dst.chosen, src.chosen)
     copy!(dst.scanmap, src.scanmap)
-    dst
+    return dst
 end
 
 

@@ -9,6 +9,13 @@ end
 export TrajectoryWatcher
 
 
+function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
+    copy!(dst.enabled, src.enabled)
+    dst.loglikelihood = src.loglikelihood
+    dst.curtime = src.curtime
+    return dst
+end
+
 function trajectoryloglikelihood(tw::TrajectoryWatcher)
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.

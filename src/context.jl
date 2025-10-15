@@ -113,12 +113,13 @@ function reset!(ctx::SamplingContext{K,T}) where {K,T}
 end
 
 
-function Base.copy!(src::SamplingContext{K,T}, dst::SamplingContext{K,T}) where {K,T}
-    copy!(src.sampler, dst.sampler)
+function Base.copy!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
+    copy!(dst.sampler, src.sampler)
 
     # Feature hooks (compiler eliminates branches when types are Nothing)
     src.recording !== nothing && record_copy!(src.recording, clock, src.rng)
     src.tracking !== nothing && track_copy!(src.tracking, clock, dist, te, when)
+    return dst
 end
 
 
