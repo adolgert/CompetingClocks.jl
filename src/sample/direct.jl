@@ -33,7 +33,7 @@ sampler_noremove = DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 ```
 
 """
-struct DirectCall{K,T,P} <: SSA{K,T}
+mutable struct DirectCall{K,T,P} <: SSA{K,T}
     prefix_tree::P
     now::Float64
     log_likelihood::Float64

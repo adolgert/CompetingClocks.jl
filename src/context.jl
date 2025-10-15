@@ -30,8 +30,8 @@ struct SamplerBuilderGroup
     frequency_tier::Int64
     constant::Bool
     sampler::Symbol
-    space::Symbol,
-    order::Int64,
+    space::Symbol
+    order::Int64
 end
 
 struct SamplerBuilder{K,T}
