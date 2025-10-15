@@ -156,6 +156,7 @@ end
 function Base.copy!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
+    return dst
 end
 
 
@@ -334,6 +335,9 @@ function enable!(
     end
     nothing
 end
+
+
+fire!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime} = disable!(nr, clock, when)
 
 
 function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime}

@@ -82,6 +82,7 @@ function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution
     ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
 
+fire!(ts::EnabledWatcher{K,T}, clock::K, when::T) where {K,T} = disable!(ts, clock, when)
 
 function disable!(ts::EnabledWatcher{K,T}, clock::K, when::T) where {K,T}
     if haskey(ts.enabled, clock)

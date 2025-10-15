@@ -9,6 +9,14 @@ end
 export TrajectoryWatcher
 
 
+function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
+    copy!(dst.enabled, src.enabled)
+    dst.loglikelihood = src.loglikelihood
+    dst.curtime = src.curtime
+    return dst
+end
+
+
 function trajectoryloglikelihood(tw::TrajectoryWatcher)
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
@@ -27,12 +35,7 @@ function trajectoryloglikelihood(tw::TrajectoryWatcher)
 end
 
 
-reset!(tw::TrajectoryWatcher) = (empty!(ts.enabled); tw.loglikelihood = zero(Float64); nothing)
-function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
-    copy!(dst.enabled, src.enabled)
-    dst.loglikelihood = src.loglikelihood
-    return dst
-end
+reset!(tw::TrajectoryWatcher) = (empty!(tw.enabled); tw.loglikelihood = zero(Float64); nothing)
 
 
 function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
@@ -51,7 +54,7 @@ function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
 end
 
 
-function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when) where {K,T}
+function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
     entry = get(ts.enabled, clock, nothing)
     if entry !== nothing
         if when > entry.te

@@ -40,7 +40,7 @@ function enable!(
     when::T, # current simulation time
     rng::AbstractRNG
 ) where {K,T}
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 """
@@ -51,7 +51,7 @@ function resets that internal state to the initial value in preparation
 for another sample run.
 """
 function reset!(sampler::SSA{K,T}) where {K,T}
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 
@@ -64,7 +64,7 @@ techniques where you make copies of a simulation and restart it with different
 random number generators.
 """
 function Base.copy!(sampler::SSA{K,T}) where {K,T}
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 
@@ -75,7 +75,7 @@ Tell the sampler to forget a clock. We include the current simulation time
 because some Next Reaction methods use this to optimize sampling.
 """
 function disable!(sampler::SSA{K,T}, clock::K, when::T) where {K,T}
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 """
@@ -85,7 +85,7 @@ Ask the sampler for what happens next, in the form of
 `(when, which)::Tuple{TimeType,KeyType}`. `rng` is a random number generator.
 """
 function next(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 
@@ -96,7 +96,7 @@ Return stored state for a particular clock. If the clock does not exist,
 a `KeyError` will be thrown.
 """
 function Base.getindex(sampler::SSA{K,T}, clock::K) where {K,T}
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 
@@ -106,7 +106,7 @@ end
 Return all stored clocks as a vector.
 """
 function Base.keys(sampler::SSA)
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 
@@ -116,7 +116,7 @@ end
 Return the number of stored clocks.
 """
 function Base.length(sampler::SSA)
-    @assert false
+    error("Not implemented for $(typeof(sampler))")
 end
 
 
@@ -127,6 +127,7 @@ Return the type of clock keys.
 """
 Base.keytype(::SSA{K,T}) where {K,T} = K
 
+
 """
     timetype(sampler)
 
@@ -134,16 +135,22 @@ Return the type of clock times.
 """
 timetype(::SSA{K,T}) where {K,T} = T
 
+
 """
     haskey(sampler, key)
 
 Return a boolean.
 """
-Base.haskey(sampler::SSA{K,T}, key) where {K,T}
+function Base.haskey(sampler::SSA{K,T}, key) where {K,T}
+    error("Not implemented for $(typeof(sampler))")
+end
+
 
 """
     enabled(sampler)
 
 Returns a read-only set of currently-enabled clocks.
 """
-enabled(sampler::SSA{K,T}) where {K,T}
+function enabled(sampler::SSA{K,T}) where {K,T}
+    error("Not implemented for $(typeof(sampler))")
+end

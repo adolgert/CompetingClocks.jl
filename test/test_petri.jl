@@ -22,7 +22,6 @@
         counts[which] += 1
         @assert abs(time_out - when - 1) < 1e-9
     end
-    println("counts $counts")
     hi, lo = (maximum(values(counts)), minimum(values(counts)))
     @test (hi - lo) / lo < 0.3
 

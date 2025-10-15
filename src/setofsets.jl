@@ -38,7 +38,10 @@ Base.length(sos::SetOfSets) = sum(x -> length(x), sos.subset; init=0)
 Base.in(x, sos::SetOfSets) = any(in(x, sub) for sub in sos.subset)
 Base.eltype(::Type{SetOfSets{K,T}}) where {K,T} = K
 
-Base.union(s::SetOfSets, others...) = union(s.subset..., others...)
+Base.union(s::SetOfSets, other::SetOfSets) = SetOfSets(vcat(s.subset, other.subset))
+Base.union(s::SetOfSets, other::AbstractSet) = SetOfSets(vcat(s.subset, [other]))
 Base.intersect(s::SetOfSets, others...) = intersect(s.subset..., others...)
 Base.setdiff(s::SetOfSets, others...) = setdiff(s.subset..., others...)
 Base.issubset(s::SetOfSets, other) = all(issubset(x, other) for x in s.subset)
+
+Base.isempty(sos::SetOfSets) = all(isempty, sos.subset)

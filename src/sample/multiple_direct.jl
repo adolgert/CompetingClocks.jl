@@ -34,10 +34,10 @@ end
 function reset!(md::MultipleDirect)
     for prefix_search in md.scan
         empty!(prefix_search)
-        empty!(md.totals)
-        empty!(md.chosen)
-        empty!(md.scanmap)
     end
+    empty!(md.totals)
+    empty!(md.chosen)
+    empty!(md.scanmap)
 end
 
 
@@ -50,7 +50,7 @@ function Base.copy!(
     dst.chooser = deepcopy(src.chooser)
     copy!(dst.chosen, src.chosen)
     copy!(dst.scanmap, src.scanmap)
-    dst
+    return dst
 end
 
 
@@ -77,6 +77,7 @@ function enable!(md::MultipleDirect, clock, distribution::Exponential,
     keyed_prefix_search[clock] = rate(distribution)
 end
 
+fire!(md::MultipleDirect, clock, when) = disable!(md, clock, when)
 
 function disable!(md::MultipleDirect, clock, when)
     which_prefix_search = md.chosen[clock]
@@ -123,7 +124,7 @@ function Base.haskey(
     clock::K
 ) where {SamplerKey,K,Time,Chooser}
     if haskey(md.chosen, clock)
-        return isenabled(md.scan[md.chosen[clock]])
+        return isenabled(md.scan[md.chosen[clock]], clock)
     else
         return false
     end
