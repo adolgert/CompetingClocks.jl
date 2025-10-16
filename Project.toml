@@ -21,4 +21,4 @@ Logging = "^1.0"
 Random = "^1.0"
 
 [workspace]
-projects = ["test", "docs"]
+projects = ["test", "docs", "benchmarks", "examples"]

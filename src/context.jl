@@ -27,11 +27,7 @@ enabled_api(::Type) = false
 struct SamplerBuilderGroup
     name::Symbol
     selector::Function
-    frequency_tier::Int64
-    constant::Bool
-    sampler::Symbol
-    space::Symbol
-    order::Int64
+    sampler::Tuple{Symbol}
 end
 
 struct SamplerBuilder{K,T}
@@ -59,15 +55,11 @@ function add_group!(
     builder::SamplerBuilder,
     name::Symbol;            # User-given name for this sampler.
     selector::Function,      # Which clocks use this sampler.
-    frequency_tier::Int64=1, # Higher number = more churn.
-    constant::Bool=false,    # Constant hazards, ie Exponential.
-    sampler::Symbol=:any,    # Ask for specific sampler.
-    space::Symbol=:countable,# :countable, :finite
-    order::Int64,            # Approximate number of clocks.
+    sampler::Tuple{Symbol}=(:any,),    # Ask for specific sampler.
 )
     push!(builder.group,
         SamplerBuilderGroup(
-            name, selector, frequency_tier, constant, sampler
+            name, selector, sampler
         )
     )
 end
