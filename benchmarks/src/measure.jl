@@ -7,6 +7,42 @@ using Random
 import Base.Iterators: take, flatten
 
 """
+Generate a descriptive, unique name for a sampler type.
+
+For DirectCall variants, extracts the Keep/Removal strategy and PrefixSearch type.
+For other samplers, returns the simple type name.
+"""
+function sampler_name(sampler_type::Type)
+    type_str = string(sampler_type)
+
+    # For DirectCall, extract the variant information
+    if occursin("DirectCall", type_str)
+        # Extract KeyedRemovalPrefixSearch vs KeyedKeepPrefixSearch
+        keep_strategy = if occursin("KeyedRemoval", type_str)
+            "Removal"
+        elseif occursin("KeyedKeep", type_str)
+            "Keep"
+        else
+            "Unknown"
+        end
+
+        # Extract BinaryTree vs CumSum
+        prefix_type = if occursin("BinaryTree", type_str)
+            "BinaryTree"
+        elseif occursin("CumSum", type_str)
+            "CumSum"
+        else
+            "Unknown"
+        end
+
+        return "DirectCall_$(keep_strategy)_$(prefix_type)"
+    end
+
+    # For other samplers, use simple name
+    return string(nameof(sampler_type))
+end
+
+"""
 Create a distribution instance based on the distribution type symbol.
 """
 function create_distribution(dist_type::Symbol, rng::AbstractRNG)
@@ -70,24 +106,33 @@ function benchmark_step!(sampler, enabled_keys, key_strategy, n_changes, dist_ty
     end
 
     # 4. Determine which keys to re-enable
-    if key_strategy == :dense
-        all_keys_to_enable = flatten([[what_fire], disable_keys])
+    # 4. Determine which keys to re-enable (always as Vector for type stability)
+    all_keys_to_enable = if key_strategy == :dense
+        vcat([what_fire], disable_keys)  # Concrete Vector{Int}
     elseif key_strategy == :sparse
         # Generate brand new random keys for sparse strategy
-        all_keys_to_enable = Int[]
-        sizehint!(all_keys_to_enable, n_changes)
-        while length(all_keys_to_enable) < n_changes
-            batch = rand(rng, 1:typemax(Int32), 16)
-            valid_keys = filter(k -> k ∉ enabled_keys && k ∉ all_keys_to_enable, batch)
-            needed = n_changes - length(all_keys_to_enable)
-            append!(all_keys_to_enable, first(valid_keys, min(needed, length(valid_keys))))
+        new_keys = Int[]
+        sizehint!(new_keys, n_changes)
+        seen = Set{Int}(enabled_keys)  # O(1) lookups
+
+        while length(new_keys) < n_changes
+            batch_size = min(32, (n_changes - length(new_keys)) * 2)
+            batch = rand(rng, 1:typemax(Int), batch_size)
+            for k in batch
+                if k ∉ seen
+                    push!(new_keys, k)
+                    push!(seen, k)
+                    length(new_keys) == n_changes && break
+                end
+            end
         end
+        new_keys
     else
         error("Unknown key strategy: $key_strategy")
-    end
+    end::Vector{Int}  # Type assertion
 
     # 5. Re-enable all n_changes clocks with new distributions
-    for k in first(all_keys_to_enable, n_changes)
+    for k in all_keys_to_enable
         dist = create_distribution(dist_type, rng)
         enable!(sampler, k, dist, when_fire, when_fire, rng)
         push!(enabled_keys, k)
@@ -102,15 +147,16 @@ Run a complete benchmark for a given sampler type and condition.
 Returns (median_time_ns, median_memory_bytes).
 """
 function benchmark_config(sampler, cond::BenchmarkCondition)
-    # Set up the sampler
-    enabled_keys, rng, dist_type = setup_sampler(sampler, cond)
-    when = 0.0
-
-    # Run the benchmark
-    result = @benchmark benchmark_step!(
-        $sampler, $enabled_keys, $(cond.key_strategy), $(cond.n_changes),
-        $dist_type, $rng, $when
-    ) samples=100
+    # Run the benchmark with proper setup between samples
+    result = @benchmark begin
+        benchmark_step!(
+            $sampler, enabled_keys, $(cond.key_strategy), $(cond.n_changes),
+            dist_type, rng, 0.0
+        )
+    end setup=begin
+        reset!($sampler)
+        enabled_keys, rng, dist_type = setup_sampler($sampler, $cond)
+    end samples=100
 
     return Int(round(median(result.times))), Int(round(median(result.memory)))
 end

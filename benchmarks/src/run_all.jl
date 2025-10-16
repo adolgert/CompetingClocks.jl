@@ -29,7 +29,7 @@ function main()
     println()
     println("Sampler types:")
     for s in samplers
-        println("  • $(nameof(typeof(s)))")
+        println("  • $(sampler_name(typeof(s)))")
     end
     println()
     println("Configuration ranges:")
@@ -68,7 +68,7 @@ function main()
                 continue
             end
 
-            print("[$done/$total_combinations] $(nameof(sampler_type)): ")
+            print("[$done/$total_combinations] $(sampler_name(sampler_type)): ")
             print("n=$(cond.n_enabled), churn=$(cond.n_changes), ")
             print("dist=$(cond.distributions), keys=$(cond.key_strategy)... ")
             flush(stdout)
@@ -77,7 +77,7 @@ function main()
                 time_ns, mem_bytes = benchmark_config(sampler, cond)
 
                 push!(results, (
-                    string(nameof(sampler_type)),
+                    sampler_name(sampler_type),
                     cond.n_enabled,
                     cond.n_changes,
                     string(cond.distributions),

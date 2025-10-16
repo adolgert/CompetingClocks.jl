@@ -37,12 +37,12 @@ function main()
                 continue
             end
 
-            println("[$done/$total] Running: $(nameof(sampler_type)), n_enabled=$(cond.n_enabled), n_changes=$(cond.n_changes), dist=$(cond.distributions), keys=$(cond.key_strategy)")
+            println("[$done/$total] Running: $(sampler_name(sampler_type)), n_enabled=$(cond.n_enabled), n_changes=$(cond.n_changes), dist=$(cond.distributions), keys=$(cond.key_strategy)")
 
             time_ns, mem_bytes = benchmark_config(sampler, cond)
 
             push!(results, (
-                string(nameof(sampler_type)),
+                sampler_name(sampler_type),
                 cond.n_enabled,
                 cond.n_changes,
                 string(cond.distributions),
