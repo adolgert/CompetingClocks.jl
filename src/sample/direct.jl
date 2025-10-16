@@ -1,7 +1,7 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next, enabled
+export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit
 
 
 """
@@ -44,6 +44,16 @@ end
 function DirectCall{K,T}(; trajectory=false) where {K,T<:ContinuousTime}
     prefix_tree = BinaryTreePrefixSearch{T}()
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
+end
+
+
+function DirectCallExplicit(
+    ::Type{K},::Type{T},::Type{Keep},::Type{Prefix};
+    trajectory=false) where {K,T,Keep,Prefix}
+
+    prefix_tree = Prefix{T}()
+    keyed_prefix_tree = Keep{K,typeof(prefix_tree)}(prefix_tree)
     DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
 end
 
