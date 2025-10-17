@@ -1,5 +1,5 @@
 export SamplerBuilder, available_samplers, add_group!, build_sampler
-export SamplingContext
+export SamplingContext, enable!
 
 mutable struct SamplerBuilderGroup
     name::Symbol
@@ -165,7 +165,7 @@ We keep the internal logic simple. If something is present, call it.
  - delayed transitions
  - hierarchical samplers
 """
-struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Rec,Dbg}
+struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Dbg}
     sampler::Sampler # The actual sampler
     rng::RNG
     likelihood::Like
@@ -174,7 +174,7 @@ struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Rec,Dbg}
 end
 
 
-function SamplingContext(builder::SamplerBuilder, rng::AbstractRNG)
+function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
     T = builder.time_type
     if builder.trajectory_likelihood
@@ -188,7 +188,9 @@ function SamplingContext(builder::SamplerBuilder, rng::AbstractRNG)
         debug = nothing
     end
     sampler = build_sampler(builder)
-    SamplingContext{K,T}(sampler, rng, likelihood, debug, 1.0)
+    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(debug)}(
+        sampler, rng, likelihood, debug, 1.0
+        )
 end
 
 
