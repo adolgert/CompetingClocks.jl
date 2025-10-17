@@ -10,6 +10,8 @@ The choice of sampler determines specific algorithms that are used to sample, up
 
 ```@docs
 SSA
+SamplerBuilder
+add_group!
 ```
 
 ## Sampler Types
@@ -38,4 +40,5 @@ TrackWatcher
 consume_survival
 sampling_space
 steploglikelihood
+FromInclusion
 ```

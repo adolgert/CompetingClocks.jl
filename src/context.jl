@@ -31,6 +31,7 @@ end
 
 """
     SamplerBuilder(::Type{K}, ::Type{T};
+        step_likelihood=false,
         trajectory_likelihood=false,
         debug=false,
         recording=false,
@@ -41,6 +42,7 @@ A SamplerBuilder is responsible for recording a user's requirements and building
 an initial sampler.
 
  * `K` and `T` are the clock type and time type.
+ * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
  * `trajectory_likelihood` - whether you will call `trajectoryloglikelihood`
     at the end of a simulation run.
  * `debug` - Print log messages at the debug level.
@@ -196,11 +198,10 @@ We keep the internal logic simple. If something is present, call it.
  - delayed transitions
  - hierarchical samplers
 """
-struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Step,Dbg}
+struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Dbg}
     sampler::Sampler # The actual sampler
     rng::RNG
     likelihood::Like
-    step::Step
     debug::Dbg      # Union{Nothing, TrackingState{K,T}}
     split_weight::Float64
 end
@@ -215,18 +216,16 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     else
         likelihood = nothing
     end
-    if builder.step_likelihood && !has_steploglikelihood(typeof(sampler))
-        step = TrackWatcher{K,T}()
-    else
-        step = nothing
+    if builder.step_likelihood && !has_steploglikelihood(typeof(sampler)) && isnothing(likelihood)
+        likelihood = TrackWatcher{K,T}()
     end
     if builder.debug || builder.recording
         debug = DebugWatcher{K,T}(log=builder.debug)
     else
         debug = nothing
     end
-    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(step),typeof(debug)}(
-        sampler, rng, likelihood, step, debug, 1.0
+    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(debug)}(
+        sampler, rng, likelihood, debug, 1.0
         )
 end
 
