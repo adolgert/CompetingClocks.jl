@@ -1,5 +1,5 @@
 export SamplerBuilder, available_samplers, add_group!, build_sampler
-export SamplingContext, enable!
+export SamplingContext, enable!, fire!, isenabled
 
 mutable struct SamplerBuilderGroup
     name::Symbol
@@ -10,10 +10,7 @@ mutable struct SamplerBuilderGroup
 end
 
 
-"""
-A SamplerBuilder is responsible for recording a user's requirements and building
-an initial sampler.
-"""
+
 struct SamplerBuilder{K,T}
     clock_type::K
     time_type::T
@@ -26,6 +23,34 @@ struct SamplerBuilder{K,T}
     samplers::Dict{Tuple{Symbol,Vararg{Symbol}},Function}
 end
 
+"""
+    SamplerBuilder(::Type{K}, ::Type{T};
+        trajectory_likelihood=false,
+        debug=false,
+        recording=false,
+        common_random=false,
+        sampler_spec=:none)
+
+A SamplerBuilder is responsible for recording a user's requirements and building
+an initial sampler.
+
+ * `K` and `T` are the clock type and time type.
+ * `trajectory_likelihood` - whether you will call `trajectoryloglikelihood`
+    at the end of a simulation run.
+ * `debug` - Print log messages at the debug level.
+ * `recording` - Store every enable and disable for later examination.
+ * `common_random` - Use common random numbers during sampling.
+ * `sampler_spec` - If you want a single, particular sampler, put its Symbol name here.
+
+# Example
+
+```julia
+builder = SamplerBuilder(Tuple,Float64)
+add_group!(builder, :sparky => (x,d) -> x[1] == :recover, sampler_spec=(:nextreaction,))
+add_group!(builder, :forthright=>(x,d) -> x[1] == :infect)
+context = SamplingContext(builder, rng)
+```
+"""
 function SamplerBuilder(::Type{K}, ::Type{T};
     step_likelihood=false,
     trajectory_likelihood=false,
@@ -213,11 +238,12 @@ function next(ctx::SamplingContext{K,T}, when::T) where {K,T}
 end
 
 
-function fire!(ctx::SamplingContext{K,T}, clock::K, dist, te::T, when::T) where {K,T}
-    ctx.likelihood !== nothing && fire!(ctx.likelihood, clock, dist, te, when, ctx.rng)
-    fire!(ctx.sampler, clock, dist, te, when, ctx.rng)
-    ctx.debug !== nothing && fire!(ctx.debug, clock, dist, te, when, ctx.rng)
+function fire!(ctx::SamplingContext{K,T}, clock::K, when::T) where {K,T}
+    ctx.likelihood !== nothing && fire!(ctx.likelihood, clock, when)
+    fire!(ctx.sampler, clock, when)
+    ctx.debug !== nothing && fire!(ctx.debug, clock, when)
 end
+
 
 function reset!(ctx::SamplingContext{K,T}) where {K,T}
     ctx.likelihood !== nothing && reset!(ctx.likelihood)

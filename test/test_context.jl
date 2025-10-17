@@ -79,18 +79,22 @@ end
         rng = Xoshiro(90422342)
         builder = SamplerBuilder(K, T; sampler_spec=SamplerType)
         context = SamplingContext(builder, rng)
-        enabled = Set{Int64}()
+        test_enable = Set{Int64}()
         for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
             enable!(context, clock_id, Exponential(propensity), 0.0, 0.0)
-            push!(enabled, clock_id)
+            push!(test_enable, clock_id)
         end
         when, which = next(context, 0.0)
-        disable!(context, which, when)
-        delete!(enabled, which)
+        fire!(context, which, when)
+        delete!(test_enable, which)
         when, which = next(context, when)
         @test when > 0.0
         @test 1 <= which
         @test which <= 5
-        @test which ∈ enabled
+        @test which ∈ test_enable
+        @test enabled(context) == test_enable
+        for try_one in test_enable
+            @test isenabled(context, try_one)
+        end
     end
 end

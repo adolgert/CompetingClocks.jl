@@ -104,3 +104,4 @@ Base.haskey(propagator::FirstToFire{K,T}, clock::K) where {K,T} = haskey(propaga
 Base.haskey(propagator::FirstToFire{K,T}, clock) where {K,T} = false
 
 enabled(propagator::FirstToFire) = keys(propagator.transition_entry)
+isenabled(propagator::FirstToFire{K,T}, clock::K) where {K,T} = haskey(propagator.transition_entry, clock)
