@@ -68,34 +68,29 @@ end
 end
 
 
-# @safetestset context_life_cycle = "Context works with everybody's life cycle" begin
-#     using CompetingClocks
-#     using Random
-#     using Distributions
+@safetestset context_life_cycle = "Context works with everybody's life cycle" begin
+    using CompetingClocks
+    using Random
+    using Distributions
 
-#     K = Int64
-#     T = Float64
-#     FTF = FirstToFire{Int64,Float64}
-#     DC = DirectCall{Int,Float64}
-#     FR = FirstReaction{Int,Float64}
-#     NR = CombinedNextReaction{Int,Float64}
-#     for SamplerType in [FTF, DC, FR, NR]
-#         sampler = SamplerType()
-#         rng = Xoshiro(90422342)
-#         SC = CompetingClocks.SamplingContext{K,T,SamplerType,Xoshiro,Nothing,Nothing}
-#         context = SC(sampler, rng, nothing, nothing, 0.0)
-#         enabled = Set{Int64}()
-#         for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
-#             enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0, rng)
-#             push!(enabled, clock_id)
-#         end
-#         when, which = next(sampler, 0.0, rng)
-#         disable!(sampler, which, when)
-#         delete!(enabled, which)
-#         when, which = next(sampler, when, rng)
-#         @test when > 0.0
-#         @test 1 <= which
-#         @test which <= 5
-#         @test which ∈ enabled
-#     end
-# end
+    K = Int64
+    T = Float64
+    for SamplerType in [:firsttofire, :direct, :firstreaction, :nextreaction]
+        rng = Xoshiro(90422342)
+        builder = SamplerBuilder(K, T; sampler_spec=SamplerType)
+        context = SamplingContext(builder, rng)
+        enabled = Set{Int64}()
+        for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
+            enable!(context, clock_id, Exponential(propensity), 0.0, 0.0)
+            push!(enabled, clock_id)
+        end
+        when, which = next(context, 0.0)
+        disable!(context, which, when)
+        delete!(enabled, which)
+        when, which = next(context, when)
+        @test when > 0.0
+        @test 1 <= which
+        @test which <= 5
+        @test which ∈ enabled
+    end
+end
