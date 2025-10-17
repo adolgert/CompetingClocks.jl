@@ -32,12 +32,17 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     debug=false,
     recording=false,
     common_random=false,
+    sampler_spec::Union{Symbol,Tuple{Symbol}}=(:none,),    # Ask for specific sampler.
 ) where {K,T}
     group = SamplerBuilderGroup[]
     avail = make_builder_dict()
-    SamplerBuilder(
+    builder = SamplerBuilder(
         K, T, step_likelihood, trajectory_likelihood, debug, recording, common_random, group, avail
         )
+    if sampler_spec != (:none,)
+        add_group!(builder, :all => (x, d) -> true; sampler_spec=sampler_spec)
+    end
+    return builder
 end
 
 available_samplers(builder::SamplerBuilder) = keys(builder.samplers)
@@ -49,19 +54,20 @@ an inclusion rule, so it's a function from a clock key and distribution to a Boo
 """
 function add_group!(
     builder::SamplerBuilder,
-    name::Symbol;            # User-given name for this sampler.
-    selector::Union{Function,Nothing}=nothing,      # Which clocks use this sampler.
-    sampler::Union{Symbol,Tuple{Symbol}}=(:any,),    # Ask for specific sampler.
+    selector::Union{Pair,Nothing}=nothing;      # Which clocks use this sampler.
+    sampler_spec::Union{Symbol,Tuple{Symbol}}=(:any,),    # Ask for specific sampler.
 )
-    sampler = sampler isa Symbol ? (sampler,) : sampler
-    sampler = sampler == (:any,) ? (:firsttofire,) : sampler
-    if sampler ∉ keys(builder.samplers)
+    sampler_spec = sampler_spec isa Symbol ? (sampler_spec,) : sampler_spec
+    sampler_spec = sampler_spec == (:any,) ? (:firsttofire,) : sampler_spec
+    if sampler_spec ∉ keys(builder.samplers)
         error("Looking for a sampler in this list: $(keys(builder.samplers))")
     end
     if length(builder.group) >= 1 && (builder.group[1].selector === nothing || selector === nothing)
         error("Need a selector on all samplers if there is more than one sampler.")
     end
-    push!(builder.group, SamplerBuilderGroup(name, selector, sampler))
+    name = selector isa Pair ? selector.first : :all
+    selector_func = selector isa Pair ? selector.second : selector
+    push!(builder.group, SamplerBuilderGroup(name, selector_func, sampler_spec))
     return nothing
 end
 
