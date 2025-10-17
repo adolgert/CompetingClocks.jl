@@ -1,6 +1,12 @@
 export SamplerBuilder, available_samplers, add_group!, build_sampler
 export SamplingContext, enable!, fire!, isenabled
 
+has_steploglikelihood(::Type) = false
+has_steploglikelihood(::Type{<:CombinedNextReaction}) = true
+has_steploglikelihood(::Type{<:DirectCall}) = true
+has_steploglikelihood(::Type{<:EnabledWatcher}) = true
+
+
 mutable struct SamplerBuilderGroup
     name::Symbol
     selector::Union{Function,Nothing}
@@ -190,10 +196,11 @@ We keep the internal logic simple. If something is present, call it.
  - delayed transitions
  - hierarchical samplers
 """
-struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Dbg}
+struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Step,Dbg}
     sampler::Sampler # The actual sampler
     rng::RNG
     likelihood::Like
+    step::Step
     debug::Dbg      # Union{Nothing, TrackingState{K,T}}
     split_weight::Float64
 end
@@ -202,19 +209,24 @@ end
 function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
     T = builder.time_type
+    sampler = build_sampler(builder)
     if builder.trajectory_likelihood
         likelihood = TrajectoryWatcher{K,T}()
     else
         likelihood = nothing
+    end
+    if builder.step_likelihood && !has_steploglikelihood(typeof(sampler))
+        step = TrackWatcher{K,T}()
+    else
+        step = nothing
     end
     if builder.debug || builder.recording
         debug = DebugWatcher{K,T}(log=builder.debug)
     else
         debug = nothing
     end
-    sampler = build_sampler(builder)
-    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(debug)}(
-        sampler, rng, likelihood, debug, 1.0
+    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(step),typeof(debug)}(
+        sampler, rng, likelihood, step, debug, 1.0
         )
 end
 
