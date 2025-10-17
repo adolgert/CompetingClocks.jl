@@ -1,13 +1,24 @@
 # For this macro, need to import it into main for it to work.
 import InteractiveUtils: @code_typed
 
-@safetestset samplerbuilder_construct = "SamplerBuilder construction" begin
+@safetestset samplerbuilder_construct_single = "SamplerBuilder single construction" begin
+    using CompetingClocks
+    scbuild = SamplerBuilder(Tuple,Float64)
+    @test (:direct, :keep, :tree) in available_samplers(scbuild)
+    @test isempty(scbuild.group)
+    add_group!(scbuild, :capistrano; sampler=:firsttofire)
+    scresult = build_sampler(scbuild)
+    @test scresult isa FirstToFire
+end
+
+@safetestset samplerbuilder_construct_multi = "SamplerBuilder multi construction" begin
     using CompetingClocks
     scbuild = SamplerBuilder(Tuple,Float64)
     @test (:direct, :keep, :tree) in available_samplers(scbuild)
     add_group!(scbuild, :sparky; selector=(x,d) -> x[1] == :recover, sampler=(:nextreaction,))
     add_group!(scbuild, :forthright; selector=(x,d) -> x[1] == :infect)
     scresult = build_sampler(scbuild)
+    @test scresult isa MultiSampler
 end
 
 

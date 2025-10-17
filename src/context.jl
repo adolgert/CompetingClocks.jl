@@ -58,7 +58,7 @@ function add_group!(
     if sampler ∉ keys(builder.samplers)
         error("Looking for a sampler in this list: $(keys(builder.samplers))")
     end
-    if length(builder.group) >= 1 && builder.group[1].selector === nothing || selector === nothing
+    if length(builder.group) >= 1 && (builder.group[1].selector === nothing || selector === nothing)
         error("Need a selector on all samplers if there is more than one sampler.")
     end
     push!(builder.group, SamplerBuilderGroup(name, selector, sampler))
