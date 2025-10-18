@@ -26,8 +26,9 @@ CombinedNextReaction
 ## Sampling Helpers
 
 ```@docs
+CommonRandom
 CommonRandomRecorder
-freeze
+freeze!
 haskey
 misscount
 misses

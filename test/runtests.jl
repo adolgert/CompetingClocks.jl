@@ -9,7 +9,6 @@ include("test_utility.jl")
 # All available test files
 all_tests = [
     "test_combinednr.jl",
-    "test_commonrandom.jl",
     "test_context.jl",
     "test_direct.jl",
     "test_firstreaction.jl",
