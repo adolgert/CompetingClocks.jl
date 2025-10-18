@@ -3,13 +3,13 @@ Continuation/Functional Pattern
 
   Key Insight: CommonRandom provides RNG transformation as a higher-order function.
 
-  struct CommonRandomContext{K,R}
+  struct CommonRandom{K,R}
       recorder::Dict{K,Vector{R}}
       mode::Symbol
   end
 
   function with_common_rng(
-      crc::CommonRandomContext{K,R}, clock::K, base_rng::R, f::Function
+      crc::CommonRandom{K,R}, clock::K, base_rng::R, f::Function
   ) where {K,R}
       # Determine which RNG to use
       if crc.mode == :replaying && haskey(crc.recorder, clock)
@@ -55,17 +55,26 @@ mutable struct CommonRandom{K,RNG}
 end
 
 
+"""
+Doesn't reset the stored clocks, does reset miss count.
+"""
 function reset!(recorder::CommonRandom)
-    reset!(recorder.sampler)
     empty!(recorder.sample_index)
     empty!(recorder.miss)
-    recorder.mode = :record
 end
 
 
 misscount(recorder::CommonRandom) = sum(values(recorder.miss))
 misses(recorder::CommonRandom) = pairs(recorder.miss)
-freeze(recorder::CommonRandom) = (recorder.mode = :replay; nothing)
+"""
+Call this before replaying common random numbers.
+Call it before each replay.
+"""
+function freeze!(recorder::CommonRandom)
+    reset!(recorder)
+    recorder.mode = :replay
+    return nothing
+end
 
 
 function with_common_rng(
@@ -92,8 +101,8 @@ function with_common_rng(
             cr.sample_index[clock] = clock_seen_cnt
         end
         cr.miss[clock] = get(cr.miss, clock, 0) + 1
-    else # :replay
+    else  # cr.mode == :replay
         f(rng)
-        fcr.miss[clock] = get(fcr.miss, clock, 0) + 1
+        cr.miss[clock] = get(cr.miss, clock, 0) + 1
     end
 end

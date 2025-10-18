@@ -1,5 +1,5 @@
 export SamplerBuilder, available_samplers, add_group!, build_sampler
-export SamplingContext, enable!, fire!, isenabled
+export SamplingContext, enable!, fire!, isenabled, freeze!
 
 has_steploglikelihood(::Type) = false
 has_steploglikelihood(::Type{<:CombinedNextReaction}) = true
@@ -236,9 +236,9 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 end
 
 
-function freeze(ctx::SamplingContext)
+function freeze!(ctx::SamplingContext)
     if ctx.crn !== nothing
-        freeze(ctx.crn)
+        freeze!(ctx.crn)
     else
         error("Ask for common random numbers when creating the builder.")
     end
