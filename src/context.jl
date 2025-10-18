@@ -71,7 +71,7 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     avail = make_builder_dict()
     builder = SamplerBuilder(
         K, T, step_likelihood, trajectory_likelihood, debug, recording, common_random, group, avail
-        )
+    )
     if sampler_spec != (:none,)
         add_group!(builder, :all => (x, d) -> true; sampler_spec=sampler_spec)
     end
@@ -107,15 +107,15 @@ end
 
 function make_builder_dict()
     return Dict([
-        (:nextreaction,) => (K,T) -> CombinedNextReaction{K,T}(),
-        (:direct,) => (K,T) -> DirectCallExplicit(K,T,KeyedRemovalPrefixSearch,BinaryTreePrefixSearch),
-        (:direct,:remove,:tree) => (K,T) -> DirectCallExplicit(K,T,KeyedRemovalPrefixSearch,BinaryTreePrefixSearch),
-        (:direct,:keep,:tree) => (K,T) -> DirectCallExplicit(K,T,KeyedKeepPrefixSearch,BinaryTreePrefixSearch),
-        (:direct,:remove,:array) => (K,T) -> DirectCallExplicit(K,T,KeyedRemovalPrefixSearch,CumSumPrefixSearch),
-        (:direct,:keep,:array) => (K,T) -> DirectCallExplicit(K,T,KeyedKeepPrefixSearch,CumSumPrefixSearch),
-        (:firstreaction,) => (K,T) -> FirstReaction{K,T}(),
-        (:firsttofire,) => (K,T) -> FirstToFire{K,T}(),
-        (:petri,) => (K,T) -> Petri{K,T}(),
+        (:nextreaction,) => (K, T) -> CombinedNextReaction{K,T}(),
+        (:direct,) => (K, T) -> DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, BinaryTreePrefixSearch),
+        (:direct, :remove, :tree) => (K, T) -> DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, BinaryTreePrefixSearch),
+        (:direct, :keep, :tree) => (K, T) -> DirectCallExplicit(K, T, KeyedKeepPrefixSearch, BinaryTreePrefixSearch),
+        (:direct, :remove, :array) => (K, T) -> DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, CumSumPrefixSearch),
+        (:direct, :keep, :array) => (K, T) -> DirectCallExplicit(K, T, KeyedKeepPrefixSearch, CumSumPrefixSearch),
+        (:firstreaction,) => (K, T) -> FirstReaction{K,T}(),
+        (:firsttofire,) => (K, T) -> FirstToFire{K,T}(),
+        (:petri,) => (K, T) -> Petri{K,T}(),
     ])
 end
 
@@ -175,7 +175,7 @@ function make_key_classifier(inclusion_criteria::Dict{Symbol,Function})
     # Convert to tuple for better type stability
     criteria_tuple = Tuple(inclusion_criteria)
 
-    return function(key, dist)
+    return function (key, dist)
         for (symbol, criterion_func) in criteria_tuple
             if criterion_func(key, dist)
                 return symbol
@@ -198,10 +198,11 @@ We keep the internal logic simple. If something is present, call it.
  - delayed transitions
  - hierarchical samplers
 """
-struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,Dbg}
+struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
     sampler::Sampler # The actual sampler
     rng::RNG
     likelihood::Like
+    crn::CRN
     debug::Dbg      # Union{Nothing, TrackingState{K,T}}
     split_weight::Float64
 end
@@ -219,20 +220,40 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     if builder.step_likelihood && !has_steploglikelihood(typeof(sampler)) && isnothing(likelihood)
         likelihood = TrackWatcher{K,T}()
     end
+    if builder.common_random
+        crn = CommonRandom{K,R}()
+    else
+        crn = nothing
+    end
     if builder.debug || builder.recording
         debug = DebugWatcher{K,T}(log=builder.debug)
     else
         debug = nothing
     end
-    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(debug)}(
-        sampler, rng, likelihood, debug, 1.0
-        )
+    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(crn),typeof(debug)}(
+        sampler, rng, likelihood, crn, debug, 1.0
+    )
+end
+
+
+function freeze(ctx::SamplingContext)
+    if ctx.crn !== nothing
+        freeze(ctx.crn)
+    else
+        error("Ask for common random numbers when creating the builder.")
+    end
 end
 
 
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist, te::T, when::T) where {K,T}
     ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
-    enable!(ctx.sampler, clock, dist, te, when, ctx.rng)
+    if ctx.crn !== nothing
+        with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
+            enable!(ctx.sampler, clock, dist, te, when, wrapped_rng)
+        end
+    else
+        enable!(ctx.sampler, clock, dist, te, when, ctx.rng)
+    end
     ctx.debug !== nothing && enable!(ctx.debug, clock, dist, te, when, ctx.rng)
 end
 
@@ -300,6 +321,6 @@ end
 function trajectoryloglikelihood(dc::SamplingContext)
     isnothing(ctx.likelihood) && error(
         "Must enabled trajectory likelihood when creating sampler"
-        )
+    )
     return trajectoryloglikelihood(ctx.likelihood)
 end

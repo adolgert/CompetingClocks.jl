@@ -8,22 +8,23 @@ include("test_utility.jl")
 
 # All available test files
 all_tests = [
+    "test_combinednr.jl",
     "test_commonrandom.jl",
-    "test_prefixsearch.jl",
+    "test_context.jl",
+    "test_direct.jl",
+    "test_firstreaction.jl",
+    "test_firsttofire.jl",
     "test_keyedprefixsearch.jl",
+    "test_multiple_direct.jl",
+    "test_nrtransition.jl",
+    "test_petri.jl",
+    "test_prefixsearch.jl",
+    "test_sampler.jl",
     "test_setofsets.jl",
     "test_track.jl",
-    "test_combinednr.jl",
-    "test_firstreaction.jl",
-    "test_nrtransition.jl",
-    "test_direct.jl",
-    "test_firsttofire.jl",
-    "test_petri.jl",
-    "test_sampler.jl",
-    "test_multiple_direct.jl",
-    "test_vas.jl",
     "test_vas_integrate.jl",
-    "test_context.jl"
+    "test_vas.jl",
+    "test_with_common_random.jl",
 ]
 
 # Filter tests based on command-line arguments (ARGS)
