@@ -16,28 +16,37 @@ mutable struct MultipleDirect{SamplerKey,K,Time,Chooser}
     # list of scan totals is stable, not jumbled by dict keys changing.
     # Map from the identifier for the sampler to the vector of samplers.
     scanmap::Dict{SamplerKey,Int}
+    now::Time
+    log_likelihood::Float64
+    calculate_likelihood::Bool
 end
 
 function MultipleDirect{SamplerKey,K,Time}(
-    chooser::Chooser
+    chooser::Chooser;
+    trajectory=false
 ) where {SamplerKey,K,Time,Chooser<:SamplerChoice{K,SamplerKey}}
     MultipleDirect{SamplerKey,K,Time,Chooser}(
         Vector{KeyedPrefixSearch}(),
         Vector{Time}(),
         chooser,
         Dict{K,SamplerKey}(),
-        Dict{SamplerKey,Int}()
+        Dict{SamplerKey,Int}(),
+        zero(Time),
+        zero(Float64),
+        trajectory
     )
 end
 
 
-function reset!(md::MultipleDirect)
+function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
     for prefix_search in md.scan
         empty!(prefix_search)
     end
     empty!(md.totals)
     empty!(md.chosen)
     empty!(md.scanmap)
+    md.now = zero(Time)
+    md.log_likelihood = zero(Float64)
 end
 
 
@@ -77,7 +86,32 @@ function enable!(md::MultipleDirect, clock, distribution::Exponential,
     keyed_prefix_search[clock] = rate(distribution)
 end
 
-fire!(md::MultipleDirect, clock, when) = disable!(md, clock, when)
+
+function steploglikelihood(md::MultipleDirect, now, when, which)
+    total = sum(sum!(subdirect), md.scan)
+    Δt = when - now
+    λ = md.scan[md.chosen[clock]][which]
+    return log(λ) - total * Δt
+end
+
+function trajectoryloglikelihood(md::MultipleDirect, when)
+    last_part = if when > md.now
+        total = sum(sum!(subdirect), md.scan)
+        Δt = when - md.now
+        -total * Δt
+    else
+        zero(Float64)
+    end
+    return md.log_likelihood + last_part
+end
+
+function fire!(md::MultipleDirect, clock, when)
+    if md.calculate_likelihood
+        md.log_likelihood += steploglikelihood(md, md.now, when, clock)
+    end
+    disable!(md, clock, when)
+    md.now = when
+end
 
 function disable!(md::MultipleDirect, clock, when)
     which_prefix_search = md.chosen[clock]

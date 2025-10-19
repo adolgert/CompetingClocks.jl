@@ -336,9 +336,9 @@ function steploglikelihood(dc::SamplingContext, when, which)
 end
 
 
-function trajectoryloglikelihood(dc::SamplingContext)
+function trajectoryloglikelihood(dc::SamplingContext, endtime)
     isnothing(ctx.likelihood) && error(
         "Must enabled trajectory likelihood when creating sampler"
     )
-    return trajectoryloglikelihood(ctx.likelihood)
+    return trajectoryloglikelihood(ctx.likelihood, endtime)
 end

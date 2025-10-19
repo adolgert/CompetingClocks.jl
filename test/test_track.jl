@@ -49,7 +49,7 @@ end
 
     absolute_firing = enabling_times + relative_firing
     clock_firing_order = sortperm(absolute_firing)
-    last_fired = 0.0 
+    last_fired = 0.0
     for i in eachindex(clock_firing_order)
         (last_fired, which) = next(propagator, last_fired, rng)
         @test last_fired ≈ absolute_firing[clock_firing_order[i]]
@@ -84,7 +84,7 @@ end
         running_loglikelihood += step_ll
         check += check_step
     end
-    ll = trajectoryloglikelihood(watcher)
+    ll = trajectoryloglikelihood(watcher, Float64(10))
     @test abs(running_loglikelihood - ll) < 1e-6
 end
 
@@ -112,7 +112,7 @@ end
         running_loglikelihood += step_ll
         check += check_step
     end
-    ll = trajectoryloglikelihood(watcher)
+    ll = trajectoryloglikelihood(watcher, Float64(10))
     @test abs(running_loglikelihood - ll) < 1e-6
 end
 
@@ -145,7 +145,7 @@ end
         running_loglikelihood += step_ll
         check += check_step
     end
-    ll = trajectoryloglikelihood(watcher)
+    ll = trajectoryloglikelihood(watcher, Float64(10))
     @test abs(running_loglikelihood - ll) < 1e-6
 end
 
@@ -187,7 +187,7 @@ end
 
         # The sum of the stepwise and the trajectory-based should be equal
         # the whole way through.
-        ll = trajectoryloglikelihood(watcher)
+        ll = trajectoryloglikelihood(watcher, firetime)
         @test abs(running_loglikelihood - ll) < 1e-4 * abs(ll)
 
         for i in 1:5
