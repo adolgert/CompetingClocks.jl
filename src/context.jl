@@ -309,6 +309,7 @@ function Base.copy!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where 
     return dst
 end
 
+
 function enabled(ctx::SamplingContext)
     ctx.likelihood !== nothing && return enabled(ctx.likelihood)
     return enabled(ctx.sampler)
