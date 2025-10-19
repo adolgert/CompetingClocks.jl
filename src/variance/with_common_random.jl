@@ -1,3 +1,5 @@
+export CommonRandom, misses, misscount
+
 """
 Continuation/Functional Pattern
 
@@ -63,8 +65,13 @@ function reset!(recorder::CommonRandom)
     empty!(recorder.miss)
 end
 
-
+"""
+How many times the sampler looked for a random number and found no previous value.
+"""
 misscount(recorder::CommonRandom) = sum(values(recorder.miss))
+"""
+The Pairs of clock keys and values that weren't found.
+"""
 misses(recorder::CommonRandom) = pairs(recorder.miss)
 """
 Call this before replaying common random numbers.

@@ -27,7 +27,6 @@ CombinedNextReaction
 
 ```@docs
 CommonRandom
-CommonRandomRecorder
 freeze!
 haskey
 misscount

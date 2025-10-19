@@ -16,12 +16,12 @@
 # CompetingClocks implements common random numbers by recording the state of the random number generator every time a clock is enabled. There are other ways to do this, but this one works with the [CombinedNextReaction](@ref) and [FirstToFire](@ref) samplers. The workflow you would use looks notionally like:
 
 #   1. Create a sampler.
-#   2. Wrap it in a [CommonRandomRecorder](@ref).
+#   2. Wrap it in a [CommonRandom](@ref).
 #   3. Run a lot of simulations in order to explore and record all possible clock states. Run `reset!(recorder)` after each simulation.
 #   4. For every parameter set to try, run it the same way, using `reset!` after each run.
 #   5. Compare outcomes.
 
-# Because the `CommonRandomRecorder` stores the state of the random number generator at each step, it works best with random number generators that have small state, such as Xoshiro on a linear congruential generator (LCG).
+# Because the `CommonRandom` stores the state of the random number generator at each step, it works best with random number generators that have small state, such as Xoshiro on a linear congruential generator (LCG).
 
 struct MakeModel end #hide
 modify_model!(model, param_idx) = model #hide
@@ -30,37 +30,20 @@ using Random: Xoshiro
 using CompetingClocks
 example_clock = (3, 7)  # We will use clock IDs that are a tuple of 2 integers.
 model = MakeModel()
-sampler = FirstToFire{typeof(example_clock),Float64}()
-crn_sampler = CommonRandomRecorder(sampler, typeof(example_clock), Xoshiro)
+(Key, Time) = (typeof(example_clock), Float64)
+builder = SamplerBuilder(Key, Time; sampler_spec=:firsttofire, common_random=true)
+rng = Xoshiro(9469922)
+sampler = SamplingContext(builder, rng)
 for trial_idx in 1:100
-    run_simulation(model, crn_sampler)
-    reset!(crn_sampler)
+    run_simulation(model, sampler)
+    reset!(sampler)
 end
+freeze!(sampler)
 for param_idx in 1:10
     each_model = modify_model!(model, param_idx)
-    run_simulation(each_model, crn_sampler)
-    reset!(crn_sampler)
+    run_simulation(each_model, sampler)
+    reset!(sampler)
 end
-
-# ## Multithreading
-
-# A joy of using simulations is how easy it is to parallelize simulation runs across tasks. That can be a challenge for the `CommonRandomRecorder` because it continues to observe and record new RNG states as it comes across them. That will result in divergence between behavior on different threads. For that reason, it is possible to [freeze](@ref) a `CommonRandomRecorder`. It will stop recording states, so make sure to first prime it with lots of simulation runs, and then freeze the recorder and use that as the sampler for multiple simulations on multiple threads.
-
-using Random: Xoshiro
-using CompetingClocks
-example_clock = (3, 7)  # We will use clock IDs that are a tuple of 2 integers.
-model = MakeModel()
-sampler = FirstToFire{typeof(example_clock),Float64}()
-crn_sampler = CommonRandomRecorder(sampler, typeof(example_clock), Xoshiro)
-for trial_idx in 1:100
-    run_simulation(model, crn_sampler)
-    reset!(crn_sampler)
-end
-for thread_idx in 1:10
-    frozen_crn = freeze(crn_sampler)
-    ## start a simulation run on this thread with frozen_crn.
-end
-
 
 # ## Checking effectiveness of Common Random Numbers
 
