@@ -3,7 +3,7 @@ using Distributions: UnivariateDistribution
 import Base: getindex, keys, length, keytype, haskey
 
 export SSA, enable!, disable!, next,
-    getindex, keys, length, keytype
+    getindex, keys, length, keytype, reset!
 
 """
     SSA{KeyType,TimeType}
