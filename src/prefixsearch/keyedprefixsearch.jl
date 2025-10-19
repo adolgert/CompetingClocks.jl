@@ -54,14 +54,7 @@ function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
 end
 
 
-function Base.getindex(kp::KeyedKeepPrefixSearch, clock)
-    idx = get(kp.index, clock, 0)
-    if idx != 0
-        return kp.prefix[idx]
-    else
-        throw(KeyError(clock))
-    end
-end
+Base.getindex(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]]
 
 
 isenabled(kp::KeyedKeepPrefixSearch, clock) = (
