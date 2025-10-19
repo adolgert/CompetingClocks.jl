@@ -138,7 +138,6 @@ function enable!(
     when::Time,
     rng::AbstractRNG
 ) where {SamplerKey,Key,Time}
-    @debug "Enabling the MultiSampler"
     this_clock_sampler = choose_sampler(sampler.chooser, clock, distribution)
     sampler.chosen[clock] = this_clock_sampler
     propagator = sampler.propagator[this_clock_sampler]
