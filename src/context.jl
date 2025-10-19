@@ -18,8 +18,8 @@ end
 
 
 struct SamplerBuilder{K,T}
-    clock_type::K
-    time_type::T
+    clock_type::Type{K}
+    time_type::Type{T}
     step_likelihood::Bool
     trajectory_likelihood::Bool
     debug::Bool
@@ -27,6 +27,7 @@ struct SamplerBuilder{K,T}
     common_random::Bool
     group::Vector{SamplerBuilderGroup}
     samplers::Dict{Tuple{Symbol,Vararg{Symbol}},Function}
+    start_time::T
 end
 
 """
@@ -66,11 +67,13 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     recording=false,
     common_random=false,
     sampler_spec::Union{Symbol,Tuple{Symbol}}=(:none,),    # Ask for specific sampler.
+    start_time::T=zero(T),
 ) where {K,T}
     group = SamplerBuilderGroup[]
     avail = make_builder_dict()
     builder = SamplerBuilder(
-        K, T, step_likelihood, trajectory_likelihood, debug, recording, common_random, group, avail
+        K, T, step_likelihood, trajectory_likelihood, debug, recording,
+        common_random, group, avail, start_time
     )
     if sampler_spec != (:none,)
         add_group!(builder, :all => (x, d) -> true; sampler_spec=sampler_spec)
@@ -198,13 +201,15 @@ We keep the internal logic simple. If something is present, call it.
  - delayed transitions
  - hierarchical samplers
 """
-struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
+mutable struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
     sampler::Sampler # The actual sampler
     rng::RNG
     likelihood::Like
     crn::CRN
     debug::Dbg      # Union{Nothing, TrackingState{K,T}}
     split_weight::Float64
+    time::T
+    fixed_start::T
 end
 
 
@@ -231,21 +236,26 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
         debug = nothing
     end
     SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(crn),typeof(debug)}(
-        sampler, rng, likelihood, crn, debug, 1.0
+        sampler, rng, likelihood, crn, debug, 1.0, builder.start_time, builder.start_time
     )
 end
 
 
+Base.time(ctx::SamplingContext) = ctx.time
+
 function freeze!(ctx::SamplingContext)
     if ctx.crn !== nothing
         freeze!(ctx.crn)
+        ctx.time = ctx.fixed_start
     else
         error("Ask for common random numbers when creating the builder.")
     end
 end
 
 
-function enable!(ctx::SamplingContext{K,T}, clock::K, dist, te::T, when::T) where {K,T}
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist, relative_te::T) where {K,T}
+    when = ctx.time
+    te = when + relative_te
     ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
     if ctx.crn !== nothing
         with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
@@ -257,16 +267,20 @@ function enable!(ctx::SamplingContext{K,T}, clock::K, dist, te::T, when::T) wher
     ctx.debug !== nothing && enable!(ctx.debug, clock, dist, te, when, ctx.rng)
 end
 
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist) where {K,T}
+    enable!(ctx, clock, dist, zero(T))
+end
 
-function disable!(ctx::SamplingContext{K,T}, clock::K, when::T) where {K,T}
+function disable!(ctx::SamplingContext{K,T}, clock::K) where {K,T}
+    when = ctx.time
     ctx.likelihood !== nothing && disable!(ctx.likelihood, clock, when)
     disable!(ctx.sampler, clock, when)
     ctx.debug !== nothing && disable!(ctx.debug, clock, when)
 end
 
 
-function next(ctx::SamplingContext{K,T}, when::T) where {K,T}
-    next(ctx.sampler, when, ctx.rng)
+function next(ctx::SamplingContext{K,T}) where {K,T}
+    next(ctx.sampler, ctx.time, ctx.rng)
 end
 
 
@@ -274,6 +288,7 @@ function fire!(ctx::SamplingContext{K,T}, clock::K, when::T) where {K,T}
     ctx.likelihood !== nothing && fire!(ctx.likelihood, clock, when)
     fire!(ctx.sampler, clock, when)
     ctx.debug !== nothing && fire!(ctx.debug, clock, when)
+    ctx.time = when
 end
 
 
@@ -281,6 +296,7 @@ function reset!(ctx::SamplingContext{K,T}) where {K,T}
     ctx.likelihood !== nothing && reset!(ctx.likelihood)
     reset!(ctx.sampler)
     ctx.debug !== nothing && reset!(ctx.debug)
+    ctx.time = ctx.fixed_start
 end
 
 
@@ -313,8 +329,9 @@ end
 Base.keytype(ctx::SamplingContext{K}) where {K} = K
 timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
-function steploglikelihood(dc::SamplingContext, now, when, which)
-    return steploglikelihood(ctx.sampler, now, when, which)
+
+function steploglikelihood(dc::SamplingContext, when, which)
+    return steploglikelihood(ctx.sampler, ctx.when, when, which)
 end
 
 

@@ -31,29 +31,51 @@ function step!(model, sampler, when, which, rng)
     if which == (:arrival, 0)
         if length(model.busy) < model.c
             server_id = rand(rng, setdiff(1:model.c, model.busy))
-            enable!(sampler, (:server, server_id), Exponential(1 / model.μ), when, when)
+            enable!(sampler, (:server, server_id), Exponential(1 / model.μ), when)
             push!(model.busy, sever_id)
+            # else let the arrival go.
         end
-        enable!(sampler, (:arrival, 0), Exponential(1 / model.λ, when, when))
+        enable!(sampler, (:arrival, 0), Exponential(1 / model.λ, when))
     else
         delete!(model.busy, which[2])
     end
 end
 
+
 mutable struct ErlangLossObserver
     busy::Vector{Float64}
     time::Float64
-    ErlangLossObserver(el::ErlangLoss) = new(zeros(Float64, el.c), zero(Float64))
+    missed::Int
+    arrivals::Int
+    ErlangLossObserver(el::ErlangLoss) = new(zeros(Float64, el.c), zero(Float64), 0, 0)
 end
 
 
 function observe(elo::ErlangLossObserver, model, which, when)
     N = length(model.busy)
+    if which == (:arrival, 0)
+        elo.arrivals += 1
+        if N == model.c
+            elo.missed += 1
+        end
+    end
     duration = when - elo.time
     for i in 1:N
         elo.busy[i] += duration
     end
     elo.time = when
+end
+
+function run_erlangloss(sampler, rng)
+    model = BasicErlangLoss()
+    observer = ErlangLossObserver(model)
+    for i in 1:100
+        (when, which) = next(sampler)
+        fire!(sampler, which, when)
+        step!(model, sampler, when, which, rng)
+        observe(observer, model, which, when)
+    end
+    return observer
 end
 
 end
