@@ -5,6 +5,7 @@ using Test
 # Not tests. These are helper functions for tests.
 include("vas.jl")
 include("test_utility.jl")
+include("erlang_loss.jl")
 
 # All available test files
 all_tests = [
