@@ -7,7 +7,7 @@ export MultipleDirect
 # K is the type of the Clock key.
 # Time is a Float64 or other clock time.
 # Chooser is a function that selects a prefix-search given a clock key.
-mutable struct MultipleDirect{SamplerKey,K,Time,Chooser}
+mutable struct MultipleDirect{SamplerKey,K,Time,Chooser} <: SSA{K,Time}
     scan::Vector{KeyedPrefixSearch} # List of prefix-search data structures.
     totals::Vector{Time}
     chooser::Chooser # Function that selects a prefix-search given a key.
@@ -73,8 +73,8 @@ function Base.setindex!(
 end
 
 
-function enable!(md::MultipleDirect, clock, distribution::Exponential,
-    te, when, rng::AbstractRNG)
+function enable!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, clock::K, distribution::Exponential,
+    te::Time, when::Time, rng::AbstractRNG) where {SamplerKey,K,Time,Chooser}
     if clock ∉ keys(md.chosen)
         which_prefix_search = choose_sampler(md.chooser, clock, distribution)
         scan_idx = md.scanmap[which_prefix_search]
@@ -105,7 +105,7 @@ function trajectoryloglikelihood(md::MultipleDirect, when)
     return md.log_likelihood + last_part
 end
 
-function fire!(md::MultipleDirect, clock, when)
+function fire!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, clock::K, when::Time) where {SamplerKey,K,Time,Chooser}
     if md.calculate_likelihood
         md.log_likelihood += steploglikelihood(md, md.now, when, clock)
     end
@@ -113,7 +113,7 @@ function fire!(md::MultipleDirect, clock, when)
     md.now = when
 end
 
-function disable!(md::MultipleDirect, clock, when)
+function disable!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, clock::K, when::Time) where {SamplerKey,K,Time,Chooser}
     which_prefix_search = md.chosen[clock]
     delete!(md.scan[which_prefix_search], clock)
 end
@@ -134,7 +134,7 @@ it is possible that a random number generator will _never_ choose a particular
 value because there is no guarantee that a random number generator covers every
 combination of bits. Using more draws decreases the likelihood of this problem.
 """
-function next(md::MultipleDirect, when, rng::AbstractRNG)
+function next(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time, rng::AbstractRNG) where {SamplerKey,K,Time,Chooser}
     for scan_idx in eachindex(md.scan)
         md.totals[scan_idx] = sum!(md.scan[scan_idx])
     end

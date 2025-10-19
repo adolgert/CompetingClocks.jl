@@ -4,7 +4,11 @@ export SamplingContext, enable!, fire!, isenabled, freeze!
 has_steploglikelihood(::Type) = false
 has_steploglikelihood(::Type{<:CombinedNextReaction}) = true
 has_steploglikelihood(::Type{<:DirectCall}) = true
+has_steploglikelihood(::Type{<:MultipleDirect}) = true
 has_steploglikelihood(::Type{<:EnabledWatcher}) = true
+has_trajectoryloglikelihood(::Type) = false
+has_trajectoryloglikelihood(::Type{DirectCall}) = true
+has_trajectoryloglikelihood(::Type{MultipleDirect}) = true
 
 
 mutable struct SamplerBuilderGroup
@@ -14,7 +18,6 @@ mutable struct SamplerBuilderGroup
     instance::SSA
     SamplerBuilderGroup(name::Symbol, selector, sampler_spec) = new(name, selector, sampler_spec)
 end
-
 
 
 struct SamplerBuilder{K,T}
@@ -337,8 +340,14 @@ end
 
 
 function trajectoryloglikelihood(dc::SamplingContext, endtime)
-    isnothing(ctx.likelihood) && error(
-        "Must enabled trajectory likelihood when creating sampler"
-    )
-    return trajectoryloglikelihood(ctx.likelihood, endtime)
+    if ctx.likelihood !== nothing
+        return trajectoryloglikelihood(ctx.likelihood, endtime)
+    else
+        try
+            return trajectoryloglikelihood(ctx.sampler)
+        catch MethodError
+            error("The sampler doesn't support trajectoryloglikelihood " *
+                  "unless you request it in the builder.")
+        end
+    end
 end
