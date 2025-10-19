@@ -20,6 +20,7 @@ all_tests = [
     "test_petri.jl",
     "test_prefixsearch.jl",
     "test_sampler.jl",
+    "test_sampler_builder.jl",
     "test_setofsets.jl",
     "test_track.jl",
     "test_vas_integrate.jl",
