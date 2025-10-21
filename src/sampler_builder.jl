@@ -52,6 +52,7 @@ an initial sampler.
  * `recording` - Store every enable and disable for later examination.
  * `common_random` - Use common random numbers during sampling.
  * `sampler_spec` - If you want a single, particular sampler, put its Symbol name here.
+ * `start_time` - Sometimes a simulation shouldn't start at zero.
 
 # Example
 
@@ -147,24 +148,11 @@ function build_sampler(builder::SamplerBuilder)
         sampler = builder.samplers[builder.group[1].sampler_spec](K, T)
         matcher = nothing
     else
-        # All Direct methods get combined into one.
-        directs = filter(x -> x.sampler_spec[1] == :direct, builder.group)
-        if length(directs) > 1
-            error("implement soon for multiple directs")
-        elseif length(directs) == 1
-            direct = directs[1]
-            direct.instance = builder.samplers[direct.sampler_spec](K, T)
-        else
-            direct = nothing
-        end
-        competes = filter(x -> x.sampler_spec[1] != :direct, builder.group)
+        competes = builder.group
         for compete in competes
             compete.instance = builder.samplers[compete.sampler_spec](K, T)
         end
         # Any direct method gets added to the others for combination.
-        if !isnothing(direct)
-            push!(competes, direct)
-        end
         inclusion = Dict(samp.name => samp.selector for samp in competes)
         matcher = FromInclusion{K}(make_key_classifier(inclusion))
         sampler = MultiSampler{Symbol,K,T}(matcher)

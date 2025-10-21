@@ -1,4 +1,4 @@
-module ErlangLoss
+module ErlangLossModule
 using Random
 using Distributions: Exponential
 using CompetingClocks
