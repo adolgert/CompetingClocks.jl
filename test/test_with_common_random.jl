@@ -11,15 +11,13 @@ using SafeTestsets
     sampler = SamplingContext(builder, rng)
     watched = Set(1:5)
     for startup in watched
-        enable!(sampler, startup, Exponential(), 0.0, 0.0)
+        enable!(sampler, startup, Exponential())
     end
     @test length(enabled(sampler)) == 5
-    time_now = 0.0
     for out in 1:5
-        (when, which) = next(sampler, time_now)
+        (when, which) = next(sampler)
         @test which ∈ watched
         fire!(sampler, which, when)
-        time_now = when
         pop!(watched, which)
     end
     @test length(enabled(sampler)) == 0
@@ -36,34 +34,30 @@ end
     builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, common_random=true)
     sampler = SamplingContext(builder, rng)
 
-    time_now = zero(T)
     trace = Dict{Int,Float64}()
     watched = Set(1:5)
     for startup in watched
-        enable!(sampler, startup, Exponential(), 0.0, 0.0)
+        enable!(sampler, startup, Exponential())
     end
     @test length(enabled(sampler)) == 5
     for out in 1:5
-        (when, which) = next(sampler, time_now)
+        (when, which) = next(sampler)
         trace[which] = when
         @test which ∈ watched
         fire!(sampler, which, when)
-        time_now = when
         pop!(watched, which)
     end
 
     freeze!(sampler)
     for startup in Set(1:5)
-        enable!(sampler, startup, Exponential(), 0.0, 0.0)
+        enable!(sampler, startup, Exponential())
     end
     @test length(enabled(sampler)) == 5
-    time_now = zero(T)
     total_diff::T = 0
     for out in 1:5
-        (when, which) = next(sampler, time_now)
+        (when, which) = next(sampler)
         total_diff += abs(when - trace[which])
         fire!(sampler, which, when)
-        time_now = when
     end
 
     @test total_diff < 1e-10
@@ -80,32 +74,29 @@ end
     builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, common_random=true)
     sampler = SamplingContext(builder, rng)
 
-    time_now = zero(T)
     trace = Dict{Int,Float64}()
     watched = Set(1:5)
     for startup in watched
-        enable!(sampler, startup, Exponential(), 0.0, 0.0)
+        enable!(sampler, startup, Exponential())
     end
     @test length(enabled(sampler)) == 5
     for out in 1:5
-        (when, which) = next(sampler, time_now)
+        (when, which) = next(sampler)
         trace[which] = when
         @test which ∈ watched
         fire!(sampler, which, when)
-        time_now = when
         pop!(watched, which)
     end
 
     freeze!(sampler)
     for startup in Set(1:10)
-        enable!(sampler, startup, Exponential(), 0.0, 0.0)
+        enable!(sampler, startup, Exponential())
     end
     @test length(enabled(sampler)) == 10
-    time_now = zero(T)
     total_diff::T = 0
     extras = Dict{Int,T}()
     for out in 1:10
-        (when, which) = next(sampler, time_now)
+        (when, which) = next(sampler)
         if which <= 5
             total_diff += abs(when - trace[which])
         else
@@ -113,28 +104,25 @@ end
             extras[which] = when
         end
         fire!(sampler, which, when)
-        time_now = when
     end
     @test total_diff < 1e-10
 
     # Try again. Check that the last 5 remain random.
     freeze!(sampler)
     for startup in Set(1:10)
-        enable!(sampler, startup, Exponential(), 0.0, 0.0)
+        enable!(sampler, startup, Exponential())
     end
     @test length(enabled(sampler)) == 10
-    time_now = zero(T)
     total_diff = zero(T)
     extras_diff = zero(T)
     for out in 1:10
-        (when, which) = next(sampler, time_now)
+        (when, which) = next(sampler)
         if which <= 5
             total_diff += abs(when - trace[which])
         else
             extras_diff += abs(when - extras[which])
         end
         fire!(sampler, which, when)
-        time_now = when
     end
 
     @test total_diff < 1e-10

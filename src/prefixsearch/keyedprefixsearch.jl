@@ -54,6 +54,9 @@ function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
 end
 
 
+Base.getindex(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]]
+
+
 isenabled(kp::KeyedKeepPrefixSearch, clock) = (
     haskey(kp.index, clock) && kp.prefix[kp.index[clock]] > zero(time_type(kp))
 )

@@ -35,7 +35,7 @@ sampler_noremove = DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 """
 mutable struct DirectCall{K,T,P} <: SSA{K,T}
     prefix_tree::P
-    now::Float64
+    now::T
     log_likelihood::Float64
     calculate_likelihood::Bool
 end
@@ -49,7 +49,7 @@ end
 
 
 function DirectCallExplicit(
-    ::Type{K},::Type{T},::Type{Keep},::Type{Prefix};
+    ::Type{K}, ::Type{T}, ::Type{Keep}, ::Type{Prefix};
     trajectory=false) where {K,T,Keep,Prefix}
 
     prefix_tree = Prefix{T}()
@@ -156,7 +156,16 @@ function steploglikelihood(dc::DirectCall, now, when, which)
     return log(λ) - total * Δt
 end
 
-trajectoryloglikelihood(dc::DirectCall) = dc.log_likelihood
+function trajectoryloglikelihood(dc::DirectCall, endtime)
+    last_part = if when > dc.now
+        total = sum!(dc.prefix_tree)
+        Δt = when - md.now
+        -total * Δt
+    else
+        zero(Float64)
+    end
+    return dc.log_likelihood + last_part
+end
 
 function Base.haskey(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
     return isenabled(dc.prefix_tree, clock)

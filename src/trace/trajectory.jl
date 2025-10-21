@@ -17,10 +17,9 @@ function Base.copy!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) wh
 end
 
 
-function trajectoryloglikelihood(tw::TrajectoryWatcher)
+function trajectoryloglikelihood(tw::TrajectoryWatcher, when)
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
-    when = tw.curtime
     remaining = zero(Float64)
     for entry in values(tw.enabled)
         if when > entry.te

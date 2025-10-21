@@ -147,3 +147,47 @@ end
     @test isenabled(sampler, 3)
     @test !isenabled(sampler, 2)
 end
+
+
+# This test exists because KeyedRemovealPrefixSearch will shuffle which keys point where
+# and BinaryTreePrefixSearch will cache requests to enable and disable, so they could
+# logically interfere. Here we show that for a simulation where every rate is
+# different and things fire randomly, every clock has the same rate across all the
+# Direct methods.
+@safetestset direct_call_multi_erlang = "DirectCall ErlangLoss comparison" begin
+    using CompetingClocks
+    using CompetingClocks: KeyedRemovalPrefixSearch, KeyedKeepPrefixSearch, BinaryTreePrefixSearch, CumSumPrefixSearch
+    using Random: Xoshiro
+    using Distributions: Exponential
+    using ..NonErlangLoss
+
+    all_nearly_equal(iter) = all(x -> isapprox(x, first(iter), atol=1e-9), iter)
+
+    K = Tuple{Symbol,Int}
+    T = Float64
+    s_rem_tree = DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, BinaryTreePrefixSearch)
+    s_rem_sum = DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, CumSumPrefixSearch)
+    s_keep_tree = DirectCallExplicit(K, T, KeyedKeepPrefixSearch, BinaryTreePrefixSearch)
+    s_keep_sum = DirectCallExplicit(K, T, KeyedKeepPrefixSearch, CumSumPrefixSearch)
+    samplers = [s_keep_tree, s_keep_sum, s_rem_tree, s_rem_sum]
+
+    rng = Xoshiro(1002900)
+    model = BasicErlangLoss()
+    time_now = zero(T)
+    for sinit in samplers
+        enable!(sinit, (:arrival, 0), Exponential(1 / model.λ), time_now, time_now, rng)
+    end
+    for i in 1:100
+        (when, which) = next(s_keep_sum, time_now, rng)
+        for fclock in samplers
+            fire!(fclock, which, when)
+        end
+        time_now = when
+        randint = rand(rng, Int)
+        step!(model, samplers, which, when, rng, randint)
+        clocks = enabled(s_keep_sum)
+        for clock in clocks
+            @test all_nearly_equal(stest[clock] for stest in samplers)
+        end
+    end
+end
