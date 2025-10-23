@@ -160,6 +160,15 @@ function Distributions.logpdf(d::TranscriptionRate, t::Real)
     return log_λ + log_S
 end
 
+function Distributions.logccdf(d::TranscriptionRate, t::Real)
+    if t < 0.0
+        return 0.0  # P(T > t) = 1 when t < 0, so log(1) = 0
+    end
+    # log(P(T > t)) = log(S(t)) = log(exp(-Λ(t))) = -Λ(t)
+    # This is numerically stable and avoids underflow
+    return -cumulative_hazard(d, t)
+end
+
 """
     Base.rand(rng::AbstractRNG, d::TranscriptionRate)
 

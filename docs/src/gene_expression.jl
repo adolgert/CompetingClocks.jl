@@ -27,6 +27,7 @@
 using CompetingClocks
 using Distributions
 using Random
+using Printf
 Time = Float64
 Epoch = Int
 mutable struct GeneExpression
@@ -101,7 +102,7 @@ function run_epochs(epoch_cnt, rng)
         :translate => 2, # proteins/min/mRNA
     )
     weighted_params = Dict(
-        :promoter_off => 0.1, # per minute
+        :promoter_off => 0.05, # per minute
         :transcribe_max => 15.0, # mRNA/min
         :transcribe_remodel => 1.0, # per minute, rate of chromatin opening.
         :degrade_k => 4,  # k for Gamma
@@ -109,7 +110,7 @@ function run_epochs(epoch_cnt, rng)
         :translate => 2, # proteins/min/mRNA
     )
     model = GeneExpression(params)
-    model_weighted = GeneExpression(params_weighted)
+    model_weighted = GeneExpression(weighted_params)
     builder = SamplerBuilder(
         Tuple{Symbol,Int}, Float64;
         sampler_spec=:firsttofire,
@@ -143,13 +144,18 @@ show_observed(observed)
 
 function variations(var_cnt)
     prob_over_1000 = zeros(Float64, var_cnt)
+    fraction_over = zeros(Float64, var_cnt)
     rng = Xoshiro(234291022)
     for pidx in eachindex(prob_over_1000)
-        observed, importance = run_epochs(100, rng)
+        observed, importance = run_epochs(10000, rng)
         # This is the self-normalized estimator. The unbiased estimator uses 1/N.
         prob_over_1000[pidx] = sum((observed .>= 1000) .* importance) / sum(importance)
+        fraction_over[pidx] = count(x -> x > 1000, observed) / length(observed)
     end
-    println(join(x -> @sprintf("%.2g", x) for x in prob_over_1000, ", "))
+    println("fraction_over")
+    println(join([@sprintf("%.2g", x) for x in fraction_over], ", "))
+    println("probability_over")
+    println(join([@sprintf("%.2g", x) for x in prob_over_1000], ", "))
 end
 variations(10)
 #
