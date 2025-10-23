@@ -88,7 +88,6 @@ function one_epoch(model, sampler, model_weighted, sampler_weighted)
     weighted = trajectoryloglikelihood(sampler_weighted, when)
     basal = trajectoryloglikelihood(sampler, when)
     importance = exp(basal - weighted)
-    @assert importance ≈ 1
     return (model.protein, importance)
 end
 
@@ -110,7 +109,7 @@ function run_epochs(epoch_cnt, rng)
         :translate => 2, # proteins/min/mRNA
     )
     model = GeneExpression(params)
-    model_weighted = GeneExpression(params)
+    model_weighted = GeneExpression(params_weighted)
     builder = SamplerBuilder(
         Tuple{Symbol,Int}, Float64;
         sampler_spec=:firsttofire,
@@ -146,10 +145,11 @@ function variations(var_cnt)
     prob_over_1000 = zeros(Float64, var_cnt)
     rng = Xoshiro(234291022)
     for pidx in eachindex(prob_over_1000)
-        observed, importance = run_epochs(10000, rng)
+        observed, importance = run_epochs(100, rng)
+        # This is the self-normalized estimator. The unbiased estimator uses 1/N.
         prob_over_1000[pidx] = sum((observed .>= 1000) .* importance) / sum(importance)
     end
-    println(prob_over_1000)
+    println(join(x -> @sprintf("%.2g", x) for x in prob_over_1000, ", "))
 end
 variations(10)
 #
