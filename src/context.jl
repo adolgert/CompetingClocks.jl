@@ -148,12 +148,12 @@ function steploglikelihood(dc::SamplingContext, when, which)
 end
 
 
-function trajectoryloglikelihood(dc::SamplingContext, endtime)
+function trajectoryloglikelihood(ctx::SamplingContext, endtime)
     if ctx.likelihood !== nothing
         return trajectoryloglikelihood(ctx.likelihood, endtime)
     else
         try
-            return trajectoryloglikelihood(ctx.sampler)
+            return trajectoryloglikelihood(ctx.sampler, endtime)
         catch MethodError
             error("The sampler doesn't support trajectoryloglikelihood " *
                   "unless you request it in the builder.")

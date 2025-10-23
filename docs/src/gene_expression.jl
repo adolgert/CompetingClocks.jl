@@ -30,107 +30,133 @@ using Random
 Time = Float64
 Epoch = Int
 mutable struct GeneExpression
-    promoter::Bool
-    promoter_on_time::Time
-    promoter_epoch::Epoch
-    mrna::Dict{Epoch,Vector{Tuple{Time,Bool}}}
+    mrna::Vector{Tuple{Time,Bool}}
+    protein::Int
     θ::Dict{Symbol,Float64}
-    GeneExpression(params) = new(false, zero(Time), 0, Dict{Epoch,Vector{Tuple{Time,Bool}}}(), params)
+    function GeneExpression(params)
+        mrna = Tuple{Time,Bool}[]
+        sizehint!(mrna, 2000)
+        new(mrna, 0, params)
+    end
 end
-mutable struct GeneObserver
-    protein::Vector{Int}
-    completed::Epoch
-    GeneObserver() = new(Int[], 0)
-end
+Base.empty!(ge::GeneExpression) = (empty!(ge.mrna); ge.protein = 0; nothing)
 #
 function step_gene!(model, sampler, which, when)
-    epoch = model.promoter_epoch
     θ = model.θ
-    event, event_epoch, individual = which
+    event, individual = which
     if event == :on
-        model.promoter = true
-        model.promoter_epoch += 1
-        model.promoter_on_time = when
-        enable!(sampler, (:off, model.promoter_epoch, 0), Exponential(inv(θ[:promoter_off])))
+        enable!(sampler, (:off, 0), Exponential(inv(θ[:promoter_off])))
         rate = TranscriptionRate(θ[:transcribe_max], θ[:transcribe_remodel])
-        enable!(sampler, (:transcribe, model.promoter_epoch, 0), rate)
+        enable!(sampler, (:transcribe, 0), rate)
     elseif event == :off
-        model.promoter = false
-        enable!(sampler, (:on, model.promoter_epoch, 0), Exponential(inv(θ[:promoter_on])))
-        disable!(sampler, (:transcribe, epoch, 0))
+        disable!(sampler, (:transcribe, 0))
     elseif event == :transcribe
-        times = get!(model.mrna, epoch, Tuple{Time,Bool}[])
-        mrna_id = length(times) + 1
-        push!(times, (when, true))
-        time_offset = when - model.promoter_on_time
+        mrna_id = length(model.mrna) + 1
+        push!(model.mrna, (when, true))
+        time_offset = when - 0  # The 0 is when the promoter turned on.
         rate = TranscriptionRate(θ[:transcribe_max], θ[:transcribe_remodel]; t0=time_offset)
-        enable!(sampler, (:transcribe, model.promoter_epoch, 0), rate)
-        total = count(x -> x[2], model.mrna[epoch])
+        enable!(sampler, (:transcribe, 0), rate)
+        total = count(x -> x[2], model.mrna)
         transrate = Exponential(inv(θ[:translate] * total))
-        enable!(sampler, (:translate, epoch, 0), transrate)
+        enable!(sampler, (:translate, 0), transrate)
         # Julia uses shape and scale, but we specify rate, so use 1-over.
         gamma = Gamma(θ[:degrade_k], inv(θ[:degrade_theta]))
-        enable!(sampler, (:degrade, epoch, mrna_id), gamma)
+        enable!(sampler, (:degrade, mrna_id), gamma)
     elseif event == :degrade
-        model.mrna[event_epoch][individual] = (zero(Time), false)
-        total = count(x -> x[2], model.mrna[event_epoch])
+        model.mrna[individual] = (zero(Time), false)
+        total = count(x -> x[2], model.mrna)
         if total > 0
             transrate = Exponential(inv(θ[:translate] * total))
-            enable!(sampler, (:translate, event_epoch, 0), transrate)
-        else
-            delete!(model.mrna, event_epoch)
+            enable!(sampler, (:translate, 0), transrate)
         end
     elseif event == :translate
-        # Here the second argument to the `which` is the epoch
+        model.protein += 1
     end
 end
-function observe_gene!(model, observer, which, when)
-    event, event_epoch, individual = which
-    if event == :on
-        push!(observer.protein, 0)
-    elseif event == :degrade && !haskey(model.mrna, event_epoch)
-        observer.completed += 1
-        return observer.completed
-    elseif event == :translate
-        observer.protein[event_epoch] += 1
+
+function one_epoch(model, sampler, model_weighted, sampler_weighted)
+    step_gene!(model, sampler, (:on, 0), time(sampler))
+    step_gene!(model_weighted, sampler_weighted, (:on, 0), time(sampler_weighted))
+    when, which = next(sampler_weighted)
+    while !isnothing(which)
+        fire!(sampler_weighted, which, when)
+        fire!(sampler, which, when)
+        step_gene!(model_weighted, sampler_weighted, which, when)
+        step_gene!(model, sampler, which, when)
+        when, which = next(sampler_weighted)
     end
-    return nothing
+    weighted = trajectoryloglikelihood(sampler_weighted, when)
+    basal = trajectoryloglikelihood(sampler, when)
+    importance = exp(basal - weighted)
+    @assert importance ≈ 1
+    return (model.protein, importance)
 end
-function run_epochs(epoch_cnt)
+
+function run_epochs(epoch_cnt, rng)
     params = Dict(
-        :promoter_on => 0.04, # per minute
         :promoter_off => 0.2, # per minute
-        :promoter_off_biased => 0.02, # per minute
         :transcribe_max => 10.0, # mRNA/min
         :transcribe_remodel => 1.0, # per minute, rate of chromatin opening.
         :degrade_k => 4,  # k for Gamma
         :degrade_theta => 4 / 30, # theta for Gamma
         :translate => 2, # proteins/min/mRNA
     )
+    weighted_params = Dict(
+        :promoter_off => 0.1, # per minute
+        :transcribe_max => 15.0, # mRNA/min
+        :transcribe_remodel => 1.0, # per minute, rate of chromatin opening.
+        :degrade_k => 4,  # k for Gamma
+        :degrade_theta => 4 / 30, # theta for Gamma
+        :translate => 2, # proteins/min/mRNA
+    )
     model = GeneExpression(params)
-    observer = GeneObserver()
-    builder = SamplerBuilder(Tuple{Symbol,Int,Int}, Float64; sampler_spec=:firsttofire)
-    rng = Xoshiro(92734924)
+    model_weighted = GeneExpression(params)
+    builder = SamplerBuilder(
+        Tuple{Symbol,Int}, Float64;
+        sampler_spec=:firsttofire,
+        trajectory_likelihood=true,
+    )
     sampler = SamplingContext(builder, rng)
-    step_gene!(model, sampler, (:on, 0, 0), time(sampler))
-    observe_gene!(model, observer, (:on, 0, 0), 0.0)
-    running = true
-    while running
-        when, which = next(sampler)
-        fire!(sampler, which, when)
-        step_gene!(model, sampler, which, when)
-        running = observe_gene!(model, observer, which, when) != epoch_cnt
+    sampler_weighted = SamplingContext(builder, rng)
+    protein = zeros(Int, epoch_cnt)
+    importance = zeros(Float64, epoch_cnt)
+    for epoch_idx in eachindex(protein)
+        (cnt, weight) = one_epoch(model, sampler, model_weighted, sampler_weighted)
+        protein[epoch_idx] = cnt
+        importance[epoch_idx] = weight
+        empty!(model)
+        empty!(model_weighted)
+        reset!(sampler)
+        reset!(sampler_weighted)
     end
-    return observer
+    return protein, importance
 end
-function show_observed(observer)
+function show_observed(observed)
     bins = 100 * collect(1:10)
-    keep = observer.protein[1:observer.completed]
-    gt_bin = [sum(keep .> bin) for bin in bins]
+    gt_bin = [sum(observed .> bin) for bin in bins]
     for idx in eachindex(bins)
         println("bin $(bins[idx]) count $(gt_bin[idx])")
     end
-    println("total $(observer.completed)")
+    println("total $(length(observed))")
 end
-observed = run_epochs(100 * 300)
+observed, importance = run_epochs(100, Xoshiro(324923))
 show_observed(observed)
+
+function variations(var_cnt)
+    prob_over_1000 = zeros(Float64, var_cnt)
+    rng = Xoshiro(234291022)
+    for pidx in eachindex(prob_over_1000)
+        observed, importance = run_epochs(10000, rng)
+        prob_over_1000[pidx] = sum((observed .>= 1000) .* importance) / sum(importance)
+    end
+    println(prob_over_1000)
+end
+variations(10)
+#
+# ## References
+#
+# * Zong, Chenghang, Lok‐hang So, Leonardo A Sepúlveda, Samuel O Skinner, and Ido Golding. “Lysogen Stability Is Determined by the Frequency of Activity Bursts from the Fate‐determining Gene.” Molecular Systems Biology 6, no. 1 (2010): 440. https://doi.org/10.1038/msb.2010.96.
+# * Raj, Arjun, and Alexander Van Oudenaarden. “Nature, Nurture, or Chance: Stochastic Gene Expression and Its Consequences.” Cell 135, no. 2 (2008): 216–26. https://doi.org/10.1016/j.cell.2008.09.050.
+# * Cai, Long, Nir Friedman, and X. Sunney Xie. “Stochastic Protein Expression in Individual Cells at the Single Molecule Level.” Nature 440, no. 7082 (2006): 358–62. https://doi.org/10.1038/nature04599.
+# * Horowitz, Jordan M, and Rahul V Kulkarni. “Stochastic Gene Expression Conditioned on Large Deviations.” Physical Biology 14, no. 3 (2017): 03LT01. https://doi.org/10.1088/1478-3975/aa6d89.
+# * McAdams, Harley H., and Adam Arkin. “Stochastic Mechanisms in Gene Expression.” Proceedings of the National Academy of Sciences 94, no. 3 (1997): 814–19. https://doi.org/10.1073/pnas.94.3.814.
