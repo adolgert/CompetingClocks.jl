@@ -29,7 +29,9 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
     T = builder.time_type
     sampler = build_sampler(builder)
-    if builder.trajectory_likelihood
+    if builder.likelihood_cnt > 1
+        likelihood = PathLikelihoods{K,T}(builder.likelihood_cnt)
+    elseif builder.trajectory_likelihood
         likelihood = TrajectoryWatcher{K,T}()
     else
         likelihood = nothing
@@ -82,6 +84,28 @@ end
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist) where {K,T}
     enable!(ctx, clock, dist, zero(T))
 end
+
+
+# Vectorized version of enable! for multiple-distributions in likelihood
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector, relative_te::T) where {K,T}
+    when = ctx.time
+    te = when + relative_te
+    ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
+    if ctx.crn !== nothing
+        with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
+            enable!(ctx.sampler, clock, dist[1], te, when, wrapped_rng)
+        end
+    else
+        enable!(ctx.sampler, clock, dist[1], te, when, ctx.rng)
+    end
+    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[1], te, when, ctx.rng)
+end
+
+
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector) where {K,T}
+    enable!(ctx, clock, dist, zero(T))
+end
+
 
 function disable!(ctx::SamplingContext{K,T}, clock::K) where {K,T}
     when = ctx.time

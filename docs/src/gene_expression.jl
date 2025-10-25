@@ -110,7 +110,7 @@ function run_epochs(epoch_cnt, rng)
         :translate => 2, # proteins/min/mRNA
     )
     model = GeneExpression(params)
-    model_weighted = GeneExpression(weighted_params)
+    model_weighted = GeneExpression(params)
     builder = SamplerBuilder(
         Tuple{Symbol,Int}, Float64;
         sampler_spec=:firsttofire,
@@ -139,7 +139,7 @@ function show_observed(observed)
     end
     println("total $(length(observed))")
 end
-observed, importance = run_epochs(100, Xoshiro(324923))
+observed, importance = run_epochs(1_000_000, Xoshiro(324923))
 show_observed(observed)
 
 function variations(var_cnt)
@@ -157,7 +157,7 @@ function variations(var_cnt)
     println("probability_over")
     println(join([@sprintf("%.2g", x) for x in prob_over_1000], ", "))
 end
-variations(10)
+# variations(10)
 #
 # ## References
 #

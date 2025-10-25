@@ -46,9 +46,7 @@ function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
                 ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
             end
         end
-        if haskey(ts.enabled, clock)
-            delete!(ts.enabled, clock)
-        end
+        delete!(ts.enabled, clock)
     end
 end
 
@@ -63,9 +61,7 @@ function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
         if entry.when > entry.te
             ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
         end
-        if haskey(ts.enabled, clock)
-            delete!(ts.enabled, clock)
-        end
+        delete!(ts.enabled, clock)
     end
     ts.curtime = when
 end
