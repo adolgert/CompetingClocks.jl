@@ -16,6 +16,7 @@ all_tests = [
     "test_firsttofire.jl",
     "test_genedist.jl",
     "test_keyedprefixsearch.jl",
+    "test_likelihood.jl",
     "test_multiple_direct.jl",
     "test_nrtransition.jl",
     "test_petri.jl",
