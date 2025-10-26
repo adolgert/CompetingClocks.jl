@@ -43,7 +43,9 @@ function core_matrix_sum(cs::ClockState)
     # Sum over all clocks to get normalization, which should be 1.
     marginal = Dict{Symbol,Float64}()
     for clock in keys(cs.clocks)
-        marginal[clock] = quadgk(t -> exp(step_likelihood(cs, clock, t)), 0, Inf)[1]
+        if cs.clocks[clock].enabled
+            marginal[clock] = quadgk(t -> exp(step_likelihood(cs, clock, t)), cs.time, Inf)[1]
+        end
     end
     total = sum(values(marginal))
     @test abs(1.0 - total) < 1e-6
@@ -297,6 +299,120 @@ end
         Enable(:c3, Exponential(0.3), 0.0),
         Enable(:c4, Exponential(0.2), 0.0),
         Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+
+@safetestset likely_multi__non_shift_exp = "Multiple exponential" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Exponential(1.0), 0.0),
+        Enable(:c2, Exponential(1.2), 0.2),
+        Enable(:c3, Exponential(0.3), 1.0),
+        Enable(:c4, Exponential(0.2), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+
+@safetestset likely_multi_shift_nonexp = "Multiple non-exponential" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Weibull(1.0), 0.0),
+        Enable(:c2, Gamma(1.2), -0.2),
+        Enable(:c3, Exponential(0.3), 0.0),
+        Enable(:c4, Exponential(0.2), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_multi__main_shift_exp = "Multiple exponential" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Exponential(1.0), 0.05),
+        Enable(:c2, Exponential(1.2), 0.2),
+        Enable(:c3, Exponential(0.3), 1.0),
+        Enable(:c4, Exponential(0.2), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+
+@safetestset likely_multi_main_shift_nonexp = "Multiple non-exponential" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Weibull(1.0), 0.05),
+        Enable(:c2, Gamma(1.2), -0.2),
+        Enable(:c3, Exponential(0.3), 0.0),
+        Enable(:c4, Exponential(0.2), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_sequence = "Likely Sequence" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Gamma(1.0), 0.0),
+        Fire(:c1, 0.5),
+        Enable(:c2, Weibull(0.9), 0.0),
+        Fire(:c2, 0.7),
+        Enable(:c3, Exponential(1.2), 0.0),
+        Fire(:c3, 1.2),
     ]
     execute(cs, ss, actions)
 end
