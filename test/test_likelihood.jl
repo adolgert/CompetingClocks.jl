@@ -416,3 +416,52 @@ end
     ]
     execute(cs, ss, actions)
 end
+
+@safetestset likely_resequence = "Likely Repeat Sequence" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Gamma(1.0), 0.0),
+        Fire(:c1, 0.5),
+        Enable(:c1, Weibull(0.9), 0.0),
+        Fire(:c1, 0.7),
+        Enable(:c1, Exponential(1.2), 0.0),
+        Fire(:c1, 1.2),
+    ]
+    execute(cs, ss, actions)
+end
+
+
+@safetestset likely_sequence_reenable = "Likely Repeat Sequence Reenable" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Gamma(1.0), 0.0),
+        Enable(:c2, Weibull(1.2), 0.2),
+        Fire(:c1, 0.5),
+        Enable(:c1, Weibull(0.9), 0.0),
+        Enable(:c2, Gamma(0.9), 0.0),
+        Fire(:c1, 0.7),
+        Enable(:c1, Exponential(1.2), 0.0),
+        Fire(:c2, 1.2),
+    ]
+    execute(cs, ss, actions)
+end
