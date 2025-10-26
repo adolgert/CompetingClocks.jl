@@ -168,7 +168,16 @@ timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
 
 function steploglikelihood(ctx::SamplingContext, when, which)
-    return steploglikelihood(ctx.sampler, ctx.when, when, which)
+    if ctx.likelihood !== nothing
+        return steploglikelihood(ctx.likelihood, ctx.time, when, which)
+    else
+        try
+            return steploglikelihood(ctx.sampler, ctx.time, when, which)
+        catch
+            error("The sampler doesn't support steploglikelihood " *
+                  "unless you request it in the builder.")
+        end
+    end
 end
 
 

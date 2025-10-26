@@ -4,6 +4,7 @@ module LikelihoodHelper
 using CompetingClocks
 using Distributions
 using Test
+using QuadGK
 export Fire, Enable, Disable, LikelihoodTestCase, ClockSpec, ClockState, execute
 export SampleState
 abstract type LHAction end
@@ -34,11 +35,25 @@ mutable struct ClockState
     clocks::Dict{Symbol,ClockSpec}
     time::Float64
     likelihood::Vector{Float64}
-    ClockState() = new(Dict{Symbol,ClockSpec}(), 0.0, Float64[])
+    check_sum::Bool
+    ClockState() = new(Dict{Symbol,ClockSpec}(), 0.0, Float64[], false)
+end
+function core_matrix_sum(cs::ClockState)
+    # Integrate the likelihood of a clock to get the marginal probability that clock fires.
+    # Sum over all clocks to get normalization, which should be 1.
+    marginal = Dict{Symbol,Float64}()
+    for clock in keys(cs.clocks)
+        marginal[clock] = quadgk(t -> exp(step_likelihood(cs, clock, t)), 0, Inf)[1]
+    end
+    total = sum(values(marginal))
+    @test abs(1.0 - total) < 1e-6
 end
 function execute(cs::ClockState, action::Fire)
     @test action.clock ∈ keys(cs.clocks)
     @test cs.clocks[action.clock].enabled
+    if cs.check_sum
+        core_matrix_sum(cs)
+    end
     push!(cs.likelihood, step_likelihood(cs, action.clock, action.time))
     cs.time = action.time
     cs.clocks[action.clock].enabled = false
@@ -70,7 +85,7 @@ struct SampleState
     SampleState(sampler) = new(sampler, Float64[], Float64[])
 end
 function execute(cs::SampleState, action::Fire)
-    push!(cs.step_likelihood, steploglikelihood(cs.sampler, action.clock))
+    push!(cs.step_likelihood, steploglikelihood(cs.sampler, action.time, action.clock))
     fire!(cs.sampler, action.clock, action.time)
     push!(cs.path_likelihood, trajectoryloglikelihood(cs.sampler, time(cs.sampler)))
     cs
@@ -97,6 +112,9 @@ function step_likelihood(cs::ClockState, fired_idx, t1)
     t0 = cs.time # Calculating the likelihood from t0 to t1.
     # spec.t0 is simulation time when distribution was enabled.
     # spec.te is absolute time for the zero-point of the distribution.
+    if t1 < cs.clocks[fired_idx].te
+        return -Inf
+    end
     ll = 0.0
     @test t0 < t1  # Assert invariant that time steps aren't simultaneous.
     for spec in values(cs.clocks)
@@ -152,9 +170,132 @@ end # module LikelihoodHelper
     builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
+    cs.check_sum = true
     ss = SampleState(sampler)
     actions = [
         Enable(:c1, Exponential(1.0), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_single_delay_clock = "Single delay clock" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Exponential(1.0), 0.2),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+
+@safetestset likely_single_clock_gamma = "Single clock Gamma" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Gamma(1.0), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_single_delay_gamma = "Single delay clock Gamma" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Gamma(1.0), 0.2),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_single_soon_gamma = "Single soon clock Gamma" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Gamma(1.0), -0.2),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_multi_exp = "Multiple exponential" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Exponential(1.0), 0.0),
+        Enable(:c2, Exponential(1.2), 0.0),
+        Enable(:c3, Exponential(0.3), 0.0),
+        Enable(:c4, Exponential(0.2), 0.0),
+        Fire(:c1, 0.5),
+    ]
+    execute(cs, ss, actions)
+end
+
+
+@safetestset likely_multi_nonexp = "Multiple non-exponential" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Weibull(1.0), 0.0),
+        Enable(:c2, Gamma(1.2), 0.0),
+        Enable(:c3, Exponential(0.3), 0.0),
+        Enable(:c4, Exponential(0.2), 0.0),
         Fire(:c1, 0.5),
     ]
     execute(cs, ss, actions)
