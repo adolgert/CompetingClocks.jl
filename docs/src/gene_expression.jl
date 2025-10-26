@@ -64,6 +64,9 @@ Base.empty!(ge::GeneExpression) = (empty!(ge.mrna); ge.protein = 0; nothing)
 function step_gene!(model, sampler, which, when)
     θ = model.θ
     event, individual = which
+    pre_event_total = count(x -> x[2], model.mrna)
+    total = pre_event_total
+    # println("pre-($event, $individual) mrna=$pre_event_total protein=$(model.protein)")
     if event == :on
         enable!(sampler, (:off, 0), [Exponential(inv(θ[:promoter_off][1])), Exponential(inv(θ[:promoter_off][2]))])
         rate1 = TranscriptionRate(θ[:transcribe_max][1], θ[:transcribe_remodel][1])
@@ -81,6 +84,7 @@ function step_gene!(model, sampler, which, when)
         total = count(x -> x[2], model.mrna)
         transrate1 = Exponential(inv(θ[:translate][1] * total))
         transrate2 = Exponential(inv(θ[:translate][2] * total))
+        pre_event_total > 0 && disable!(sampler, (:translate, 0))
         enable!(sampler, (:translate, 0), [transrate1, transrate2])
         # Julia uses shape and scale, but we specify rate, so use 1-over.
         gamma1 = Gamma(θ[:degrade_k][1], inv(θ[:degrade_theta][1]))
@@ -88,6 +92,7 @@ function step_gene!(model, sampler, which, when)
         enable!(sampler, (:degrade, mrna_id), [gamma1, gamma2])
     elseif event == :degrade
         model.mrna[individual] = (zero(Time), false)
+        pre_event_total > 0 && disable!(sampler, (:translate, 0))
         total = count(x -> x[2], model.mrna)
         if total > 0
             transrate1 = Exponential(inv(θ[:translate][1] * total))
@@ -96,7 +101,13 @@ function step_gene!(model, sampler, which, when)
         end
     elseif event == :translate
         model.protein += 1
+        if pre_event_total > 0
+            transrate1 = Exponential(inv(θ[:translate][1] * pre_event_total))
+            transrate2 = Exponential(inv(θ[:translate][2] * pre_event_total))
+            enable!(sampler, (:translate, 0), [transrate1, transrate2])
+        end
     end
+    # println("post-($event, $individual) mrna=$total protein=$(model.protein)")
 end
 
 function one_epoch(model, sampler)
@@ -118,12 +129,12 @@ function run_epochs(epoch_cnt, importance, rng)
     # producing a rare event and the second is the basal rate we use to evaluate
     # the importance of those events.
     params = Dict(
-        :promoter_off => (0.1, 0.2), # per minute
+        :promoter_off => (0.6, 0.6), # per minute
         :transcribe_max => (10.0, 10.0), # mRNA/min
         :transcribe_remodel => (1.0, 1.0), # per minute, rate of chromatin opening.
         :degrade_k => (4.0, 4.0),  # k for Gamma
-        :degrade_theta => (4 / 30, 4 / 30), # theta for Gamma
-        :translate => (2.0, 2.0), # proteins/min/mRNA
+        :degrade_theta => (4 * 4 / 30, 4 * 4 / 30), # theta for Gamma
+        :translate => (2.0, 1.0), # proteins/min/mRNA
     )
     if !importance
         # Erase the weighted params
@@ -157,7 +168,7 @@ function show_observed(observed)
     end
     println("total $(length(observed))")
 end
-observed, importance = run_epochs(1_000, false, Xoshiro(324923))
+observed, importance = run_epochs(1000, false, Xoshiro(324923))
 show_observed(observed)
 
 function variations(var_cnt)
@@ -175,7 +186,7 @@ function variations(var_cnt)
     println("probability_over")
     println(join([@sprintf("%.2g", x) for x in prob_over_1000], ", "))
 end
-variations(10)
+# variations(10)
 #
 # ## References
 #

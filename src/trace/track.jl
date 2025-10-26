@@ -89,6 +89,7 @@ end
 
 
 function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+    haskey(ts.enabled) && disable!(ts, clock, when)
     ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
 
