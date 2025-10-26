@@ -97,6 +97,7 @@ function disable!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
         for idx in eachindex(entry.distribution)
             if now > entry.te
                 ts.loglikelihood[idx] += logccdf(entry.distribution[idx], now - entry.te)
+                # Adjust for an enabling time that was shifted left.
                 if entry.when > entry.te
                     ts.loglikelihood[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
                 end
@@ -125,10 +126,10 @@ function fire!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
             for idx in eachindex(entry.distribution)
                 if now > entry.te
                     ts.loglikelihood[idx] += logpdf(entry.distribution[idx], now - entry.te)
-                end
-                # Adjust for an enabling time that was shifted left.
-                if entry.when > entry.te
-                    ts.loglikelihood[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
+                    # Adjust for an enabling time that was shifted left.
+                    if entry.when > entry.te
+                        ts.loglikelihood[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
+                    end
                 end
             end
         end
