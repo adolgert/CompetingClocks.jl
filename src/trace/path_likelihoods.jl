@@ -61,22 +61,27 @@ end
 
 
 function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+    haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = PathEntry{K,T}(clock, UnivariateDistribution[copy(dist)], te, when)
 end
 
 
 function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::Vector, te::T, when::T, rng::AbstractRNG) where {K,T}
+    haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = PathEntry{K,T}(clock, copy(dist), te, when)
 end
 
 
-function disable!(ts::PathLikelihoods{K,T}, clock::K, when::T) where {K,T}
+function disable!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
     entry = get(ts.enabled, clock, nothing)
-    isnothing(entry) && return
+    if isnothing(entry)
+        error("Cannot disable $clock at time $now because it is not enabled.")
+    end
     if length(entry.distribution) == 1
         log_delta = zero(Float64)
-        if when > entry.te
-            log_delta += logccdf(entry.distribution[1], when - entry.te)
+        if now > entry.te  # now > zero-point of the distribution.
+            log_delta += logccdf(entry.distribution[1], now - entry.te)
+            # simulation time for distribution being turned on > zero-point of distribution.
             if entry.when > entry.te
                 log_delta -= logccdf(entry.distribution[1], entry.when - entry.te)
             end
@@ -84,8 +89,8 @@ function disable!(ts::PathLikelihoods{K,T}, clock::K, when::T) where {K,T}
         ts.loglikelihood .+= log_delta
     else
         for idx in eachindex(entry.distribution)
-            if when > entry.te
-                ts.loglikelihood[idx] += logccdf(entry.distribution[idx], when - entry.te)
+            if now > entry.te
+                ts.loglikelihood[idx] += logccdf(entry.distribution[idx], now - entry.te)
                 if entry.when > entry.te
                     ts.loglikelihood[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
                 end
@@ -96,13 +101,13 @@ function disable!(ts::PathLikelihoods{K,T}, clock::K, when::T) where {K,T}
 end
 
 
-function fire!(ts::PathLikelihoods{K,T}, clock::K, when::T) where {K,T}
+function fire!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
     entry = get(ts.enabled, clock, nothing)
     if !isnothing(entry)
         if length(entry.distribution) == 1
             log_delta = zero(Float64)
-            if when > entry.te
-                log_delta += logpdf(entry.distribution[1], when - entry.te)
+            if now > entry.te
+                log_delta += logpdf(entry.distribution[1], now - entry.te)
             end
             # Adjust for an enabling time that was shifted left.
             if entry.when > entry.te
@@ -111,8 +116,8 @@ function fire!(ts::PathLikelihoods{K,T}, clock::K, when::T) where {K,T}
             ts.loglikelihood .+= log_delta
         else
             for idx in eachindex(entry.distribution)
-                if when > entry.te
-                    ts.loglikelihood[idx] += logpdf(entry.distribution[idx], when - entry.te)
+                if now > entry.te
+                    ts.loglikelihood[idx] += logpdf(entry.distribution[idx], now - entry.te)
                 end
                 # Adjust for an enabling time that was shifted left.
                 if entry.when > entry.te
@@ -121,6 +126,8 @@ function fire!(ts::PathLikelihoods{K,T}, clock::K, when::T) where {K,T}
             end
         end
         delete!(ts.enabled, clock)
+    else
+        error("Cannot fire $clock at time $now because it is not enabled.")
     end
-    ts.curtime = when
+    ts.curtime = now
 end

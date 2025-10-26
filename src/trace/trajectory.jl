@@ -47,6 +47,8 @@ function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
             end
         end
         delete!(ts.enabled, clock)
+    else
+        error("Cannot disable clock $clock at $when because it is not enabled.")
     end
 end
 
@@ -62,6 +64,8 @@ function fire!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
             ts.loglikelihood -= logccdf(entry.distribution, entry.when - entry.te)
         end
         delete!(ts.enabled, clock)
+    else
+        error("Cannot fire clock $clock at $when because it is not enabled.")
     end
     ts.curtime = when
 end

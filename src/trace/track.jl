@@ -8,7 +8,17 @@ export trajectoryloglikelihood, fire!, absolute_enabling
 # the next() function that a Sampler has. You can attach a watcher
 # to a model in order to provide more information about active
 # clocks.
-
+#
+# `when`` and `te`` are in absolute times.
+# Here are the possible cases:
+# Let's call the simulation time `now`
+# At the moment of creation `when=now`. `te` can be less than, the same as, or greater than `when`.
+# For later calls, `when < now` strictly less than. So you can have
+#  * `te<=when < now`,
+#  * `when<=te<now`,
+#  * `when<te=now`, or
+#  * `when<now<te`.
+#
 struct EnablingEntry{K,T}
     clock::K
     distribution::UnivariateDistribution

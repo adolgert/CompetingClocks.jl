@@ -22,7 +22,21 @@
 #
 #   * Each mRNA makes proteins until it degrades.
 #
-# State of the system:
+# ## State of the system
+#
+# We start the system when the promoter turns ON and stop the simulation when
+# the promoter turns OFF.
+#
+#  1. Vector of MRNA. Each one was created at a certain time and is enabled/disabled.
+#  2. Count of total proteins created.
+#
+# ## Events in the system
+#
+#  1. `(:on, 0)`, Turn on the promoter. We use this to start the simulation.
+#  2. `(:transcribe, 0)` - When this fires, the promoter creates an MRNA.
+#  3. `(:translate, 0)` - The rate of translation is proportional to the number
+#     of MRNA that currently exist.
+#  4. `(:degrade, mrna_id)` - A particular MRNA will degrade, turning it off.
 #
 using CompetingClocks
 using Distributions
@@ -33,7 +47,7 @@ Epoch = Int
 mutable struct GeneExpression
     mrna::Vector{Tuple{Time,Bool}}
     protein::Int
-    θ::Dict{Symbol,Float64}
+    θ::Dict{Symbol,NTuple{2,Float64}}
     function GeneExpression(params)
         mrna = Tuple{Time,Bool}[]
         sizehint!(mrna, 2000)
@@ -42,92 +56,96 @@ mutable struct GeneExpression
 end
 Base.empty!(ge::GeneExpression) = (empty!(ge.mrna); ge.protein = 0; nothing)
 #
+# You will see in the simulation that we initialize two distributions. The first
+# distribution is used to sample for the next time. The second distribution
+# is used to determine the likelihood of the event. These two can be the same,
+# or they can differ if we want to use importance sampling.
+#
 function step_gene!(model, sampler, which, when)
     θ = model.θ
     event, individual = which
     if event == :on
-        enable!(sampler, (:off, 0), Exponential(inv(θ[:promoter_off])))
-        rate = TranscriptionRate(θ[:transcribe_max], θ[:transcribe_remodel])
-        enable!(sampler, (:transcribe, 0), rate)
+        enable!(sampler, (:off, 0), [Exponential(inv(θ[:promoter_off][1])), Exponential(inv(θ[:promoter_off][2]))])
+        rate1 = TranscriptionRate(θ[:transcribe_max][1], θ[:transcribe_remodel][1])
+        rate2 = TranscriptionRate(θ[:transcribe_max][2], θ[:transcribe_remodel][2])
+        enable!(sampler, (:transcribe, 0), [rate1, rate2])
     elseif event == :off
         disable!(sampler, (:transcribe, 0))
     elseif event == :transcribe
         mrna_id = length(model.mrna) + 1
         push!(model.mrna, (when, true))
         time_offset = when - 0  # The 0 is when the promoter turned on.
-        rate = TranscriptionRate(θ[:transcribe_max], θ[:transcribe_remodel]; t0=time_offset)
-        enable!(sampler, (:transcribe, 0), rate)
+        rate1 = TranscriptionRate(θ[:transcribe_max][1], θ[:transcribe_remodel][1]; t0=time_offset)
+        rate2 = TranscriptionRate(θ[:transcribe_max][2], θ[:transcribe_remodel][2]; t0=time_offset)
+        enable!(sampler, (:transcribe, 0), [rate1, rate2])
         total = count(x -> x[2], model.mrna)
-        transrate = Exponential(inv(θ[:translate] * total))
-        enable!(sampler, (:translate, 0), transrate)
+        transrate1 = Exponential(inv(θ[:translate][1] * total))
+        transrate2 = Exponential(inv(θ[:translate][2] * total))
+        enable!(sampler, (:translate, 0), [transrate1, transrate2])
         # Julia uses shape and scale, but we specify rate, so use 1-over.
-        gamma = Gamma(θ[:degrade_k], inv(θ[:degrade_theta]))
-        enable!(sampler, (:degrade, mrna_id), gamma)
+        gamma1 = Gamma(θ[:degrade_k][1], inv(θ[:degrade_theta][1]))
+        gamma2 = Gamma(θ[:degrade_k][2], inv(θ[:degrade_theta][2]))
+        enable!(sampler, (:degrade, mrna_id), [gamma1, gamma2])
     elseif event == :degrade
         model.mrna[individual] = (zero(Time), false)
         total = count(x -> x[2], model.mrna)
         if total > 0
-            transrate = Exponential(inv(θ[:translate] * total))
-            enable!(sampler, (:translate, 0), transrate)
+            transrate1 = Exponential(inv(θ[:translate][1] * total))
+            transrate2 = Exponential(inv(θ[:translate][2] * total))
+            enable!(sampler, (:translate, 0), [transrate1, transrate2])
         end
     elseif event == :translate
         model.protein += 1
     end
 end
 
-function one_epoch(model, sampler, model_weighted, sampler_weighted)
+function one_epoch(model, sampler)
     step_gene!(model, sampler, (:on, 0), time(sampler))
-    step_gene!(model_weighted, sampler_weighted, (:on, 0), time(sampler_weighted))
-    when, which = next(sampler_weighted)
+    when, which = next(sampler)
     while !isnothing(which)
-        fire!(sampler_weighted, which, when)
         fire!(sampler, which, when)
-        step_gene!(model_weighted, sampler_weighted, which, when)
         step_gene!(model, sampler, which, when)
-        when, which = next(sampler_weighted)
+        when, which = next(sampler)
     end
-    weighted = trajectoryloglikelihood(sampler_weighted, when)
-    basal = trajectoryloglikelihood(sampler, when)
+    # The first is the one we sampled. The second is the basal rates.
+    weighted, basal = trajectoryloglikelihood(sampler, when)
     importance = exp(basal - weighted)
     return (model.protein, importance)
 end
 
-function run_epochs(epoch_cnt, rng)
+function run_epochs(epoch_cnt, importance, rng)
+    # We define two sets of parameters. The first biases the simulation towards
+    # producing a rare event and the second is the basal rate we use to evaluate
+    # the importance of those events.
     params = Dict(
-        :promoter_off => 0.2, # per minute
-        :transcribe_max => 10.0, # mRNA/min
-        :transcribe_remodel => 1.0, # per minute, rate of chromatin opening.
-        :degrade_k => 4,  # k for Gamma
-        :degrade_theta => 4 / 30, # theta for Gamma
-        :translate => 2, # proteins/min/mRNA
+        :promoter_off => (0.1, 0.2), # per minute
+        :transcribe_max => (10.0, 10.0), # mRNA/min
+        :transcribe_remodel => (1.0, 1.0), # per minute, rate of chromatin opening.
+        :degrade_k => (4.0, 4.0),  # k for Gamma
+        :degrade_theta => (4 / 30, 4 / 30), # theta for Gamma
+        :translate => (2.0, 2.0), # proteins/min/mRNA
     )
-    weighted_params = Dict(
-        :promoter_off => 0.05, # per minute
-        :transcribe_max => 15.0, # mRNA/min
-        :transcribe_remodel => 1.0, # per minute, rate of chromatin opening.
-        :degrade_k => 4,  # k for Gamma
-        :degrade_theta => 4 / 30, # theta for Gamma
-        :translate => 2, # proteins/min/mRNA
-    )
-    model = GeneExpression(params)
-    model_weighted = GeneExpression(params)
-    builder = SamplerBuilder(
-        Tuple{Symbol,Int}, Float64;
-        sampler_spec=:firsttofire,
-        trajectory_likelihood=true,
-    )
-    sampler = SamplingContext(builder, rng)
-    sampler_weighted = SamplingContext(builder, rng)
+    if !importance
+        # Erase the weighted params
+        params = Dict((k => (v[2], v[2])) for (k, v) in params)
+        println("erasing importance")
+    end
     protein = zeros(Int, epoch_cnt)
     importance = zeros(Float64, epoch_cnt)
     for epoch_idx in eachindex(protein)
-        (cnt, weight) = one_epoch(model, sampler, model_weighted, sampler_weighted)
+        model = GeneExpression(params)
+        builder = SamplerBuilder(
+            Tuple{Symbol,Int}, Float64;
+            sampler_spec=:firsttofire,
+            trajectory_likelihood=true,
+            likelihood_cnt=2,
+        )
+        sampler = SamplingContext(builder, rng)
+        (cnt, weight) = one_epoch(model, sampler)
         protein[epoch_idx] = cnt
         importance[epoch_idx] = weight
         empty!(model)
-        empty!(model_weighted)
         reset!(sampler)
-        reset!(sampler_weighted)
     end
     return protein, importance
 end
@@ -139,7 +157,7 @@ function show_observed(observed)
     end
     println("total $(length(observed))")
 end
-observed, importance = run_epochs(1_000_000, Xoshiro(324923))
+observed, importance = run_epochs(1_000, false, Xoshiro(324923))
 show_observed(observed)
 
 function variations(var_cnt)
@@ -147,7 +165,7 @@ function variations(var_cnt)
     fraction_over = zeros(Float64, var_cnt)
     rng = Xoshiro(234291022)
     for pidx in eachindex(prob_over_1000)
-        observed, importance = run_epochs(10000, rng)
+        observed, importance = run_epochs(10000, true, rng)
         # This is the self-normalized estimator. The unbiased estimator uses 1/N.
         prob_over_1000[pidx] = sum((observed .>= 1000) .* importance) / sum(importance)
         fraction_over[pidx] = count(x -> x > 1000, observed) / length(observed)
@@ -157,7 +175,7 @@ function variations(var_cnt)
     println("probability_over")
     println(join([@sprintf("%.2g", x) for x in prob_over_1000], ", "))
 end
-# variations(10)
+variations(10)
 #
 # ## References
 #
