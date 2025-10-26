@@ -174,6 +174,7 @@ end
 
 function trajectoryloglikelihood(ctx::SamplingContext, endtime)
     if ctx.likelihood !== nothing
+        @debug "Using likelihood object for trajectory"
         return trajectoryloglikelihood(ctx.likelihood, endtime)
     else
         try

@@ -23,6 +23,7 @@ enabled(pl::PathLikelihoods) = keys(pl.enabled)
 isenabled(pl::PathLikelihoods, clock) = haskey(pl.enabled, clock)
 
 function Base.copy!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) where {K,T}
+    @debug "PathLikelihood copy!"
     copy!(dst.enabled, src.enabled)
     copy!(dst.loglikelihood, src.loglikelihood)
     dst.curtime = src.curtime
@@ -31,6 +32,7 @@ end
 
 
 function trajectoryloglikelihood(tw::PathLikelihoods, when)
+    @debug "PathLikelihood trajectoryloglikelihood $when"
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
     if when > tw.curtime
@@ -53,6 +55,7 @@ end
 
 
 function reset!(tw::PathLikelihoods)
+    @debug "PathLikelihood reset!"
     empty!(tw.enabled)
     tw.loglikelihood .= zero(Float64)
     tw.curtime = 0.0
@@ -61,18 +64,21 @@ end
 
 
 function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+    @debug "PathLikelihood enable! $clock $dist $te $when"
     haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = PathEntry{K,T}(clock, UnivariateDistribution[copy(dist)], te, when)
 end
 
 
 function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::Vector, te::T, when::T, rng::AbstractRNG) where {K,T}
+    @debug "PathLikelihood enable! $clock $dist $te $when"
     haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = PathEntry{K,T}(clock, copy(dist), te, when)
 end
 
 
 function disable!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
+    @debug "PathLikelihood disable! $clock $now"
     entry = get(ts.enabled, clock, nothing)
     if isnothing(entry)
         error("Cannot disable $clock at time $now because it is not enabled.")
@@ -102,6 +108,7 @@ end
 
 
 function fire!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
+    @debug "PathLikelihood fire! $clock $now"
     entry = get(ts.enabled, clock, nothing)
     if !isnothing(entry)
         if length(entry.distribution) == 1

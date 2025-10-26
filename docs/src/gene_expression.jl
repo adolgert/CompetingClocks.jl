@@ -40,6 +40,7 @@
 #
 using CompetingClocks
 using Distributions
+using Logging
 using Random
 using Printf
 Time = Float64
@@ -119,7 +120,7 @@ function one_epoch(model, sampler)
         when, which = next(sampler)
     end
     # The first is the one we sampled. The second is the basal rates.
-    weighted, basal = trajectoryloglikelihood(sampler, when)
+    weighted, basal = trajectoryloglikelihood(sampler, time(sampler))
     importance = exp(basal - weighted)
     return (model.protein, importance)
 end
@@ -134,7 +135,7 @@ function run_epochs(epoch_cnt, importance, rng)
         :transcribe_remodel => (1.0, 1.0), # per minute, rate of chromatin opening.
         :degrade_k => (4.0, 4.0),  # k for Gamma
         :degrade_theta => (4 * 4 / 30, 4 * 4 / 30), # theta for Gamma
-        :translate => (2.0, 1.0), # proteins/min/mRNA
+        :translate => (1.0, 1.0), # proteins/min/mRNA
     )
     if !importance
         # Erase the weighted params
@@ -168,8 +169,10 @@ function show_observed(observed)
     end
     println("total $(length(observed))")
 end
-observed, importance = run_epochs(1000, false, Xoshiro(324923))
-show_observed(observed)
+with_logger(ConsoleLogger(stdout, Logging.Info)) do
+    observed, importance = run_epochs(1, false, Xoshiro(324923))
+    show_observed(observed)
+end
 
 function variations(var_cnt)
     prob_over_1000 = zeros(Float64, var_cnt)
@@ -186,7 +189,7 @@ function variations(var_cnt)
     println("probability_over")
     println(join([@sprintf("%.2g", x) for x in prob_over_1000], ", "))
 end
-# variations(10)
+variations(10)
 #
 # ## References
 #
