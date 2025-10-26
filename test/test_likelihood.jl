@@ -465,3 +465,102 @@ end
     ]
     execute(cs, ss, actions)
 end
+
+@safetestset likely_reenable_same_clock = "Re-enable same clock" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Exponential(1.0), 0.0),
+        Fire(:c1, 0.5),
+        # Re-enable the SAME clock with a DIFFERENT distribution
+        Enable(:c1, Gamma(2.0, 0.5), 0.0),
+        Fire(:c1, 1.2),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_disable_reenable = "Disable then re-enable" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        Enable(:c1, Exponential(1.0), 0.0),
+        Enable(:c2, Exponential(2.0), 0.0),
+        Fire(:c1, 0.3),
+        # Disable c2 without it firing
+        Disable(:c2),
+        # Re-enable c2 with a different distribution
+        Enable(:c2, Gamma(3.0, 0.2), 0.0),
+        Fire(:c2, 0.8),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_time_dependent_offset = "Time-dependent with offset" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    actions = [
+        # Enable at time 0 with offset, so distribution starts at 0.5
+        Enable(:c1, Exponential(1.0), 0.5),
+        # Enable another clock that can fire first
+        Enable(:c2, Exponential(0.5), 0.0),
+        Fire(:c2, 0.3),
+        # Now re-enable c1 with a different offset relative to current time (0.3)
+        Enable(:c1, Exponential(1.5), 0.2),  # Distribution starts at 0.3 + 0.2 = 0.5
+        Fire(:c1, 0.7),
+    ]
+    execute(cs, ss, actions)
+end
+
+@safetestset likely_multiple_reenable_cycles = "Multiple re-enable cycles" begin
+    using Distributions
+    using ..LikelihoodHelper
+    using CompetingClocks
+    using Random
+    rng = Xoshiro(2432343)
+    K, T = (Symbol, Float64)
+    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, trajectory_likelihood=true)
+    sampler = SamplingContext(builder, rng)
+    cs = ClockState()
+    cs.check_sum = true
+    ss = SampleState(sampler)
+    # Simulate the pattern: enable transcribe, fire, re-enable transcribe
+    actions = [
+        Enable(:transcribe, Exponential(10.0), 0.0),
+        Enable(:degrade, Gamma(4.0, 0.25), 0.0),
+        Fire(:transcribe, 0.1),
+        # After transcribe fires, re-enable it
+        Enable(:transcribe, Exponential(10.0), 0.0),
+        Fire(:degrade, 0.2),
+        Fire(:transcribe, 0.25),
+        Enable(:transcribe, Exponential(10.0), 0.0),
+        Fire(:transcribe, 0.4),
+    ]
+    execute(cs, ss, actions)
+end
