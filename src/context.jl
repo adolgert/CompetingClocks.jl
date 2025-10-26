@@ -167,7 +167,7 @@ Base.keytype(ctx::SamplingContext{K}) where {K} = K
 timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
 
-function steploglikelihood(dc::SamplingContext, when, which)
+function steploglikelihood(ctx::SamplingContext, when, which)
     return steploglikelihood(ctx.sampler, ctx.when, when, which)
 end
 
