@@ -121,8 +121,8 @@ function one_epoch(model, sampler)
     end
     # The first is the one we sampled. The second is the basal rates.
     weighted, basal = trajectoryloglikelihood(sampler, time(sampler))
-    importance = exp(basal - weighted)
-    return (model.protein, importance)
+    logimportance = basal - weighted
+    return (model.protein, logimportance)
 end
 
 function run_epochs(epoch_cnt, importance, rng)
@@ -130,12 +130,12 @@ function run_epochs(epoch_cnt, importance, rng)
     # producing a rare event and the second is the basal rate we use to evaluate
     # the importance of those events.
     params = Dict(
-        :promoter_off => (0.6, 0.6), # per minute
+        :promoter_off => (0.2, 0.6), # per minute
         :transcribe_max => (10.0, 10.0), # mRNA/min
         :transcribe_remodel => (1.0, 1.0), # per minute, rate of chromatin opening.
         :degrade_k => (4.0, 4.0),  # k for Gamma
         :degrade_theta => (4 * 4 / 30, 4 * 4 / 30), # theta for Gamma
-        :translate => (1.0, 1.0), # proteins/min/mRNA
+        :translate => (1.05, 1.0), # proteins/min/mRNA
     )
     if !importance
         # Erase the weighted params
@@ -170,7 +170,7 @@ function show_observed(observed)
     println("total $(length(observed))")
 end
 with_logger(ConsoleLogger(stdout, Logging.Info)) do
-    observed, importance = run_epochs(1, false, Xoshiro(324923))
+    observed, importance = run_epochs(100, false, Xoshiro(324923))
     show_observed(observed)
 end
 
@@ -179,10 +179,17 @@ function variations(var_cnt)
     fraction_over = zeros(Float64, var_cnt)
     rng = Xoshiro(234291022)
     for pidx in eachindex(prob_over_1000)
-        observed, importance = run_epochs(10000, true, rng)
-        # This is the self-normalized estimator. The unbiased estimator uses 1/N.
+        N = 10_000
+        observed, Δ = run_epochs(N, true, rng)
+        # Use log-space trick to avoid summing a bunch of zeros and extremely small numbers.
+        importance = exp.(Δ .- maximum(Δ))
+        # This is the self-normalized estimator.
         prob_over_1000[pidx] = sum((observed .>= 1000) .* importance) / sum(importance)
+        # The unbiased estimator uses 1/N.
+        # prob_over_1000[pidx] = sum((observed .>= 1000) .* importance) / N
         fraction_over[pidx] = count(x -> x > 1000, observed) / length(observed)
+        println("mean weight $(mean(importance))")
+        println("ESS $(sum(importance)^2 / sum(importance.^2))")
     end
     println("fraction_over")
     println(join([@sprintf("%.2g", x) for x in fraction_over], ", "))
