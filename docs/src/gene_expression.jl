@@ -22,6 +22,43 @@
 #
 #   * Each mRNA makes proteins until it degrades.
 #
+# ## Importance sampling
+#
+# The main challenge of simulating transcriptional bursts is that large bursts are rare.
+# This is a good case for using importance sampling. Importance sampling is a way to simulate
+# from a biased set of distributions, in this case distributions weighted towards making
+# more large bursts, but to account for that bias in your final estimate.
+#
+# The usual way to use simulations to estimate a quantity is to sum the outcome across trajectories.
+#
+# ```math
+# E_p[f(X)] \approx \frac{1}{N}\sum_{i=1}^N f(x_i)
+# ```
+# That sum is an approximation of a statistical expectation of $f$ over the probability distribution
+# $p$.
+# ```math
+# E_p[f(X)] = \int f(x)p(x)dx
+# ```
+# The events in a simulation and their distributions determine the probability $p(x)$ for
+# each trajectory $x$, and for rare events that probability is very small, so we will bias it.
+#
+# We bias it by picking different distributions for our events. Let's call the biased space
+# $q$. If we work backwards from the statistical expression, we will see that we can undo
+# the bias when we do our sum over trajectories.
+# ```math
+# E_p[f(x)] = \int f(x)\frac{p(x)}{q(x)}dx = E_q[f(X)\frac{p(X)}{q(X)}].
+# ```
+# Here $X$ is a sample under the distribution $q$. That means we draw from $q$ and at the 
+# end sum with a weight on each trajectory.
+#
+# ```math
+# \hat{\mu} = \frac{1}{N}\sum_{i=1}^N f(X_i)w(X_i)
+# ```
+# Here the importance weight is $w(x)=p(x)/q(x)$. This package's samplers will calculate that
+# weigth for you as a path log-likelihood, which is $\log w(x)$.
+#
+# Let's give this a try for gene expression. We can use an intuitive bias shift.
+#
 # ## State of the system
 #
 # We start the system when the promoter turns ON and stop the simulation when
