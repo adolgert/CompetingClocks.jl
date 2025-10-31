@@ -244,7 +244,7 @@ function consume_survival(
     else
         one(T)
     end
-    record.survival / (survive_te_t0 * survive_te_tn)
+    record.survival * (survive_te_t0 / survive_te_tn)
 end
 
 
@@ -268,7 +268,7 @@ function consume_survival(
     else
         zero(T)
     end
-    record.survival - (log_survive_te_t0 + log_survive_te_tn)
+    record.survival - (log_survive_te_tn - log_survive_te_t0)
 end
 
 
