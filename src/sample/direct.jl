@@ -157,9 +157,9 @@ function steploglikelihood(dc::DirectCall, now, when, which)
 end
 
 function trajectoryloglikelihood(dc::DirectCall, endtime)
-    last_part = if when > dc.now
+    last_part = if endtime > dc.now
         total = sum!(dc.prefix_tree)
-        Δt = when - md.now
+        Δt = endtime - md.now
         -total * Δt
     else
         zero(Float64)
