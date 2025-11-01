@@ -181,16 +181,16 @@ function run_epochs(epoch_cnt, use_importance, rng)
     end
     protein = zeros(Int, epoch_cnt)
     importance = zeros(Float64, epoch_cnt)
+    model = GeneExpression(params)
+    builder = SamplerBuilder(
+        Tuple{Symbol,Int}, Float64;
+        sampler_spec=:firsttofire,
+        trajectory_likelihood=true,
+        likelihood_cnt=2,
+    )
+    sampler = SamplingContext(builder, rng)
+    sample_from_distribution!(sampler, use_importance ? 2 : 1)
     for epoch_idx in eachindex(protein)
-        model = GeneExpression(params)
-        builder = SamplerBuilder(
-            Tuple{Symbol,Int}, Float64;
-            sampler_spec=:firsttofire,
-            trajectory_likelihood=true,
-            likelihood_cnt=2,
-        )
-        sampler = SamplingContext(builder, rng)
-        sample_from_distribution!(sampler, use_importance ? 2 : 1)
         (cnt, weight) = one_epoch(model, sampler)
         protein[epoch_idx] = cnt
         importance[epoch_idx] = weight
