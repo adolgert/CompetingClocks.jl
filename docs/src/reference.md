@@ -27,7 +27,7 @@ CombinedNextReaction
 
 ```@docs
 CommonRandom
-freeze!
+freeze_crn!
 haskey
 misscount
 misses

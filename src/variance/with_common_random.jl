@@ -77,7 +77,7 @@ misses(recorder::CommonRandom) = pairs(recorder.miss)
 Call this before replaying common random numbers.
 Call it before each replay.
 """
-function freeze!(recorder::CommonRandom)
+function freeze_crn!(recorder::CommonRandom)
     reset!(recorder)
     recorder.mode = :replay
     return nothing

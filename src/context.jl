@@ -1,4 +1,4 @@
-export SamplingContext, enable!, fire!, isenabled, freeze!
+export SamplingContext, enable!, fire!, isenabled, freeze_crn!
 export sample_from_distribution!
 
 """
@@ -70,9 +70,9 @@ function sample_from_distribution!(ctx::SamplingContext, dist_index)
     ctx.sample_distribution = dist_index
 end
 
-function freeze!(ctx::SamplingContext)
+function freeze_crn!(ctx::SamplingContext)
     if ctx.crn !== nothing
-        freeze!(ctx.crn)
+        freeze_crn!(ctx.crn)
         ctx.time = ctx.fixed_start
     else
         error("Ask for common random numbers when creating the builder.")
