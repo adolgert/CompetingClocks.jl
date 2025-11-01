@@ -70,9 +70,32 @@ function sample_from_distribution!(ctx::SamplingContext, dist_index)
     ctx.sample_distribution = dist_index
 end
 
+"""
+    freeze_crn!(ctx::SamplingContext)
+
+After running the simulation to collect random draws, call this function to
+stop collection of new draws and solely replay the draws that were collected,
+using only fresh draws for clocks that weren't seen before.
+"""
 function freeze_crn!(ctx::SamplingContext)
     if ctx.crn !== nothing
         freeze_crn!(ctx.crn)
+        ctx.time = ctx.fixed_start
+    else
+        error("Ask for common random numbers when creating the builder.")
+    end
+end
+
+
+"""
+    reset_crn!(ctx::SamplingContext)
+
+This resets a sampler including erasing its stored common random numbers.
+Using a simple `reset!(sampler)` won't erase the saved CRN draws.
+"""
+function reset_crn!(ctx::SamplingContext)
+    if ctx.crn !== nothing
+        reset_crn!(ctx.crn)
         ctx.time = ctx.fixed_start
     else
         error("Ask for common random numbers when creating the builder.")

@@ -1,4 +1,4 @@
-export CommonRandom, misses, misscount
+export CommonRandom, misses, misscount, reset_crn!
 
 """
 Continuation/Functional Pattern
@@ -64,6 +64,13 @@ function reset!(recorder::CommonRandom)
     empty!(recorder.sample_index)
     empty!(recorder.miss)
 end
+
+
+function reset_crn!(recorder::CommonRandom)
+    reset!(recorder)
+    empty!(recorder.record)
+end
+
 
 """
 How many times the sampler looked for a random number and found no previous value.
