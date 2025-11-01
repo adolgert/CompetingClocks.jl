@@ -1,5 +1,5 @@
 export SamplingContext, enable!, fire!, isenabled, freeze!
-
+export sample_from_distribution!
 
 """
 The SamplingContext is responsible for doing a perfect forwarding to multiple
@@ -22,6 +22,7 @@ mutable struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
     split_weight::Float64
     time::T
     fixed_start::T
+    sample_distribution::Int  # Given a vector of distributions during enabling, sample from this one.
 end
 
 
@@ -50,12 +51,24 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
         debug = nothing
     end
     SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(crn),typeof(debug)}(
-        sampler, rng, likelihood, crn, debug, 1.0, builder.start_time, builder.start_time
+        sampler, rng, likelihood, crn, debug, 1.0, builder.start_time, builder.start_time, 1
     )
 end
 
 
 Base.time(ctx::SamplingContext) = ctx.time
+
+
+function sample_from_distribution!(ctx::SamplingContext, dist_index)
+    if dist_index > 1 && !(ctx.likelihood isa PathLikelihoods)
+        error("Can't sample from a later distribution unless likelihood_cnt>1 in SamplerBuilder")
+    end
+    dist_cnt = _likelihood_cnt(ctx.likelihood)
+    if dist_index ∉ 1:dist_cnt
+        error("Expected a distribution index between 1 and $dist_cnt")
+    end
+    ctx.sample_distribution = dist_index
+end
 
 function freeze!(ctx::SamplingContext)
     if ctx.crn !== nothing
@@ -93,12 +106,12 @@ function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector, relative_te:
     ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
     if ctx.crn !== nothing
         with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, clock, dist[1], te, when, wrapped_rng)
+            enable!(ctx.sampler, clock, dist[ctx.sample_distribution], te, when, wrapped_rng)
         end
     else
-        enable!(ctx.sampler, clock, dist[1], te, when, ctx.rng)
+        enable!(ctx.sampler, clock, dist[ctx.sample_distribution], te, when, ctx.rng)
     end
-    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[1], te, when, ctx.rng)
+    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[ctx.sample_distribution], te, when, ctx.rng)
 end
 
 

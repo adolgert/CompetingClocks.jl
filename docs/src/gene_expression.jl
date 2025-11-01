@@ -157,24 +157,24 @@ function one_epoch(model, sampler)
         when, which = next(sampler)
     end
     # The first is the one we sampled. The second is the basal rates.
-    weighted, basal = trajectoryloglikelihood(sampler, time(sampler))
+    basal, weighted = trajectoryloglikelihood(sampler, time(sampler))
     logimportance = basal - weighted
     return (model.protein, logimportance)
 end
 
-function run_epochs(epoch_cnt, importance, rng)
+function run_epochs(epoch_cnt, use_importance, rng)
     # We define two sets of parameters. The first biases the simulation towards
     # producing a rare event and the second is the basal rate we use to evaluate
     # the importance of those events.
     params = Dict(
-        :promoter_off => (0.2, 0.6), # per minute
+        :promoter_off => (0.6, 0.2), # per minute
         :transcribe_max => (10.0, 10.0), # mRNA/min
         :transcribe_remodel => (1.0, 1.0), # per minute, rate of chromatin opening.
         :degrade_k => (4.0, 4.0),  # k for Gamma
         :degrade_theta => (4 * 4 / 30, 4 * 4 / 30), # theta for Gamma
-        :translate => (1.05, 1.0), # proteins/min/mRNA
+        :translate => (1.00, 1.05), # proteins/min/mRNA
     )
-    if !importance
+    if !use_importance
         # Erase the weighted params
         params = Dict((k => (v[2], v[2])) for (k, v) in params)
         println("erasing importance")
@@ -190,6 +190,7 @@ function run_epochs(epoch_cnt, importance, rng)
             likelihood_cnt=2,
         )
         sampler = SamplingContext(builder, rng)
+        sample_from_distribution!(sampler, use_importance ? 2 : 1)
         (cnt, weight) = one_epoch(model, sampler)
         protein[epoch_idx] = cnt
         importance[epoch_idx] = weight
