@@ -80,6 +80,7 @@ using Distributions
 using Logging
 using Random
 using Printf
+include("genedist.jl")
 Time = Float64
 Epoch = Int
 mutable struct GeneExpression
@@ -174,11 +175,6 @@ function run_epochs(epoch_cnt, use_importance, rng)
         :degrade_theta => (4 * 4 / 30, 4 * 4 / 30), # theta for Gamma
         :translate => (1.00, 1.05), # proteins/min/mRNA
     )
-    if !use_importance
-        # Erase the weighted params
-        params = Dict((k => (v[2], v[2])) for (k, v) in params)
-        println("erasing importance")
-    end
     protein = zeros(Int, epoch_cnt)
     importance = zeros(Float64, epoch_cnt)
     model = GeneExpression(params)

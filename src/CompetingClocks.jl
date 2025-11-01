@@ -4,7 +4,6 @@ using Documenter
 const ContinuousTime = AbstractFloat
 
 include("setofsets.jl")
-include("genedist.jl")
 include("prefixsearch/binarytreeprefixsearch.jl")
 include("prefixsearch/cumsumprefixsearch.jl")
 include("prefixsearch/keyedprefixsearch.jl")
