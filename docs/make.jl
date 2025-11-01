@@ -15,16 +15,17 @@ end
 
 example_base = joinpath(dirname(@__FILE__), "src")
 adliterate = [
-        ("simple_board.jl", "mainloop"),
-        ("distributions.jl", "distributions"), 
-        ("constant_birth.jl", "constant_birth"),
-        ("sir.jl", "sir"),
-        ("commonrandom.jl", "commonrandom"),
-        ("reliability.jl", "reliability"),
-        ("memory.jl", "memory"),
-        ("gsmp.jl", "gsmp"),
-        ("hierarchical.jl", "hierarchical")
-    ]
+    ("simple_board.jl", "mainloop"),
+    ("distributions.jl", "distributions"),
+    ("constant_birth.jl", "constant_birth"),
+    ("sir.jl", "sir"),
+    ("commonrandom.jl", "commonrandom"),
+    ("reliability.jl", "reliability"),
+    ("memory.jl", "memory"),
+    ("gsmp.jl", "gsmp"),
+    ("hierarchical.jl", "hierarchical"),
+    ("gene_expression.jl", "gene_expression")
+]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
 
@@ -47,7 +48,7 @@ for (source, target) in adliterate
             name=target,
             postprocess=postprocess_markdown,
             execute=true
-            )
+        )
         ischunk = Regex("$(target)-[0-9]+.(png|svg|pdf)")
         chunks = [fn for fn in readdir(example_base) if match(ischunk, fn) !== nothing]
         for chunk in chunks
@@ -91,7 +92,8 @@ makedocs(;
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",
             "SIR Model" => "sir.md",
-            "Reliability" => "reliability.md"
+            "Reliability" => "reliability.md",
+            "Gene Expression" => "gene_expression.md"
         ],
         "Reference" => [
             "interface.md",
@@ -102,8 +104,8 @@ makedocs(;
 )
 
 deploydocs(;
-    target = "build",
-    repo = "github.com/adolgert/CompetingClocks.jl.git",
+    target="build",
+    repo="github.com/adolgert/CompetingClocks.jl.git",
     devbranch="main",
-    branch = "gh-pages"
+    branch="gh-pages"
 )
