@@ -48,11 +48,11 @@ function core_matrix_sum(cs::ClockState)
         end
     end
     total = sum(values(marginal))
-    @test abs(1.0 - total) < 1e-6
+    @assert abs(1.0 - total) < 1e-6
 end
 function execute(cs::ClockState, action::Fire)
-    @test action.clock ∈ keys(cs.clocks)
-    @test cs.clocks[action.clock].enabled
+    @assert action.clock ∈ keys(cs.clocks)
+    @assert cs.clocks[action.clock].enabled
     if cs.check_sum
         core_matrix_sum(cs)
     end
@@ -118,14 +118,14 @@ function step_likelihood(cs::ClockState, fired_idx, t1)
         return -Inf
     end
     ll = 0.0
-    @test t0 < t1  # Assert invariant that time steps aren't simultaneous.
+    @assert t0 < t1  # Assert invariant that time steps aren't simultaneous.
     for spec in values(cs.clocks)
-        @test spec.t0 <= t0  # Clock can't be enabled after last time point.
+        @assert spec.t0 <= t0  # Clock can't be enabled after last time point.
         !spec.enabled && continue
         te = spec.te
         if spec.t0 == te  # enabled at the zero-point of the distribution.
             if spec.clock == fired_idx
-                @test te < t1  # Can't fire unless pdf is nonzero.
+                @assert te < t1  # Can't fire unless pdf is nonzero.
                 ll += logpdf(spec.distribution, t1 - te)
             else
                 if t1 > spec.te
@@ -144,7 +144,7 @@ function step_likelihood(cs::ClockState, fired_idx, t1)
             ll -= logccdf(spec.distribution, t0 - te)
         elseif spec.t0 < te && te < t1 # right-shifted
             if spec.clock == fired_idx
-                @test te < t1  # Can't fire unless pdf is nonzero.
+                @assert te < t1  # Can't fire unless pdf is nonzero.
                 ll += logpdf(spec.distribution, t1 - te)
             else
                 if t1 > te
