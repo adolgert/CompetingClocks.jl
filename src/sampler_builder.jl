@@ -15,6 +15,7 @@ mutable struct SamplerBuilderGroup
     selector::Union{Function,Nothing}
     sampler_spec::Tuple{Symbol}
     instance::SSA
+    # Constructor sets the instance to undefined.
     SamplerBuilderGroup(name::Symbol, selector, sampler_spec) = new(name, selector, sampler_spec)
 end
 
@@ -30,6 +31,7 @@ struct SamplerBuilder{K,T}
     group::Vector{SamplerBuilderGroup}
     samplers::Dict{Tuple{Symbol,Vararg{Symbol}},Function}
     start_time::T
+    likelihood_cnt::Int
 end
 
 """
@@ -39,7 +41,10 @@ end
         debug=false,
         recording=false,
         common_random=false,
-        sampler_spec=:none)
+        sampler_spec=:none,
+        start_time::T,
+        likelihood_cnt::Int
+        )
 
 A SamplerBuilder is responsible for recording a user's requirements and building
 an initial sampler.
@@ -53,6 +58,8 @@ an initial sampler.
  * `common_random` - Use common random numbers during sampling.
  * `sampler_spec` - If you want a single, particular sampler, put its Symbol name here.
  * `start_time` - Sometimes a simulation shouldn't start at zero.
+ * `likelihood_cnt` - The number of likelihoods to compute, corresponds to number of
+   distributions in `enable!` calls. This turns on `trajectory_likelihood`.
 
 # Example
 
@@ -71,12 +78,14 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     common_random=false,
     sampler_spec::Union{Symbol,Tuple{Symbol}}=(:none,),    # Ask for specific sampler.
     start_time::T=zero(T),
+    likelihood_cnt=1,
 ) where {K,T}
     group = SamplerBuilderGroup[]
     avail = make_builder_dict()
+    trajectory_likelihood = trajectory_likelihood || likelihood_cnt > 1
     builder = SamplerBuilder(
         K, T, step_likelihood, trajectory_likelihood, debug, recording,
-        common_random, group, avail, start_time
+        common_random, group, avail, start_time, likelihood_cnt
     )
     if sampler_spec != (:none,)
         add_group!(builder, :all => (x, d) -> true; sampler_spec=sampler_spec)

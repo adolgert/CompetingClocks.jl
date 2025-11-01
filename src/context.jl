@@ -1,5 +1,5 @@
 export SamplingContext, enable!, fire!, isenabled, freeze!
-
+export sample_from_distribution!
 
 """
 The SamplingContext is responsible for doing a perfect forwarding to multiple
@@ -22,6 +22,7 @@ mutable struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
     split_weight::Float64
     time::T
     fixed_start::T
+    sample_distribution::Int  # Given a vector of distributions during enabling, sample from this one.
 end
 
 
@@ -29,7 +30,9 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
     T = builder.time_type
     sampler = build_sampler(builder)
-    if builder.trajectory_likelihood
+    if builder.likelihood_cnt > 1
+        likelihood = PathLikelihoods{K,T}(builder.likelihood_cnt)
+    elseif builder.trajectory_likelihood
         likelihood = TrajectoryWatcher{K,T}()
     else
         likelihood = nothing
@@ -48,12 +51,24 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
         debug = nothing
     end
     SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(crn),typeof(debug)}(
-        sampler, rng, likelihood, crn, debug, 1.0, builder.start_time, builder.start_time
+        sampler, rng, likelihood, crn, debug, 1.0, builder.start_time, builder.start_time, 1
     )
 end
 
 
 Base.time(ctx::SamplingContext) = ctx.time
+
+
+function sample_from_distribution!(ctx::SamplingContext, dist_index)
+    if dist_index > 1 && !(ctx.likelihood isa PathLikelihoods)
+        error("Can't sample from a later distribution unless likelihood_cnt>1 in SamplerBuilder")
+    end
+    dist_cnt = _likelihood_cnt(ctx.likelihood)
+    if dist_index ∉ 1:dist_cnt
+        error("Expected a distribution index between 1 and $dist_cnt")
+    end
+    ctx.sample_distribution = dist_index
+end
 
 function freeze!(ctx::SamplingContext)
     if ctx.crn !== nothing
@@ -82,6 +97,28 @@ end
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist) where {K,T}
     enable!(ctx, clock, dist, zero(T))
 end
+
+
+# Vectorized version of enable! for multiple-distributions in likelihood
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector, relative_te::T) where {K,T}
+    when = ctx.time
+    te = when + relative_te
+    ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
+    if ctx.crn !== nothing
+        with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
+            enable!(ctx.sampler, clock, dist[ctx.sample_distribution], te, when, wrapped_rng)
+        end
+    else
+        enable!(ctx.sampler, clock, dist[ctx.sample_distribution], te, when, ctx.rng)
+    end
+    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[ctx.sample_distribution], te, when, ctx.rng)
+end
+
+
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector) where {K,T}
+    enable!(ctx, clock, dist, zero(T))
+end
+
 
 function disable!(ctx::SamplingContext{K,T}, clock::K) where {K,T}
     when = ctx.time
@@ -143,17 +180,27 @@ Base.keytype(ctx::SamplingContext{K}) where {K} = K
 timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
 
-function steploglikelihood(dc::SamplingContext, when, which)
-    return steploglikelihood(ctx.sampler, ctx.when, when, which)
+function steploglikelihood(ctx::SamplingContext, when, which)
+    if ctx.likelihood !== nothing
+        return steploglikelihood(ctx.likelihood, ctx.time, when, which)
+    else
+        try
+            return steploglikelihood(ctx.sampler, ctx.time, when, which)
+        catch
+            error("The sampler doesn't support steploglikelihood " *
+                  "unless you request it in the builder.")
+        end
+    end
 end
 
 
-function trajectoryloglikelihood(dc::SamplingContext, endtime)
+function trajectoryloglikelihood(ctx::SamplingContext, endtime)
     if ctx.likelihood !== nothing
+        @debug "Using likelihood object for trajectory"
         return trajectoryloglikelihood(ctx.likelihood, endtime)
     else
         try
-            return trajectoryloglikelihood(ctx.sampler)
+            return trajectoryloglikelihood(ctx.sampler, endtime)
         catch MethodError
             error("The sampler doesn't support trajectoryloglikelihood " *
                   "unless you request it in the builder.")
