@@ -166,7 +166,7 @@ function steploglikelihood(dc::DirectCall, now, when, which)
     return log(λ) - total * Δt
 end
 
-function trajectoryloglikelihood(dc::DirectCall, endtime)
+function pathloglikelihood(dc::DirectCall, endtime)
     last_part = if endtime > dc.now
         total = sum!(dc.prefix_tree)
         Δt = endtime - md.now

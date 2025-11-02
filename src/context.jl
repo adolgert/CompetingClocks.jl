@@ -205,7 +205,7 @@ multiple copies in the destination vector. Update the `split_weight` member of
 each destination copy by `1/length(dst)`. The destination can be a view of
 a vector that was created with `clone()`.
 """
-function split!(dst::AbstractVector{S<:SamplingContext}, src::SamplingContext{K,T}) where {K,T,S}
+function split!(dst::AbstractVector{S}, src::SamplingContext{K,T}) where {K,T,S<:SamplingContext}
     for cidx in eachindex(dst)
         copy_clocks(dst[cidx], src)
     end
@@ -250,16 +250,16 @@ function steploglikelihood(ctx::SamplingContext, when, which)
 end
 
 
-function trajectoryloglikelihood(ctx::SamplingContext, endtime)
+function pathloglikelihood(ctx::SamplingContext, endtime)
     log_split = log(ctx.split_weight)
     if ctx.likelihood !== nothing
         @debug "Using likelihood object for trajectory"
-        return log_split + trajectoryloglikelihood(ctx.likelihood, endtime)
+        return log_split + pathloglikelihood(ctx.likelihood, endtime)
     else
         try
-            return log_split + trajectoryloglikelihood(ctx.sampler, endtime)
+            return log_split + pathloglikelihood(ctx.sampler, endtime)
         catch MethodError
-            error("The sampler doesn't support trajectoryloglikelihood " *
+            error("The sampler doesn't support pathloglikelihood " *
                   "unless you request it in the builder.")
         end
     end

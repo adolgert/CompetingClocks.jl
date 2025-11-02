@@ -99,7 +99,7 @@ function steploglikelihood(md::MultipleDirect, now, when, which)
     return log(λ) - total * Δt
 end
 
-function trajectoryloglikelihood(md::MultipleDirect, when)
+function pathloglikelihood(md::MultipleDirect, when)
     last_part = if when > md.now
         total = sum(sum!(subdirect), md.scan)
         Δt = when - md.now

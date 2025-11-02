@@ -89,7 +89,7 @@ end
 function execute(cs::SampleState, action::Fire)
     push!(cs.step_likelihood, steploglikelihood(cs.sampler, action.time, action.clock))
     fire!(cs.sampler, action.clock, action.time)
-    push!(cs.path_likelihood, trajectoryloglikelihood(cs.sampler, time(cs.sampler)))
+    push!(cs.path_likelihood, pathloglikelihood(cs.sampler, time(cs.sampler)))
     cs
 end
 execute(cs::SampleState, action::Enable) = (enable!(cs.sampler, action.clock, action.distribution, action.offset); cs)

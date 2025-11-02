@@ -84,7 +84,7 @@ end
         running_loglikelihood += step_ll
         check += check_step
     end
-    ll = trajectoryloglikelihood(watcher, Float64(10))
+    ll = pathloglikelihood(watcher, Float64(10))
     @test abs(running_loglikelihood - ll) < 1e-6
 end
 
@@ -112,7 +112,7 @@ end
         running_loglikelihood += step_ll
         check += check_step
     end
-    ll = trajectoryloglikelihood(watcher, Float64(10))
+    ll = pathloglikelihood(watcher, Float64(10))
     @test abs(running_loglikelihood - ll) < 1e-6
 end
 
@@ -145,7 +145,7 @@ end
         running_loglikelihood += step_ll
         check += check_step
     end
-    ll = trajectoryloglikelihood(watcher, Float64(10))
+    ll = pathloglikelihood(watcher, Float64(10))
     @test abs(running_loglikelihood - ll) < 1e-6
 end
 
@@ -187,7 +187,7 @@ end
 
         # The sum of the stepwise and the trajectory-based should be equal
         # the whole way through.
-        ll = trajectoryloglikelihood(watcher, firetime)
+        ll = pathloglikelihood(watcher, firetime)
         @test abs(running_loglikelihood - ll) < 1e-4 * abs(ll)
 
         for i in 1:5

@@ -35,8 +35,8 @@ function copy_clocks!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) wher
 end
 
 
-function trajectoryloglikelihood(tw::PathLikelihoods, when)
-    @debug "PathLikelihood trajectoryloglikelihood $when"
+function pathloglikelihood(tw::PathLikelihoods, when)
+    @debug "PathLikelihood pathloglikelihood $when"
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
     if when > tw.curtime

@@ -197,7 +197,7 @@ function one_epoch(model, sampler)
         step_gene!(model, sampler, which, when)
         when, which = next(sampler)
     end
-    basal, weighted = trajectoryloglikelihood(sampler, time(sampler))
+    basal, weighted = pathloglikelihood(sampler, time(sampler))
     logimportance = basal - weighted
     return (model.protein, logimportance)
 end

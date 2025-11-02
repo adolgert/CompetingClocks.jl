@@ -2,7 +2,7 @@ using Base
 using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
-export trajectoryloglikelihood, fire!, absolute_enabling
+export pathloglikelihood, fire!, absolute_enabling
 
 # A Watcher has an enable!() and a disable!() function but lacks
 # the next() function that a Sampler has. You can attach a watcher

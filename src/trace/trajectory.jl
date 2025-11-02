@@ -20,7 +20,7 @@ function copy_clocks!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) 
 end
 
 
-function trajectoryloglikelihood(tw::TrajectoryWatcher, when)
+function pathloglikelihood(tw::TrajectoryWatcher, when)
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
     remaining = zero(Float64)
