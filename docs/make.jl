@@ -88,14 +88,23 @@ makedocs(;
             "distributions.md"
         ],
         "User Guide" => [
-            "distrib.md",
-            "background.md",
-            "GSMP" => "gsmp.md",
-            "samplers.md",
-            "hierarchical.md",
-            "memory.md",
-            "commonrandom.md",
-            "debugging.md"
+            "Background" => [
+                "distrib.md",
+                "background.md",
+                "GSMP" => "gsmp.md",
+            ],
+            "Simulation" => [
+                "samplers.md",
+                "hierarchical.md",
+                "memory.md",
+                "commonrandom.md",
+            ],
+            "Statistics" => [
+                "importance_skills.md",
+            ],
+            "Debugging" => [
+                "debugging.md"
+            ]
         ],
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",

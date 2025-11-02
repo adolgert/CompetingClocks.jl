@@ -56,6 +56,15 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 end
 
 
+"""
+    clone(sampling)
+
+Given a `SamplingContext`, make a copy as though you had called the constructor
+again. This is useful for creating a vector of `SamplingContext` for multi-threading
+or for splitting paths. This clone will clone every part of the object.
+Note that the random number generator is copied, and you will want that to be
+unique for each clone.
+"""
 function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}) where {K,T,Sampler,RNG,Like,CRN,Dbg}
     SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}(
         clone(sc.sampler),
@@ -71,9 +80,27 @@ function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}) where {K,T,Sam
 end
 
 
+"""
+    time(sampling)
+
+Get the current simulation time. Simulation times are incremented by each
+call to `fire!`.
+"""
 Base.time(ctx::SamplingContext) = ctx.time
 
 
+"""
+    sample_from_distribution!(sampling, index)
+
+If you created a `SamplerBuilder` with `likelihood_cnt > 1`, then you are going
+to call `enable!` for some or all clocks using a vector of distributions. In
+that case, the `SamplingContext` will default to using the first distribution
+to decide which event comes next. That way you get a sample from distribution 1
+and likelihoods from distributions `(1, 2, and so on)`. For doing mixed
+importance sampling, you will sample from several distributions and calculate
+a weighted average. This functions lets you choose which of the enabled
+distribution vector to sample.
+"""
 function sample_from_distribution!(ctx::SamplingContext, dist_index)
     if dist_index > 1 && !(ctx.likelihood isa PathLikelihoods)
         error("Can't sample from a later distribution unless likelihood_cnt>1 in SamplerBuilder")
@@ -118,6 +145,19 @@ function reset_crn!(ctx::SamplingContext)
 end
 
 
+"""
+    enable!(sampler, clock, distribution, relative_te)
+
+Tell the sampler to start a clock with a time shift to the left or right.
+
+ * `sampler::SSA{KeyType,TimeType}` - The sampler to tell.
+ * `clock::KeyType` - The ID of the clock. Can be a string, integer, tuple, etc.
+ * `distribution::Distributions.UnivariateDistribution`
+ * `relative_te::TimeType` - The zero-point of the distribution relative to the current simulation
+   time. A `-0.1` shifts the distribution to the left. A `0.1` says the clock
+   cannot fire until after `0.1` units of time have passed.
+
+"""
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist, relative_te::T) where {K,T}
     when = ctx.time
     te = when + relative_te
@@ -132,32 +172,83 @@ function enable!(ctx::SamplingContext{K,T}, clock::K, dist, relative_te::T) wher
     ctx.debug !== nothing && enable!(ctx.debug, clock, dist, te, when, ctx.rng)
 end
 
+
+"""
+    enable!(sampler, clock, distribution)
+
+Tell the sampler to start a clock.
+
+ * `sampler::SSA{KeyType,TimeType}` - The sampler to tell.
+ * `clock::KeyType` - The ID of the clock. Can be a string, integer, tuple, etc.
+ * `distribution::Distributions.UnivariateDistribution`
+
+
+"""
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist) where {K,T}
     enable!(ctx, clock, dist, zero(T))
 end
 
 
-# Vectorized version of enable! for multiple-distributions in likelihood
+"""
+    enable!(sampler, clock, distribution::Vector, relative_te)
+
+Vectorized version of enable! for multiple-distributions in likelihood.
+This will sample times from the first distribution in the vector unless
+`sample_from_distribution!` is set. All distributions are used to calculate
+a path likelihood for importance sampling.
+
+ * `sampler::SSA{KeyType,TimeType}` - The sampler to tell.
+ * `clock::KeyType` - The ID of the clock. Can be a string, integer, tuple, etc.
+ * `distribution::Vector{Distributions.UnivariateDistribution}`
+ * `relative_te::TimeType` - The zero-point of the distribution relative to the current simulation
+   time. A `-0.1` shifts the distribution to the left. A `0.1` says the clock
+   cannot fire until after `0.1` units of time have passed.
+
+"""
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector, relative_te::T) where {K,T}
     when = ctx.time
     te = when + relative_te
+    # This supports the ability of a caller to pass in a single distribution
+    # for cases where they will not modify the importance of this event.
+    sample_idx = length(dist) == 1 ? 1 : ctx.sample_distribution
     ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
     if ctx.crn !== nothing
         with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, clock, dist[ctx.sample_distribution], te, when, wrapped_rng)
+            enable!(ctx.sampler, clock, dist[sample_idx], te, when, wrapped_rng)
         end
     else
-        enable!(ctx.sampler, clock, dist[ctx.sample_distribution], te, when, ctx.rng)
+        enable!(ctx.sampler, clock, dist[sample_idx], te, when, ctx.rng)
     end
-    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[ctx.sample_distribution], te, when, ctx.rng)
+    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[sample_idx], te, when, ctx.rng)
 end
 
 
+
+"""
+    enable!(sampler, clock, distribution::Vector)
+
+Vectorized version of enable! for multiple-distributions in likelihood.
+This will sample times from the first distribution in the vector unless
+`sample_from_distribution!` is set. All distributions are used to calculate
+a path likelihood for importance sampling.
+
+ * `sampler::SSA{KeyType,TimeType}` - The sampler to tell.
+ * `clock::KeyType` - The ID of the clock. Can be a string, integer, tuple, etc.
+ * `distribution::Vector{Distributions.UnivariateDistribution}`
+
+This version enables the clock with no time-shifting.
+"""
 function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector) where {K,T}
     enable!(ctx, clock, dist, zero(T))
 end
 
 
+"""
+    disable!(sampler, clock)
+
+Tell the sampler to forget a clock. The clock will be disabled at the time
+set by the last call to `fire!`.
+"""
 function disable!(ctx::SamplingContext{K,T}, clock::K) where {K,T}
     when = ctx.time
     ctx.likelihood !== nothing && disable!(ctx.likelihood, clock, when)
@@ -186,6 +277,12 @@ function fire!(ctx::SamplingContext{K,T}, clock::K, when::T) where {K,T}
 end
 
 
+"""
+    reset!(sampling)
+
+Clears all clock values in a `SamplingContext` at the top of a loop over
+simulations.
+"""
 function reset!(ctx::SamplingContext{K,T}) where {K,T}
     ctx.likelihood !== nothing && reset!(ctx.likelihood)
     reset!(ctx.sampler)
@@ -194,9 +291,15 @@ function reset!(ctx::SamplingContext{K,T}) where {K,T}
 end
 
 
+"""
+    copy_clocks!(dst::SamplingContext, src::SamplingContext)
+
+Used for splitting a simulation near a rare event. You keep a vector of samplers
+and once your current sampler reaches a simulation state, copy its state into
+the vector of samplers and pick up where it left off.
+"""
 function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
     copy_clocks!(dst.sampler, src.sampler)
-    copy!(dst.rng, src.rng) # Will need to initialize this separately.
     src.likelihood !== nothing && copy_clocks!(dst.likelihood, src.likelihood)
     src.debug !== nothing && copy_clocks!(dst.debug, src.debug)
     dst.split_weight = src.split_weight
@@ -222,27 +325,65 @@ function split!(dst::AbstractVector{S}, src::SamplingContext{K,T}) where {K,T,S<
 end
 
 
+"""
+    enabled(sampling)
+
+Returns a set of enabled clock keys. This will aggregate enabled clock keys
+across hierarchical samplers.
+"""
 function enabled(ctx::SamplingContext)
     ctx.likelihood !== nothing && return enabled(ctx.likelihood)
     return enabled(ctx.sampler)
 end
 
 
+"""
+    length(sampling)
+
+The total number of enabled clocks.
+"""
 function Base.length(ctx::SamplingContext)
     ctx.likelihood !== nothing && return length(ctx.likelihood)
     return length(ctx.sampler)
 end
 
 
+"""
+    isenabled(sampling, clock)
+
+Boolean for whether this clock key is currently enabled, checked across
+hierarchical samplers.
+"""
 function isenabled(ctx::SamplingContext{K}, clock::K) where {K}
     ctx.likelihood !== nothing && return isenabled(ctx.likelihood, clock)
     return isenabled(ctx.sampler, clock)
 end
 
+"""
+    keytype(sampling)
+
+The type for the clock key. If you can use a concrete type, that helps
+performance.
+"""
 Base.keytype(ctx::SamplingContext{K}) where {K} = K
+
+"""
+    timetype(sampling)
+
+The type for the time, usually a `Float64`.
+"""
 timetype(ctx::SamplingContext{K,T}) where {K,T} = T
 
 
+"""
+    steploglikelihood(sampling, when, which)
+
+If the next event had clock key `which` and happened at time `when`,
+what would be the log-likelihood of that event conditioned on the last event?
+This calculates relative to the last call to `fire!()`. If you were to
+integrate this value over all enabled events, from the last firing time to
+`Inf` with the `QuadGK` package, it would sum to one.
+"""
 function steploglikelihood(ctx::SamplingContext, when, which)
     if ctx.likelihood !== nothing
         return steploglikelihood(ctx.likelihood, ctx.time, when, which)
@@ -257,6 +398,16 @@ function steploglikelihood(ctx::SamplingContext, when, which)
 end
 
 
+"""
+    pathloglikelihood(sampling, endtime)
+
+Calculates the log-likelihood across all events since the start of the simulation
+and up to the given end time. We include the end time because some statistics
+are normalized not to the last event but to a specific time, so this includes
+the probability that no event fired before the given end time.
+
+This value can be used to weight paths for importance sampling.
+"""
 function pathloglikelihood(ctx::SamplingContext, endtime)
     log_split = log(ctx.split_weight)
     if ctx.likelihood !== nothing

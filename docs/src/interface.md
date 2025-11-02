@@ -24,6 +24,11 @@ copy_clocks!
 ## Query a Sampler
 
 ```@docs
+isenabled
+pathloglikelihood
+time
+sample_from_distribution!
+clone
 getindex
 keys
 keytype
