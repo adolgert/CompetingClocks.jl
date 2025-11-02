@@ -64,6 +64,7 @@ makedocs(;
     modules=[CompetingClocks],
     authors="Andrew Dolgert <adolgert@uw.edu>",
     sitename="CompetingClocks.jl Documentation",
+    checkdocs=:none,  # Don't require all internal methods to be documented
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         edit_link="main",
@@ -81,20 +82,32 @@ makedocs(;
     # vas.md
     pages=[
         "Home" => "index.md",
-        "Guide" => [
-            "guide.md",
+        "Getting Started" => [
+            "install.md",
             "mainloop.md",
+            "guide.md",
             "distributions.md"
         ],
-        "Manual" => [
-            "distrib.md",
-            "background.md",
-            "GSMP" => "gsmp.md",
-            "samplers.md",
-            "hierarchical.md",
-            "memory.md",
-            "commonrandom.md",
-            "debugging.md"
+        "User Guide" => [
+            "Background" => [
+                "distrib.md",
+                "background.md",
+                "GSMP" => "gsmp.md",
+                "samplers.md",
+                "hierarchical.md",
+            ],
+            "Simulation" => [
+                "samplingcontext.md",
+                "memory.md",
+                "commonrandom.md",
+            ],
+            "Statistics" => [
+                "hamiltonianmontecarlo.md",
+                "importance_skills.md",
+            ],
+            "Debugging" => [
+                "debugging.md"
+            ]
         ],
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",
@@ -102,7 +115,8 @@ makedocs(;
             "Reliability" => "reliability.md",
             "Gene Expression" => "gene_expression.md"
         ],
-        "Reference" => [
+        "API Reference" => [
+            "contextinterface.md",
             "interface.md",
             "reference.md",
             "algorithms.md"
