@@ -64,6 +64,7 @@ makedocs(;
     modules=[CompetingClocks],
     authors="Andrew Dolgert <adolgert@uw.edu>",
     sitename="CompetingClocks.jl Documentation",
+    checkdocs=:none,  # Don't require all internal methods to be documented
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         edit_link="main",
@@ -92,10 +93,11 @@ makedocs(;
                 "distrib.md",
                 "background.md",
                 "GSMP" => "gsmp.md",
-            ],
-            "Simulation" => [
                 "samplers.md",
                 "hierarchical.md",
+            ],
+            "Simulation" => [
+                "samplingcontext.md",
                 "memory.md",
                 "commonrandom.md",
             ],
@@ -113,6 +115,7 @@ makedocs(;
             "Gene Expression" => "gene_expression.md"
         ],
         "API Reference" => [
+            "contextinterface.md",
             "interface.md",
             "reference.md",
             "algorithms.md"

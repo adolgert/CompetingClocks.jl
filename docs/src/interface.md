@@ -2,36 +2,31 @@
 CurrentModule = CompetingClocks
 ```
 
-# Interface
+# Sampler Interface
 
-These are methods which are defined for any samplers subtyping `<:SSA`, the abstract sampler type.
-
-```@docs
-SamplingContext
-```
+The main interface to the package is the [`SamplingContext`](@ref).
+Within that class are the samplers themselves. This describes their interface.
 
 ## Use a Sampler
 
+Low-level sampler interface. Most users should use [`SamplingContext`](@ref) instead,
+which is documented in [Context Interface](@ref).
+
 ```@docs
-enable!
-disable!
-next
-reset!
-fire!
-copy_clocks!
+CompetingClocks.enable!(::SSA{K,T}, ::K, ::UnivariateDistribution, ::T, ::T, ::AbstractRNG) where {K,T}
+CompetingClocks.reset!(::SSA{K,T}) where {K,T}
+CompetingClocks.copy_clocks!(::SSA{K,T}) where {K,T}
+CompetingClocks.disable!(::SSA{K,T}, ::K, ::T) where {K,T}
+CompetingClocks.next(::SSA{K,T}, ::T, ::AbstractRNG) where {K,T}
 ```
 
 ## Query a Sampler
 
 ```@docs
-isenabled
-pathloglikelihood
-time
-sample_from_distribution!
-clone
-getindex
-keys
-keytype
-timetype
-length
+Base.keytype(::SSA{K,T}) where {K,T}
+CompetingClocks.timetype(::SSA{K,T}) where {K,T}
+CompetingClocks.enabled(::SSA{K,T}) where {K,T}
+Base.length(::SSA)
+Base.getindex(::SSA{K,T}, ::K) where {K,T}
+Base.keys(::SSA)
 ```

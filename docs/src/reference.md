@@ -8,10 +8,10 @@ The choice of sampler determines specific algorithms that are used to sample, up
 
 ## Sampler Supertype
 
+See [Sampler Interface](@ref) for the complete `SSA` documentation.
+
 ```@docs
 SSA
-SamplerBuilder
-add_group!
 ```
 
 ## Sampler Types
