@@ -17,7 +17,7 @@ enable!
 disable!
 next
 reset!
-copy!
+copy_clocks!
 ```
 
 ## Query a Sampler

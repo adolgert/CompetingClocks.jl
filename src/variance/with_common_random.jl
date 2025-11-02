@@ -1,4 +1,4 @@
-export CommonRandom, misses, misscount
+export CommonRandom, misses, misscount, reset_crn!
 
 """
 Continuation/Functional Pattern
@@ -57,6 +57,9 @@ mutable struct CommonRandom{K,RNG}
 end
 
 
+clone(cr::CommonRandom{K,RNG}) where {K,RNG} = CommonRandom{K,RNG}()
+
+
 """
 Doesn't reset the stored clocks, does reset miss count.
 """
@@ -64,6 +67,13 @@ function reset!(recorder::CommonRandom)
     empty!(recorder.sample_index)
     empty!(recorder.miss)
 end
+
+
+function reset_crn!(recorder::CommonRandom)
+    reset!(recorder)
+    empty!(recorder.record)
+end
+
 
 """
 How many times the sampler looked for a random number and found no previous value.
@@ -77,7 +87,7 @@ misses(recorder::CommonRandom) = pairs(recorder.miss)
 Call this before replaying common random numbers.
 Call it before each replay.
 """
-function freeze!(recorder::CommonRandom)
+function freeze_crn!(recorder::CommonRandom)
     reset!(recorder)
     recorder.mode = :replay
     return nothing

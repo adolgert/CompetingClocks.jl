@@ -104,7 +104,7 @@ end
     enable!(dst, 29, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 2
     @test length(dst) == 1
-    copy!(dst, src)
+    copy_clocks!(dst, src)
     @test length(src) == 2
     @test length(dst) == 2
     # Changing src doesn't change dst.

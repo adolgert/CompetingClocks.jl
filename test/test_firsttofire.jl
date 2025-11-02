@@ -32,17 +32,17 @@ end
     using Random: Xoshiro
 
     propagator = FirstToFire{Int64,Float64}()
-    
+
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
         heap_handle = push!(
             propagator.firing_queue,
             CompetingClocks.OrderedSample{Int64,Float64}(clock, when_fire)
-            )
+        )
         propagator.transition_entry[clock] = heap_handle
     end
 
     rng = Xoshiro(39472)
-    for (key, fire_time) in [(4, 0.00013),(5, 0.2), (3, 3.7), (1, 7.9), (2, 12.3)]
+    for (key, fire_time) in [(4, 0.00013), (5, 0.2), (3, 3.7), (1, 7.9), (2, 12.3)]
         (t1, k1) = next(propagator, 0.0, rng)
         @test k1 == key
         @test abs(t1 - fire_time) < 0.00001
@@ -61,7 +61,7 @@ end
     rng = Xoshiro(123)
 
     propagator = FirstToFire{Int64,Float64}()
-    
+
     @test length(propagator) == 0
     @test length(keys(propagator)) == 0
     @test_throws KeyError propagator[1]
@@ -88,7 +88,7 @@ end
 
 
 @safetestset FirstToFire_copy = "FirstToFire copy" begin
-    using CompetingClocks: FirstToFire, enable!, next
+    using CompetingClocks: FirstToFire, enable!, next, copy_clocks!
     using Random: MersenneTwister
     using Distributions: Exponential
 
@@ -100,7 +100,7 @@ end
     enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 2
     @test length(dst) == 1
-    copy!(dst, src)
+    copy_clocks!(dst, src)
     @test length(dst) == 2
     enable!(src, 5, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3

@@ -1,4 +1,4 @@
-export SamplingContext, enable!, fire!, isenabled, freeze!
+export SamplingContext, enable!, fire!, isenabled, freeze_crn!
 export sample_from_distribution!
 
 """
@@ -56,6 +56,21 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 end
 
 
+function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+    SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}(
+        clone(sc.sampler),
+        copy(sc.rng),
+        isnothing(sc.likelihood) ? nothing : clone(sc.likelihood),
+        isnothing(sc.crn) ? nothing : clone(sc.crn),
+        isnothing(sc.debug) ? nothing : clone(sc.debug),
+        1.0,
+        sc.fixed_start,
+        sc.fixed_start,
+        sc.sample_distribution
+    )
+end
+
+
 Base.time(ctx::SamplingContext) = ctx.time
 
 
@@ -70,9 +85,32 @@ function sample_from_distribution!(ctx::SamplingContext, dist_index)
     ctx.sample_distribution = dist_index
 end
 
-function freeze!(ctx::SamplingContext)
+"""
+    freeze_crn!(ctx::SamplingContext)
+
+After running the simulation to collect random draws, call this function to
+stop collection of new draws and solely replay the draws that were collected,
+using only fresh draws for clocks that weren't seen before.
+"""
+function freeze_crn!(ctx::SamplingContext)
     if ctx.crn !== nothing
-        freeze!(ctx.crn)
+        freeze_crn!(ctx.crn)
+        ctx.time = ctx.fixed_start
+    else
+        error("Ask for common random numbers when creating the builder.")
+    end
+end
+
+
+"""
+    reset_crn!(ctx::SamplingContext)
+
+This resets a sampler including erasing its stored common random numbers.
+Using a simple `reset!(sampler)` won't erase the saved CRN draws.
+"""
+function reset_crn!(ctx::SamplingContext)
+    if ctx.crn !== nothing
+        reset_crn!(ctx.crn)
         ctx.time = ctx.fixed_start
     else
         error("Ask for common random numbers when creating the builder.")
@@ -149,13 +187,31 @@ function reset!(ctx::SamplingContext{K,T}) where {K,T}
 end
 
 
-function Base.copy!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
-    copy!(dst.sampler, src.sampler)
+function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
+    copy_clocks!(dst.sampler, src.sampler)
     copy!(dst.rng, src.rng) # Will need to initialize this separately.
-    src.likelihood !== nothing && copy!(dst.likelihood, src.likelihood)
-    src.debug !== nothing && copy!(dst.debug, src.debug)
+    src.likelihood !== nothing && copy_clocks!(dst.likelihood, src.likelihood)
+    src.debug !== nothing && copy_clocks!(dst.debug, src.debug)
     dst.split_weight = src.split_weight
     return dst
+end
+
+
+"""
+    split!(dst::AbstractVector{S<:SamplingContext}, src::SamplingContext{K,T})
+
+If the `src` sampler has gotten to a good spot in the simulation, split it into
+multiple copies in the destination vector. Update the `split_weight` member of
+each destination copy by `1/length(dst)`. The destination can be a view of
+a vector that was created with `clone()`.
+"""
+function split!(dst::AbstractVector{S}, src::SamplingContext{K,T}) where {K,T,S<:SamplingContext}
+    for cidx in eachindex(dst)
+        copy_clocks(dst[cidx], src)
+    end
+    for sidx in eachindex(dst)
+        dst[sidx].split_weight = src.split_weight / length(dst)
+    end
 end
 
 
@@ -194,15 +250,16 @@ function steploglikelihood(ctx::SamplingContext, when, which)
 end
 
 
-function trajectoryloglikelihood(ctx::SamplingContext, endtime)
+function pathloglikelihood(ctx::SamplingContext, endtime)
+    log_split = log(ctx.split_weight)
     if ctx.likelihood !== nothing
         @debug "Using likelihood object for trajectory"
-        return trajectoryloglikelihood(ctx.likelihood, endtime)
+        return pathloglikelihood(ctx.likelihood, endtime) .+ log_split
     else
         try
-            return trajectoryloglikelihood(ctx.sampler, endtime)
+            return pathloglikelihood(ctx.sampler, endtime) .+ log_split
         catch MethodError
-            error("The sampler doesn't support trajectoryloglikelihood " *
+            error("The sampler doesn't support pathloglikelihood " *
                   "unless you request it in the builder.")
         end
     end

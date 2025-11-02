@@ -38,6 +38,11 @@ function MultipleDirect{SamplerKey,K,Time}(
 end
 
 
+function clone(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
+    MultipleDirect{SamplerKey,K,Time}(md.chooser, md.calculate_likelihood)
+end
+
+
 function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
     for prefix_search in md.scan
         empty!(prefix_search)
@@ -50,7 +55,7 @@ function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey
 end
 
 
-function Base.copy!(
+function copy_clocks!(
     dst::MultipleDirect{SamplerKey,K,Time,Chooser},
     src::MultipleDirect{SamplerKey,K,Time,Chooser}
 ) where {SamplerKey,K,Time,Chooser}
@@ -94,7 +99,7 @@ function steploglikelihood(md::MultipleDirect, now, when, which)
     return log(λ) - total * Δt
 end
 
-function trajectoryloglikelihood(md::MultipleDirect, when)
+function pathloglikelihood(md::MultipleDirect, when)
     last_part = if when > md.now
         total = sum(sum!(subdirect), md.scan)
         Δt = when - md.now

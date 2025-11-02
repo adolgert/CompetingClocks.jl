@@ -1,7 +1,7 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit
+export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit, clone
 
 
 """
@@ -58,9 +58,19 @@ function DirectCallExplicit(
 end
 
 
-reset!(dc::DirectCall) = (empty!(dc.prefix_tree); nothing)
+function clone(dc::DirectCall{K,T,P}) where {K,T,P}
+    DirectCall{K,T,P}(P(), zero(T), zero(Float64), dc.calculate_likelihood)
+end
 
-Base.copy!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P} = copy!(dst.prefix_tree, src.prefix_tree)
+
+function reset!(dc::DirectCall{K,T,P}) where {K,T,P}
+    empty!(dc.prefix_tree)
+    dc.now = zero(T)
+    dc.log_likelihood = zero(Float64)
+    nothing
+end
+
+copy_clocks!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P} = copy!(dst.prefix_tree, src.prefix_tree)
 
 
 """
@@ -156,10 +166,10 @@ function steploglikelihood(dc::DirectCall, now, when, which)
     return log(λ) - total * Δt
 end
 
-function trajectoryloglikelihood(dc::DirectCall, endtime)
-    last_part = if when > dc.now
+function pathloglikelihood(dc::DirectCall, endtime)
+    last_part = if endtime > dc.now
         total = sum!(dc.prefix_tree)
-        Δt = when - md.now
+        Δt = endtime - md.now
         -total * Δt
     else
         zero(Float64)

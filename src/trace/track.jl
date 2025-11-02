@@ -2,7 +2,7 @@ using Base
 using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
-export trajectoryloglikelihood, fire!, absolute_enabling
+export pathloglikelihood, fire!, absolute_enabling
 
 # A Watcher has an enable!() and a disable!() function but lacks
 # the next() function that a Sampler has. You can attach a watcher
@@ -59,13 +59,17 @@ mutable struct TrackWatcher{K,T} <: EnabledWatcher{K,T}
     TrackWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}())
 end
 
+
+clone(tw::TrackWatcher{K,T}) where {K,T} = TrackWatcher{K,T}()
+
+
 function absolute_enabling(dst::EnabledWatcher{K,T}, clock::K) where {K,T}
     return dst.enabled[clock].when
 end
 
 reset!(ts::EnabledWatcher) = (empty!(ts.enabled); nothing)
 
-function Base.copy!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where {K,T}
+function copy_clocks!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where {K,T}
     copy!(dst.enabled, src.enabled)
     return dst
 end

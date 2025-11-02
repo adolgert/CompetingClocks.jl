@@ -161,7 +161,7 @@ end
 
 
 @safetestset first_reaction_copy = "FirstReaction copy" begin
-    using CompetingClocks: FirstReaction, enable!, next
+    using CompetingClocks: FirstReaction, enable!, next, copy_clocks!
     using Random: MersenneTwister
     using Distributions: Exponential
 
@@ -173,7 +173,7 @@ end
     enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 2
     @test length(dst) == 1
-    copy!(dst, src)
+    copy_clocks!(dst, src)
     @test length(dst) == 2
     enable!(src, 5, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3

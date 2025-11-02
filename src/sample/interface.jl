@@ -2,7 +2,7 @@ using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 import Base: getindex, keys, length, keytype, haskey
 
-export SSA, enable!, disable!, next,
+export SSA, enable!, disable!, next, copy_clocks!,
     getindex, keys, length, keytype, reset!
 
 """
@@ -56,14 +56,14 @@ end
 
 
 """
-    copy!(destination_sampler, source_sampler)
+    copy_clocks!(destination_sampler, source_sampler)
 
 This copies the state of the source sampler to the destination sampler, replacing
 the current state of the destination sampler. This is useful for splitting
 techniques where you make copies of a simulation and restart it with different
 random number generators.
 """
-function Base.copy!(sampler::SSA{K,T}) where {K,T}
+function copy_clocks!(sampler::SSA{K,T}) where {K,T}
     error("Not implemented for $(typeof(sampler))")
 end
 

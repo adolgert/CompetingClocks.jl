@@ -48,7 +48,7 @@ end
         pop!(watched, which)
     end
 
-    freeze!(sampler)
+    freeze_crn!(sampler)
     for startup in Set(1:5)
         enable!(sampler, startup, Exponential())
     end
@@ -88,7 +88,7 @@ end
         pop!(watched, which)
     end
 
-    freeze!(sampler)
+    freeze_crn!(sampler)
     for startup in Set(1:10)
         enable!(sampler, startup, Exponential())
     end
@@ -108,7 +108,7 @@ end
     @test total_diff < 1e-10
 
     # Try again. Check that the last 5 remain random.
-    freeze!(sampler)
+    freeze_crn!(sampler)
     for startup in Set(1:10)
         enable!(sampler, startup, Exponential())
     end

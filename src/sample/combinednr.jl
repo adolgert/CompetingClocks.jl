@@ -1,5 +1,5 @@
 
-using DataStructures: MutableBinaryMinHeap, extract_all!, update!
+using DataStructures: MutableBinaryHeap, update!
 
 export sampling_space
 export CombinedNextReaction, enabled
@@ -133,13 +133,13 @@ If you want to test a distribution, look at `tests/nrmetric.jl` to see how
 distributions are timed.
 """
 mutable struct CombinedNextReaction{K,T} <: SSA{K,T}
-    firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
+    firing_queue::MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}
     transition_entry::Dict{K,NRTransition{T}}
 end
 
 
 function CombinedNextReaction{K,T}() where {K,T<:ContinuousTime}
-    heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
+    heap = MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}()
     CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}())
 end
 
@@ -147,13 +147,13 @@ clone(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}()
 export clone
 
 function reset!(nr::CombinedNextReaction)
-    extract_all!(nr.firing_queue)
+    empty!(nr.firing_queue)
     @assert isempty(nr.firing_queue)
     empty!(nr.transition_entry)
     nothing
 end
 
-function Base.copy!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
+function copy_clocks!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
     return dst

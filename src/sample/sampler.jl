@@ -84,6 +84,15 @@ function MultiSampler{SamplerKey,Key,Time}(
 end
 
 
+function clone(sampler::MultiSampler{SamplerKey,Key,Time}) where {SamplerKey,Key,Time}
+    cloned = MultiSampler{SamplerKey,Key,Time}(sampler.chooser)
+    for (skey, subsampler) in sampler.propagator
+        cloned[skey] = clone(subsampler)
+    end
+    return cloned
+end
+
+
 function reset!(sampler::MultiSampler)
     for clear_sampler in values(sampler.propagator)
         reset!(clear_sampler)
@@ -92,7 +101,7 @@ function reset!(sampler::MultiSampler)
 end
 
 
-function Base.copy!(
+function copy_clocks!(
     dst::MultiSampler{SamplerKey,Key,Time,Chooser},
     src::MultiSampler{SamplerKey,Key,Time,Chooser}
 ) where {SamplerKey,Key,Time,Chooser}

@@ -29,6 +29,9 @@ mutable struct DebugWatcher{K,T}
 end
 
 
+clone(ts::DebugWatcher{K,T}) where {K,T} = DebugWatcher{K,T}(; log=ts.log)
+
+
 function reset!(ts::DebugWatcher)
     ts.log && @debug "reset!"
     empty!(ts.enabled)
@@ -36,7 +39,7 @@ function reset!(ts::DebugWatcher)
     nothing
 end
 
-function Base.copy!(dst::DebugWatcher{K,T}, src::DebugWatcher{K,T}) where {K,T}
+function copy_clocks!(dst::DebugWatcher{K,T}, src::DebugWatcher{K,T}) where {K,T}
     src.log && @debug "copy!"
     copy!(dst.enabled, src.enabled)
     copy!(dst.disabled, src.disabled)

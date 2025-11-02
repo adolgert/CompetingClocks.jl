@@ -25,12 +25,15 @@ function FirstToFire{K,T}() where {K,T}
 end
 
 
+clone(::FirstToFire{K,T}) where {K,T} = FirstToFire{K,T}()
+
+
 function reset!(propagator::FirstToFire{K,T}) where {K,T}
-    extract_all!(propagator.firing_queue)
+    empty!(propagator.firing_queue)
     empty!(propagator.transition_entry)
 end
 
-function Base.copy!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
+function copy_clocks!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
     return dst

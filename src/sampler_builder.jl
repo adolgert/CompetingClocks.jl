@@ -5,9 +5,9 @@ has_steploglikelihood(::Type{<:CombinedNextReaction}) = true
 has_steploglikelihood(::Type{<:DirectCall}) = true
 has_steploglikelihood(::Type{<:MultipleDirect}) = true
 has_steploglikelihood(::Type{<:EnabledWatcher}) = true
-has_trajectoryloglikelihood(::Type) = false
-has_trajectoryloglikelihood(::Type{DirectCall}) = true
-has_trajectoryloglikelihood(::Type{MultipleDirect}) = true
+has_pathloglikelihood(::Type) = false
+has_pathloglikelihood(::Type{DirectCall}) = true
+has_pathloglikelihood(::Type{MultipleDirect}) = true
 
 
 mutable struct SamplerBuilderGroup
@@ -51,7 +51,7 @@ an initial sampler.
 
  * `K` and `T` are the clock type and time type.
  * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
- * `trajectory_likelihood` - whether you will call `trajectoryloglikelihood`
+ * `trajectory_likelihood` - whether you will call `pathloglikelihood`
     at the end of a simulation run.
  * `debug` - Print log messages at the debug level.
  * `recording` - Store every enable and disable for later examination.

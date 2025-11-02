@@ -16,13 +16,17 @@ mutable struct PathLikelihoods{K,T}
 end
 export PathLikelihoods
 
+
+clone(pl::PathLikelihoods{K,T}) where {K,T} = PathLikelihoods{K,T}(length(pl.loglikelihood))
+
+
 _likelihood_cnt(pl::PathLikelihoods) = length(pl.loglikelihood)
 
 Base.length(pl::PathLikelihoods) = length(pl.enabled)
 enabled(pl::PathLikelihoods) = keys(pl.enabled)
 isenabled(pl::PathLikelihoods, clock) = haskey(pl.enabled, clock)
 
-function Base.copy!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) where {K,T}
+function copy_clocks!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) where {K,T}
     @debug "PathLikelihood copy!"
     copy!(dst.enabled, src.enabled)
     copy!(dst.loglikelihood, src.loglikelihood)
@@ -31,8 +35,8 @@ function Base.copy!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) where 
 end
 
 
-function trajectoryloglikelihood(tw::PathLikelihoods, when)
-    @debug "PathLikelihood trajectoryloglikelihood $when"
+function pathloglikelihood(tw::PathLikelihoods, when)
+    @debug "PathLikelihood pathloglikelihood $when"
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
     if when > tw.curtime

@@ -38,7 +38,7 @@ for trial_idx in 1:100
     run_simulation(model, sampler)
     reset!(sampler)
 end
-freeze!(sampler)
+freeze_crn!(sampler)
 for param_idx in 1:10
     each_model = modify_model!(model, param_idx)
     run_simulation(each_model, sampler)
