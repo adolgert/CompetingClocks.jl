@@ -171,6 +171,13 @@ function next(ctx::SamplingContext{K,T}) where {K,T}
 end
 
 
+"""
+    fire!(ctx::SamplingContext, clock, when)
+
+Decide the next `clock` key to fire and the time at which it fires. This sets
+the internal time of the simulation to the new time `when`. It also disables
+the given `clock` key.
+"""
 function fire!(ctx::SamplingContext{K,T}, clock::K, when::T) where {K,T}
     ctx.likelihood !== nothing && fire!(ctx.likelihood, clock, when)
     fire!(ctx.sampler, clock, when)

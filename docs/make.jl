@@ -81,12 +81,13 @@ makedocs(;
     # vas.md
     pages=[
         "Home" => "index.md",
-        "Guide" => [
-            "guide.md",
+        "Getting Started" => [
+            "install.md",
             "mainloop.md",
+            "guide.md",
             "distributions.md"
         ],
-        "Manual" => [
+        "User Guide" => [
             "distrib.md",
             "background.md",
             "GSMP" => "gsmp.md",
@@ -102,7 +103,7 @@ makedocs(;
             "Reliability" => "reliability.md",
             "Gene Expression" => "gene_expression.md"
         ],
-        "Reference" => [
+        "API Reference" => [
             "interface.md",
             "reference.md",
             "algorithms.md"

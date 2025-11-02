@@ -17,6 +17,7 @@ enable!
 disable!
 next
 reset!
+fire!
 copy_clocks!
 ```
 
