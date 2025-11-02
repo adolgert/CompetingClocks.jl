@@ -254,10 +254,10 @@ function pathloglikelihood(ctx::SamplingContext, endtime)
     log_split = log(ctx.split_weight)
     if ctx.likelihood !== nothing
         @debug "Using likelihood object for trajectory"
-        return log_split + pathloglikelihood(ctx.likelihood, endtime)
+        return pathloglikelihood(ctx.likelihood, endtime) .+ log_split
     else
         try
-            return log_split + pathloglikelihood(ctx.sampler, endtime)
+            return pathloglikelihood(ctx.sampler, endtime) .+ log_split
         catch MethodError
             error("The sampler doesn't support pathloglikelihood " *
                   "unless you request it in the builder.")
