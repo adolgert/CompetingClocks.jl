@@ -50,7 +50,7 @@ function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey
 end
 
 
-function Base.copy!(
+function copy_clocks!(
     dst::MultipleDirect{SamplerKey,K,Time,Chooser},
     src::MultipleDirect{SamplerKey,K,Time,Chooser}
 ) where {SamplerKey,K,Time,Chooser}

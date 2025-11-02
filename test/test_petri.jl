@@ -30,7 +30,7 @@
 
     dst = Petri{Int,Float64}()
     enable!(dst, 11, Exponential(), 5.0, 5.0, rng)
-    copy!(dst, tw)
+    copy_clocks!(dst, tw)
     @test length(tw) == 2 && 11 ∉ keys(tw)
 end
 

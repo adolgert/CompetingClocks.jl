@@ -92,7 +92,7 @@ function reset!(sampler::MultiSampler)
 end
 
 
-function Base.copy!(
+function copy_clocks!(
     dst::MultiSampler{SamplerKey,Key,Time,Chooser},
     src::MultiSampler{SamplerKey,Key,Time,Chooser}
 ) where {SamplerKey,Key,Time,Chooser}

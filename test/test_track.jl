@@ -19,7 +19,7 @@ using SafeTestsets
 
     dst = TrackWatcher{Int,Float64}()
     enable!(dst, 11, Exponential(), 5.0, 5.0, rng)
-    copy!(dst, tw)
+    copy_clocks!(dst, tw)
     @test length(tw.enabled) == 2 && 11 ∉ keys(tw.enabled)
 end
 
@@ -218,6 +218,6 @@ end
 
     dst = DebugWatcher{Int,Float64}()
     enable!(dst, 11, Exponential(), 5.0, 5.0, rng)
-    copy!(dst, dw)
+    copy_clocks!(dst, dw)
     @test length(dw.enabled) == 3 && length(dw.disabled) == 1
 end

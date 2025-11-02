@@ -172,11 +172,11 @@ function reset!(ctx::SamplingContext{K,T}) where {K,T}
 end
 
 
-function Base.copy!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
-    copy!(dst.sampler, src.sampler)
+function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
+    copy_clocks!(dst.sampler, src.sampler)
     copy!(dst.rng, src.rng) # Will need to initialize this separately.
-    src.likelihood !== nothing && copy!(dst.likelihood, src.likelihood)
-    src.debug !== nothing && copy!(dst.debug, src.debug)
+    src.likelihood !== nothing && copy_clocks!(dst.likelihood, src.likelihood)
+    src.debug !== nothing && copy_clocks!(dst.debug, src.debug)
     dst.split_weight = src.split_weight
     return dst
 end

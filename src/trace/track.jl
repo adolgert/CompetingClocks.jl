@@ -65,7 +65,7 @@ end
 
 reset!(ts::EnabledWatcher) = (empty!(ts.enabled); nothing)
 
-function Base.copy!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where {K,T}
+function copy_clocks!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where {K,T}
     copy!(dst.enabled, src.enabled)
     return dst
 end
