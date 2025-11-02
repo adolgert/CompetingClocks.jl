@@ -72,6 +72,13 @@ makedocs(;
         canonical="https://adolgert.github.io/CompetingClocks.jl",
         assets=String[],
     ),
+    # develop.md
+    # importance_skills.md
+    # objects.md
+    # rules.md
+    # simple_board.md
+    # splitting.jl
+    # vas.md
     pages=[
         "Home" => "index.md",
         "Guide" => [
