@@ -102,6 +102,7 @@ makedocs(;
                 "commonrandom.md",
             ],
             "Statistics" => [
+                "hamiltonianmontecarlo.md",
                 "importance_skills.md",
             ],
             "Debugging" => [
