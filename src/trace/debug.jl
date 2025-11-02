@@ -29,6 +29,9 @@ mutable struct DebugWatcher{K,T}
 end
 
 
+clone(ts::DebugWatcher{K,T}) where {K,T} = DebugWatcher{K,T}(; log=ts.log)
+
+
 function reset!(ts::DebugWatcher)
     ts.log && @debug "reset!"
     empty!(ts.enabled)

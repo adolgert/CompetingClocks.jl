@@ -25,6 +25,9 @@ function FirstToFire{K,T}() where {K,T}
 end
 
 
+clone(::FirstToFire{K,T}) where {K,T} = FirstToFire{K,T}()
+
+
 function reset!(propagator::FirstToFire{K,T}) where {K,T}
     empty!(propagator.firing_queue)
     empty!(propagator.transition_entry)

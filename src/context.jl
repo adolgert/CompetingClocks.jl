@@ -56,6 +56,21 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 end
 
 
+function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+    SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}(
+        clone(sc.sampler),
+        copy(sc.rng),
+        isnothing(sc.likelihood) ? nothing : clone(sc.likelihood),
+        isnothing(sc.crn) ? nothing : clone(sc.crn),
+        isnothing(sc.debug) ? nothing : clone(sc.debug),
+        1.0,
+        sc.fixed_start,
+        sc.fixed_start,
+        sc.sample_distribution
+    )
+end
+
+
 Base.time(ctx::SamplingContext) = ctx.time
 
 
@@ -182,6 +197,24 @@ function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) wher
 end
 
 
+"""
+    split!(dst::AbstractVector{S<:SamplingContext}, src::SamplingContext{K,T})
+
+If the `src` sampler has gotten to a good spot in the simulation, split it into
+multiple copies in the destination vector. Update the `split_weight` member of
+each destination copy by `1/length(dst)`. The destination can be a view of
+a vector that was created with `clone()`.
+"""
+function split!(dst::AbstractVector{S<:SamplingContext}, src::SamplingContext{K,T}) where {K,T,S}
+    for cidx in eachindex(dst)
+        copy_clocks(dst[cidx], src)
+    end
+    for sidx in eachindex(dst)
+        dst[sidx].split_weight = src.split_weight / length(dst)
+    end
+end
+
+
 function enabled(ctx::SamplingContext)
     ctx.likelihood !== nothing && return enabled(ctx.likelihood)
     return enabled(ctx.sampler)
@@ -218,12 +251,13 @@ end
 
 
 function trajectoryloglikelihood(ctx::SamplingContext, endtime)
+    log_split = log(ctx.split_weight)
     if ctx.likelihood !== nothing
         @debug "Using likelihood object for trajectory"
-        return trajectoryloglikelihood(ctx.likelihood, endtime)
+        return log_split + trajectoryloglikelihood(ctx.likelihood, endtime)
     else
         try
-            return trajectoryloglikelihood(ctx.sampler, endtime)
+            return log_split + trajectoryloglikelihood(ctx.sampler, endtime)
         catch MethodError
             error("The sampler doesn't support trajectoryloglikelihood " *
                   "unless you request it in the builder.")

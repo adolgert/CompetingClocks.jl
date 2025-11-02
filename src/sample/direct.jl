@@ -1,7 +1,7 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit
+export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit, clone
 
 
 """
@@ -55,6 +55,11 @@ function DirectCallExplicit(
     prefix_tree = Prefix{T}()
     keyed_prefix_tree = Keep{K,typeof(prefix_tree)}(prefix_tree)
     DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
+end
+
+
+function clone(dc::DirectCall{K,T,P}) where {K,T,P}
+    DirectCall{K,T,P}(P(), zero(T), zero(Float64), dc.calculate_likelihood)
 end
 
 

@@ -38,6 +38,11 @@ function MultipleDirect{SamplerKey,K,Time}(
 end
 
 
+function clone(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
+    MultipleDirect{SamplerKey,K,Time}(md.chooser, md.calculate_likelihood)
+end
+
+
 function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
     for prefix_search in md.scan
         empty!(prefix_search)

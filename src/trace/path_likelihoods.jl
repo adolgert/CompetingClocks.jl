@@ -16,6 +16,10 @@ mutable struct PathLikelihoods{K,T}
 end
 export PathLikelihoods
 
+
+clone(pl::PathLikelihoods{K,T}) where {K,T} = PathLikelihoods{K,T}(length(pl.loglikelihood))
+
+
 _likelihood_cnt(pl::PathLikelihoods) = length(pl.loglikelihood)
 
 Base.length(pl::PathLikelihoods) = length(pl.enabled)

@@ -14,6 +14,10 @@ mutable struct Petri{K,T} <: EnabledWatcher{K,T}
     Petri{K,T}(dt=1.0) where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), dt)
 end
 
+
+clone(propagator::Petri{K,T}) where {K,T} = Petri{K,T}(propagator.time_duration)
+
+
 function copy_clocks!(dst::Petri, src::Petri)
     copy!(dst.enabled, src.enabled)
     dst.time_duration = src.time_duration

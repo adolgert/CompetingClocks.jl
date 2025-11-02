@@ -59,6 +59,10 @@ mutable struct TrackWatcher{K,T} <: EnabledWatcher{K,T}
     TrackWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}())
 end
 
+
+clone(tw::TrackWatcher{K,T}) where {K,T} = TrackWatcher{K,T}()
+
+
 function absolute_enabling(dst::EnabledWatcher{K,T}, clock::K) where {K,T}
     return dst.enabled[clock].when
 end

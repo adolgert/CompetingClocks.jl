@@ -9,6 +9,9 @@ end
 export TrajectoryWatcher
 
 
+clone(tw::TrajectoryWatcher{K,T}) where {K,T} = TrajectoryWatcher{K,T}()
+
+
 function copy_clocks!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
     copy!(dst.enabled, src.enabled)
     dst.loglikelihood = src.loglikelihood

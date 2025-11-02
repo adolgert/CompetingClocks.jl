@@ -57,6 +57,9 @@ mutable struct CommonRandom{K,RNG}
 end
 
 
+clone(cr::CommonRandom{K,RNG}) where {K,RNG} = CommonRandom{K,RNG}()
+
+
 """
 Doesn't reset the stored clocks, does reset miss count.
 """
