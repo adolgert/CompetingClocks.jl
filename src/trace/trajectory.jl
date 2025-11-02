@@ -3,8 +3,8 @@ using Base
 mutable struct TrajectoryWatcher{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
     loglikelihood::Float64
-    curtime::Float64
-    TrajectoryWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), zero(Float64), zero(Float64))
+    curtime::T
+    TrajectoryWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), zero(Float64), zero(T))
 end
 export TrajectoryWatcher
 
@@ -34,8 +34,12 @@ function trajectoryloglikelihood(tw::TrajectoryWatcher, when)
 end
 
 
-reset!(tw::TrajectoryWatcher) = (empty!(tw.enabled); tw.loglikelihood = zero(Float64); nothing)
-
+function reset!(tw::TrajectoryWatcher{K,T}) where {K,T}
+    empty!(tw.enabled)
+    tw.loglikelihood = zero(Float64)
+    tw.curtime = zero(T)
+    nothing
+end
 
 function disable!(ts::TrajectoryWatcher{K,T}, clock::K, when::T) where {K,T}
     entry = get(ts.enabled, clock, nothing)

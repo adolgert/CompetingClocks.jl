@@ -21,7 +21,7 @@ CompetingClocks = {path = ".."}
 [compat]
 BenchmarkTools = "^1.6"
 Combinatorics = "^1.0"
-DataStructures = "^0.18"
+DataStructures = "^0.19"
 Distributions = "^0.25"
 Graphs = "^1.10"
 HypothesisTests = "^0"

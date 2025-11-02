@@ -58,7 +58,12 @@ function DirectCallExplicit(
 end
 
 
-reset!(dc::DirectCall) = (empty!(dc.prefix_tree); nothing)
+function reset!(dc::DirectCall{K,T,P}) where {K,T,P}
+    empty!(dc.prefix_tree)
+    dc.now = zero(T)
+    dc.log_likelihood = zero(Float64)
+    nothing
+end
 
 copy_clocks!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P} = copy!(dst.prefix_tree, src.prefix_tree)
 
