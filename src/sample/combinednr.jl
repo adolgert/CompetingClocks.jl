@@ -160,6 +160,28 @@ function copy_clocks!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{
 end
 
 
+function _jitter_space(nr::CombinedNextReaction{K,T}, clock, record, ::Type{S}, when::T,
+        rng::AbstractRNG) where {K,T,S<:SamplingSpaceType}
+    if record.heap_handle > 0
+        tau, shift_survival = sample_shifted(rng, record.distribution, S, record.te, when)
+        sample = OrderedSample{K,T}(clock, tau)
+        update!(nr.firing_queue, record.heap_handle, sample)
+        nr.transition_entry[clock] = NRTransition{T}(
+            record.heap_handle, shift_survival, record.distribution, record.te, when
+        )
+    else
+        record.survival = get_survival_zero(S)
+    end
+end
+
+
+function jitter!(nr::CombinedNextReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
+    for (clock, record) in nr.transition_entry
+        _jitter_space(nr, clock, record, sampling_space(record.distribution), when, rng)
+    end
+end
+
+
 @doc raw"""
 For the first reaction sampler, you can call next() multiple times and get
 different, valid, answers. That isn't the case here. When you call next()
