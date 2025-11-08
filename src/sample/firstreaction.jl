@@ -25,7 +25,6 @@ end
 
 clone(fr::FirstReaction{K,T}) where {K,T} = FirstReaction{K,T}()
 
-
 function _sample_time(entry::EnablingEntry, when::T, rng) where {T}
     dist = entry.te < when ?
            truncated(entry.distribution, when - entry.te, typemax(T)) :
