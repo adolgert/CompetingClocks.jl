@@ -57,18 +57,36 @@ end
 
 
 """
-    clone(sampling)
+    clone(sampling, rng)
 
 Given a `SamplingContext`, make a copy as though you had called the constructor
 again. This is useful for creating a vector of `SamplingContext` for multi-threading
 or for splitting paths. This clone will clone every part of the object.
 Note that the random number generator is copied, and you will want that to be
 unique for each clone.
+    
+You need to give each sampler its own random number generator, `rng`. If you
+were making parallel RNGs with the `Random123` package, it might look like:
+
+```julia
+master_seed = (0xd897a239, 0x77ff9238)
+rng = Philox4x((0, 0, 0, 0), master_seed)
+Key = Int64
+sampler = SamplingContext(SamplerBuilder(Key,Float64; trajectory_likelihood=true), rng)
+observation_weight = zeros(Float64, particle_cnt)
+total_weight = zeros(Float64, particle_cnt)
+samplers = Vector{typeof(sampler)}(undef, particle_cnt)
+for init_idx in 1:particle_cnt
+    rng = Philox4x((0, 0, 0, init_idx), master_seed)
+    samplers[init_idx] = clone(sampler, rng)
+    init!(state[init_idx], samplers[init_idx]) # For some initialization of state.
+end
+````
 """
-function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}, rng::RNG) where {K,T,Sampler,RNG,Like,CRN,Dbg}
     SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}(
         clone(sc.sampler),
-        copy(sc.rng),
+        rng,
         isnothing(sc.likelihood) ? nothing : clone(sc.likelihood),
         isnothing(sc.crn) ? nothing : clone(sc.crn),
         isnothing(sc.debug) ? nothing : clone(sc.debug),
@@ -300,6 +318,7 @@ the vector of samplers and pick up where it left off.
 """
 function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
     copy_clocks!(dst.sampler, src.sampler)
+    jitter!(dst.sampler, ctx.when, ctx.rng)
     src.likelihood !== nothing && copy_clocks!(dst.likelihood, src.likelihood)
     src.debug !== nothing && copy_clocks!(dst.debug, src.debug)
     dst.split_weight = src.split_weight
