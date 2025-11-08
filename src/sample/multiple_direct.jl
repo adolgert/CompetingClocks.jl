@@ -42,6 +42,7 @@ function clone(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,
     MultipleDirect{SamplerKey,K,Time}(md.chooser, md.calculate_likelihood)
 end
 
+jitter!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time, rng::AbstractRNG)  where {SamplerKey,K,Time,Chooser} = nothing
 
 function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
     for prefix_search in md.scan

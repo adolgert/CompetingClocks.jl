@@ -47,8 +47,18 @@ function copy_clocks!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
     return dst
 end
 
-function jitter!(propagator::FirstToFire{K,T}) where {K,T}
-    
+
+function jitter!(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,T}
+    for (clock, entry) in propagator.transition_entry
+        te = entry.te
+        distribution = entry.distribution
+        if te < when
+            when_fire = te + rand(rng, truncated(distribution, when - te, typemax(T)))
+        else
+            when_fire = te + rand(rng, distribution)
+        end
+        update!(propagator.firing_queue, entry.handle, OrderedSample{K,T}(clock, when_fire))
+    end
 end
 
 

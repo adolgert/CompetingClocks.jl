@@ -63,6 +63,10 @@ function clone(dc::DirectCall{K,T,P}) where {K,T,P}
 end
 
 
+# Nothing to do to ensure a fresh draw.
+jitter!(dc::DirectCall{K,T,P}) where {K,T,P} = nothing
+
+
 function reset!(dc::DirectCall{K,T,P}) where {K,T,P}
     empty!(dc.prefix_tree)
     dc.now = zero(T)

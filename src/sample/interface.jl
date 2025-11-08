@@ -69,6 +69,31 @@ end
 
 
 """
+    clone(sampler)
+
+Given an existing sampler, make a copy that has the same type and same
+constructor options but has no data in it. Use this to initialize an array
+of samplers.
+"""
+function clone(sampler::SSA{K,T}) where {K,T}
+    error("Clone not implemented for $(typeof(sampler))")
+end
+
+
+"""
+    jitter!(sampler, when, rng)
+
+Takes a sampler that is at a statistically-valid stopping time (this is a technical
+term) and resamples all clocks currently-enabled so that this copy of the sampler
+will yield different results from another copy of the sampler despite its internal
+cache of clock data.
+"""
+function jitter!(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
+    error("jitter! not implemented for $(typeof(sampler))")
+end
+
+
+"""
     disable!(sampler, clock, when)
 
 Tell the sampler to forget a clock. We include the current simulation time
