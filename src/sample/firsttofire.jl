@@ -2,6 +2,14 @@ using DataStructures: MutableBinaryMinHeap, extract_all!, update!
 
 export FirstToFire
 
+# Helper struct for FirstToFire to be able to resample.
+struct FTFEntry{T,D}
+    handle::Int
+    distribution::D
+    te::T
+end
+
+
 """
     FirstToFire{KeyType,TimeType}()
 
@@ -14,13 +22,13 @@ is removed from the list. There is no memory of previous firing times.
 mutable struct FirstToFire{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     # This maps from transition to entry in the firing queue.
-    transition_entry::Dict{K,Int}
+    transition_entry::Dict{K,FTFEntry{T,UnivariateDistribution}}
 end
 
 
 function FirstToFire{K,T}() where {K,T}
     heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
-    state = Dict{K,Int}()
+    state = Dict{K,FTFEntry{T,UnivariateDistribution}}()
     FirstToFire{K,T}(heap, state)
 end
 
@@ -37,6 +45,20 @@ function copy_clocks!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
     return dst
+end
+
+
+function jitter!(propagator::FirstToFire{K,T}, when::T, rng::AbstractRNG) where {K,T}
+    for (clock, entry) in propagator.transition_entry
+        te = entry.te
+        distribution = entry.distribution
+        if te < when
+            when_fire = te + rand(rng, truncated(distribution, when - te, typemax(T)))
+        else
+            when_fire = te + rand(rng, distribution)
+        end
+        update!(propagator.firing_queue, entry.handle, OrderedSample{K,T}(clock, when_fire))
+    end
 end
 
 
@@ -61,12 +83,16 @@ function enable!(
         when_fire = te + rand(rng, distribution)
     end
     if haskey(propagator.transition_entry, clock)
-        heap_handle = propagator.transition_entry[clock]
+        heap_handle = propagator.transition_entry[clock].handle
         update!(propagator.firing_queue, heap_handle, OrderedSample{K,T}(clock, when_fire))
     else
         heap_handle = push!(propagator.firing_queue, OrderedSample{K,T}(clock, when_fire))
-        propagator.transition_entry[clock] = heap_handle
     end
+    propagator.transition_entry[clock] = FTFEntry{T,UnivariateDistribution}(
+        heap_handle,
+        distribution,
+        te
+    )
 end
 
 
@@ -74,9 +100,9 @@ fire!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T} = disable!(pr
 
 
 function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}
-    heap_handle = get(propagator.transition_entry, clock, nothing)
-    heap_handle === nothing && throw(KeyError(clock))
-    delete!(propagator.firing_queue, heap_handle)
+    entry = get(propagator.transition_entry, clock, nothing)
+    entry === nothing && throw(KeyError(clock))
+    delete!(propagator.firing_queue, entry.handle)
     delete!(propagator.transition_entry, clock)
 end
 
@@ -87,7 +113,7 @@ For the `FirstToFire` sampler, returns the stored firing time associated to the 
 """
 function Base.getindex(propagator::FirstToFire{K,T}, clock::K) where {K,T}
     if haskey(propagator.transition_entry, clock)
-        heap_handle = propagator.transition_entry[clock]
+        heap_handle = propagator.transition_entry[clock].handle
         return getfield(propagator.firing_queue[heap_handle], :time)
     else
         throw(KeyError(clock))

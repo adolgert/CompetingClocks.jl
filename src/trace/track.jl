@@ -74,6 +74,8 @@ function copy_clocks!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where 
     return dst
 end
 
+jitter!(ts::EnabledWatcher{K,T}, when::T, rng::AbstractRNG) where {K,T} = nothing
+
 Base.keys(ts::EnabledWatcher) = keys(ts.enabled)
 Base.getindex(ts::EnabledWatcher{K}, key::K) where {K} = getindex(ts.enabled, key)
 Base.haskey(ts::EnabledWatcher{K}, key::K) where {K} = haskey(ts.enabled, key)

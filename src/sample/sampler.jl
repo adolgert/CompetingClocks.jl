@@ -112,6 +112,12 @@ function copy_clocks!(
     return dst
 end
 
+function jitter!(sampler::MultiSampler{SamplerKey,Key,Time}, when::Time, rng::AbstractRNG
+) where {SamplerKey,Key,Time}
+    for propagator in values(sampler.propagator)
+        jitter!(propagator, when, rng)
+    end
+end
 
 function Base.setindex!(
     sampler::MultiSampler{SamplerKey,Key,Time}, algorithm::SSA{Key,Time}, sampler_key::SamplerKey
