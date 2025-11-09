@@ -27,19 +27,19 @@ The sampler, itself, takes an `AbstractRNG` as its second argument.
 Specify features for the sampler with keyword arguments to the `SamplerBuilder`.
 These features determine the type of the sampler.
 
- * `step_likelihood=false` — Setting this to `true` let's you calculate the
+ * `step_likelihood=false`---Setting this to `true` let's you calculate the
    the likelihood of the next event and time before firing it.
- * `path_likelihood=false` — Set to true in order to calculate likelihood of a
+ * `path_likelihood=false`---Set to true in order to calculate likelihood of a
    whole trajectory at any point in the simulation. This is more efficient than
    adding up steps in the likelihood along the way.
- * `likelihood_cnt=1` — Applies when likelihoods are enabled and supports
+ * `likelihood_cnt=1`---Applies when likelihoods are enabled and supports
    importance sampling. Specifies how
    many event distributions will be used to calculate a vector of likelihoods.
- * `common_random=false` — For variance reduction, turn on recording of
+ * `common_random=false`---For variance reduction, turn on recording of
    random number usage during sampling.
- * `start_time=0` — Sometimes you want a simulation to start at a different time.
- * `debug=false` — Whether to print debug messages using the `Logging` package.
- * `recording=false` — This will create a vector of every enable and disable
+ * `start_time=0`---Sometimes you want a simulation to start at a different time.
+ * `debug=false`---Whether to print debug messages using the `Logging` package.
+ * `recording=false`---This will create a vector of every enable and disable
    event for test and debug.
 
 ## Hierarchical Samplers
