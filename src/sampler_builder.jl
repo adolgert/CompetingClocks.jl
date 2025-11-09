@@ -1,4 +1,4 @@
-export SamplerBuilder, available_samplers, add_group!, build_sampler
+export SamplerBuilder, add_group!, build_sampler
 
 has_steploglikelihood(::Type) = false
 has_steploglikelihood(::Type{<:CombinedNextReaction}) = true
@@ -13,10 +13,10 @@ has_pathloglikelihood(::Type{MultipleDirect}) = true
 mutable struct SamplerBuilderGroup
     name::Symbol
     selector::Union{Function,Nothing}
-    sampler_spec::Tuple{Symbol}
+    method::Union{SamplerSpec,Nothing}
     instance::SSA
-    # Constructor sets the instance to undefined.
-    SamplerBuilderGroup(name::Symbol, selector, sampler_spec) = new(name, selector, sampler_spec)
+    # Constructor sets `instance` member to undefined.
+    SamplerBuilderGroup(name::Symbol, selector, method) = new(name, selector, method)
 end
 
 
@@ -29,7 +29,6 @@ struct SamplerBuilder{K,T}
     recording::Bool
     common_random::Bool
     group::Vector{SamplerBuilderGroup}
-    samplers::Dict{Tuple{Symbol,Vararg{Symbol}},Function}
     start_time::T
     likelihood_cnt::Int
 end
@@ -41,7 +40,7 @@ end
         debug=false,
         recording=false,
         common_random=false,
-        sampler_spec=:none,
+        method=nothing,
         start_time::T,
         likelihood_cnt::Int
         )
@@ -56,7 +55,8 @@ an initial sampler.
  * `debug` - Print log messages at the debug level.
  * `recording` - Store every enable and disable for later examination.
  * `common_random` - Use common random numbers during sampling.
- * `sampler_spec` - If you want a single, particular sampler, put its Symbol name here.
+ * `method` - If you want a single, particular sampler, put its `SamplerSpec` here.
+   It will create a group called `:all` that has this sampling method.
  * `start_time` - Sometimes a simulation shouldn't start at zero.
  * `likelihood_cnt` - The number of likelihoods to compute, corresponds to number of
    distributions in `enable!` calls. This turns on `trajectory_likelihood`.
@@ -65,7 +65,7 @@ an initial sampler.
 
 ```julia
 builder = SamplerBuilder(Tuple,Float64)
-add_group!(builder, :sparky => (x,d) -> x[1] == :recover, sampler_spec=(:nextreaction,))
+add_group!(builder, :sparky => (x,d) -> x[1] == :recover, method=NextReaction())
 add_group!(builder, :forthright=>(x,d) -> x[1] == :infect)
 context = SamplingContext(builder, rng)
 ```
@@ -76,24 +76,21 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     debug=false,
     recording=false,
     common_random=false,
-    sampler_spec::Union{Symbol,Tuple{Symbol}}=(:none,),    # Ask for specific sampler.
+    method::Union{SamplerSpec,Nothing}=nothing,    # Ask for specific sampler.
     start_time::T=zero(T),
     likelihood_cnt=1,
 ) where {K,T}
     group = SamplerBuilderGroup[]
-    avail = make_builder_dict()
     trajectory_likelihood = trajectory_likelihood || likelihood_cnt > 1
     builder = SamplerBuilder(
         K, T, step_likelihood, trajectory_likelihood, debug, recording,
-        common_random, group, avail, start_time, likelihood_cnt
+        common_random, group, start_time, likelihood_cnt
     )
-    if sampler_spec != (:none,)
-        add_group!(builder, :all => (x, d) -> true; sampler_spec=sampler_spec)
+    if !isnothing(method)
+        add_group!(builder, :all => (x, d) -> true; method=method)
     end
     return builder
 end
-
-available_samplers(builder::SamplerBuilder) = keys(builder.samplers)
 
 
 """
@@ -103,35 +100,15 @@ an inclusion rule, so it's a function from a clock key and distribution to a Boo
 function add_group!(
     builder::SamplerBuilder,
     selector::Union{Pair,Nothing}=nothing;      # Which clocks use this sampler.
-    sampler_spec::Union{Symbol,Tuple{Symbol}}=(:any,),    # Ask for specific sampler.
+    method::Union{SamplerSpec,Nothing}=nothing, # Ask for specific sampler.
 )
-    sampler_spec = sampler_spec isa Symbol ? (sampler_spec,) : sampler_spec
-    sampler_spec = sampler_spec == (:any,) ? (:firsttofire,) : sampler_spec
-    if sampler_spec ∉ keys(builder.samplers)
-        error("Looking for a sampler in this list: $(keys(builder.samplers))")
-    end
     if length(builder.group) >= 1 && (builder.group[1].selector === nothing || selector === nothing)
         error("Need a selector on all samplers if there is more than one sampler.")
     end
     name = selector isa Pair ? selector.first : :all
     selector_func = selector isa Pair ? selector.second : selector
-    push!(builder.group, SamplerBuilderGroup(name, selector_func, sampler_spec))
+    push!(builder.group, SamplerBuilderGroup(name, selector_func, method))
     return nothing
-end
-
-
-function make_builder_dict()
-    return Dict([
-        (:nextreaction,) => (K, T) -> CombinedNextReaction{K,T}(),
-        (:direct,) => (K, T) -> DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, BinaryTreePrefixSearch),
-        (:direct, :remove, :tree) => (K, T) -> DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, BinaryTreePrefixSearch),
-        (:direct, :keep, :tree) => (K, T) -> DirectCallExplicit(K, T, KeyedKeepPrefixSearch, BinaryTreePrefixSearch),
-        (:direct, :remove, :array) => (K, T) -> DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, CumSumPrefixSearch),
-        (:direct, :keep, :array) => (K, T) -> DirectCallExplicit(K, T, KeyedKeepPrefixSearch, CumSumPrefixSearch),
-        (:firstreaction,) => (K, T) -> FirstReaction{K,T}(),
-        (:firsttofire,) => (K, T) -> FirstToFire{K,T}(),
-        (:petri,) => (K, T) -> Petri{K,T}(),
-    ])
 end
 
 """
@@ -150,16 +127,18 @@ function CompetingClocks.choose_sampler(
 end
 
 function build_sampler(builder::SamplerBuilder)
-    isempty(builder.group) && error("Need to add_group! on the builder.")
     K = builder.clock_type
     T = builder.time_type
-    if length(builder.group) == 1
-        sampler = builder.samplers[builder.group[1].sampler_spec](K, T)
+    if length(builder.group) == 0
+        sampler = FirstToFireMethod()(K, T)
+        matcher = nothing
+    elseif length(builder.group) == 1
+        sampler = builder.group[1].method(K, T)
         matcher = nothing
     else
         competes = builder.group
         for compete in competes
-            compete.instance = builder.samplers[compete.sampler_spec](K, T)
+            compete.instance = compete.method(K, T)
         end
         # Any direct method gets added to the others for combination.
         inclusion = Dict(samp.name => samp.selector for samp in competes)
