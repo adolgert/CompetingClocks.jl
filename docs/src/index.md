@@ -3,6 +3,7 @@ CurrentModule = CompetingClocks
 ```
 
 # CompetingClocks
+[![Coverage](https://codecov.io/gh/adolgert/CompetingClocks.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/adolgert/CompetingClocks.jl)
 
 Fast, composable samplers for stochastic discrete-event simulation.
 This package gives your simulation or simulation framework statistical features like common random
@@ -20,8 +21,16 @@ or to calculate the likelihood of a sample path for statistical estimation.
 
 ![CompetingClocks chooses the next transition but the simulation tracks state and changes to state.](assets/CompetingClocksTopLevel.svg)
 
-The background work for this library comes from [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
+## Implementation Based on
 
+ * P. J. Haas, _Stochastic Petri Nets: Modelling, Stability, Simulation._ in Springer Series in Operations Research. New York, NY: Springer-Verlag New York, Inc, 2002. doi: 10.1007/b97265.
+ * D. F. Anderson and T. G. Kurtz, Stochastic Analysis of Biochemical Systems. Springer International Publishing AG Switzerland, 2015.
+ * [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
+
+## Version History
+
+ - v0.2.0 (2025-12) - Likelihood calculation, variance reduction.
+ - v0.1.0 (2024-06) - Initial release of samplers.
 
 ## Usage
 
@@ -37,14 +46,16 @@ The library provides you with samplers. Each sampler has the same interface. Her
 
 Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
 
-## Why Use This?
+## When NOT to use Competing Clocks
 
-If I make a quick simulation for myself, I sample distributions the moment an event is enabled and store the firing times in a [priority queue](https://juliacollections.github.io/DataStructures.jl/v0.12/priority-queue.html). When would I switch to this library?
+ * **Pure exponential distributions?** JumpProcesses.jl is a complete framework for this.
+ * **Need ODE coupling?** Again, it's easier to stay within SciML and JumpProcesses.jl.
+ * **Want high-level frameworks?** Try Agents.jl.
 
- * I want to evaluate the effect of changing simulation parameters by comparing multiple runs with [common random numbers](https://en.wikipedia.org/wiki/Variance_reduction#Common_Random_Numbers_(CRN)).
+CompetingClocks.jl is for:
 
- * I'm looking at rare events, so I want to use splitting techniques and [importance sampling](https://en.wikipedia.org/wiki/Importance_sampling).
-
- * Performance matters (which it often doesn't), so I would like to try different samplers on my problem.
-
- * I want to focus on developing and testing my *model* not my *simulation algorithm*; CompetingClocks is designed and tested with care to ensure correctness.
+ * Building a simulation framework with
+   * General distributions (Weibull, Gamma, etc.),
+   * Likelihood calculations or rare events, or
+   * Variance reduction.
+ * Advanced work in reliability models, disease models, queueing models.

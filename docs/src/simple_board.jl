@@ -9,7 +9,6 @@
 import Base
 using Distributions
 using Random
-using SparseArrays
 using Test
 using CompetingClocks
 
@@ -18,7 +17,7 @@ using CompetingClocks
 # so let's use a spare matrix to represent the locations of individuals.
 
 mutable struct PhysicalState
-    board::SparseMatrixCSC{Int64, Int64}
+    board::Matrix{Int64}
 end
 
 ## They can move in any of four directions.
@@ -31,15 +30,12 @@ const DirectionDelta = Dict(
     );
 
 # The simulation, itself, carries the state of the clocks in the sampler, as
-# well as the physical state. We'll call it a finite state machine (FSM)
-# because it has the traits of a
-# [Moore machine](https://en.wikipedia.org/wiki/Moore_machine).
+# well as the physical state. We'll call it a
+# [finite state machine](https://en.wikipedia.org/wiki/Moore_machine).
 
 mutable struct SimulationFSM{Sampler}
     physical::PhysicalState
     sampler::Sampler
-    when::Float64
-    rng::Xoshiro
 end
 
 # ## Main Loop
@@ -48,9 +44,9 @@ end
 # events by disabling outdated ones and enabling new ones. The calls to
 # CompetingClocks are:
 #
-# * `next(sampler, current time, random number generator (RNG))`
-# * `enable!(sampler, event ID, distribution, current time, start time of clock, RNG)`
-# * `disable!(sampler, event ID, current time)`
+# * `next(sampler)`
+# * `enable!(sampler, event ID, distribution)`
+# * `disable!(sampler, event ID)`
 #
 # There are a lot of samplers in CompetingClocks to choose from. This example uses `CombinedNextReaction`
 # algorithm, which has good performance for a variety of distributions. Samplers in CompetingClocks
@@ -58,36 +54,35 @@ end
 # In this case, the clock key type fully represents an event, giving the ID of the individual,
 # where they start, and which direction they may move.
 
-const ClockKey = Tuple{Int,CartesianIndex{2},Direction}
+struct ClockKey
+    individual::Int
+    location::CartesianIndex{2}
+    direction::Direction
+end
 
 function run(event_count)
-    Sampler = CombinedNextReaction{ClockKey,Float64}
+    rng = Xoshiro(2947223)
+    builder = SamplerBuilder(ClockKey, Float64; sampler_spec=(:nextreaction,))
+    sampler = SamplingContext(builder, rng)
     physical = PhysicalState(zeros(Int, 10, 10))
-    @test showable(MIME("text/plain"), physical)
-    sim = SimulationFSM{Sampler}(
+    sim = SimulationFSM(
         physical,
-        Sampler(),
-        0.0,
-        Xoshiro(2947223)
+        sampler,
     )
-    initialize!(sim.physical, 9, sim.rng)
+    initialize!(sim.physical, 9, rng)
     current_events = allowed_moves(sim.physical)
     for event_id in current_events
-        enable!(sim.sampler, event_id, Weibull(1.0), 0.0, 0.0, sim.rng)
+        enable!(sim.sampler, event_id, Weibull(1.0))
     end
 
     for i in 1:event_count
-        (when, what) = next(sim.sampler, sim.when, sim.rng)
+        (when, what) = next(sim.sampler)
         if isfinite(when) && !isnothing(what)
-            sim.when = when
+            fire!(sim.sampler, what, when)
+            delete!(current_events, what)
             move!(sim.physical, what)
             next_events = allowed_moves(sim.physical)
-            for remove_event in setdiff(current_events, next_events)
-                disable!(sim.sampler, remove_event, when)
-            end
-            for add_event in setdiff(next_events, current_events)
-                enable!(sim.sampler, add_event, Weibull(1.0), when, when, sim.rng)
-            end
+            update_events!(sampler, current_events, next_events, Weibull(1.0))
             current_events = next_events
             @show (when, what)
         end
@@ -100,18 +95,31 @@ end;
 
 function allowed_moves(physical::PhysicalState)
     allowed = Set{ClockKey}()
-    row, col, value = findnz(physical.board)
-    for ind_idx in eachindex(value)
-        location = CartesianIndex((row[ind_idx], col[ind_idx]))
+    occupied_locations = findall(!iszero, physical.board)
+    for location in occupied_locations
+        individual = physical.board[location]
         for (direction, offset) in DirectionDelta
             if checkbounds(Bool, physical.board, location + offset)
                 if physical.board[location + offset] == 0
-                    push!(allowed, (value[ind_idx], location, direction))
+                    push!(allowed, ClockKey(individual, location, direction))
                 end
             end
         end
     end
     return allowed
+end;
+
+# In practice, you would track dependencies among individuals in order to
+# accelerate a simulation rather than checking all events in `allowed_moves`. 
+# The next function updates the current events in the sampler.
+
+function update_events!(sampler, old_events, new_events, distribution)
+    for remove in setdiff(old_events, new_events)
+        disable!(sampler, remove)
+    end
+    for add in setdiff(new_events, old_events)
+        enable!(sampler, add, distribution)
+    end
 end;
 
 # ## Changes to the state of the board
@@ -120,25 +128,20 @@ end;
 
 function initialize!(physical::PhysicalState, individuals::Int, rng)
     physical.board .= 0
-    dropzeros!(physical.board)
-    locations = zeros(CartesianIndex{2}, individuals)
     for ind_idx in 1:individuals
         loc = rand(rng, CartesianIndices(physical.board))
         while physical.board[loc] != 0
             loc = rand(rng, CartesianIndices(physical.board))
         end
-        locations[ind_idx] = loc
         physical.board[loc] = ind_idx
     end
 end;
 
 
-function move!(physical::PhysicalState, event_id)
-    (individual, previous_location, direction) = event_id
-    next_location = previous_location + DirectionDelta[direction]
-    ## This sets the previous board value to zero.
-    SparseArrays.dropstored!(physical.board, previous_location.I...)
-    physical.board[next_location] = individual
+function move!(physical::PhysicalState, event::ClockKey)
+    next_location = event.location + DirectionDelta[event.direction]
+    physical.board[event.location] = 0
+    physical.board[next_location] = event.individual
 end;
 
 # ## How it runs

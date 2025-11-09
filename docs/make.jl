@@ -73,41 +73,26 @@ makedocs(;
         canonical="https://adolgert.github.io/CompetingClocks.jl",
         assets=String[],
     ),
-    # develop.md
-    # importance_skills.md
-    # objects.md
-    # rules.md
-    # simple_board.md
-    # splitting.jl
-    # vas.md
     pages=[
         "Home" => "index.md",
         "Getting Started" => [
             "install.md",
+            "quickstart.md",
             "mainloop.md",
+            "choosing_sampler.md",
             "guide.md",
             "distributions.md"
         ],
         "User Guide" => [
-            "Background" => [
-                "distrib.md",
-                "background.md",
-                "GSMP" => "gsmp.md",
-                "samplers.md",
-                "hierarchical.md",
-            ],
-            "Simulation" => [
-                "samplingcontext.md",
-                "memory.md",
-                "commonrandom.md",
-            ],
-            "Statistics" => [
-                "hamiltonianmontecarlo.md",
-                "importance_skills.md",
-            ],
-            "Debugging" => [
-                "debugging.md"
-            ]
+            "integration-guide.md",
+            "interface.md",
+            "samplers.md",
+            "hierarchical.md",
+            "debugging.md",
+            "distrib.md",
+            "background.md",
+            "GSMP" => "gsmp.md",
+            "memory.md",
         ],
         "Examples" => [
             "Birth-death Process" => "constant_birth.md",
@@ -115,9 +100,14 @@ makedocs(;
             "Reliability" => "reliability.md",
             "Gene Expression" => "gene_expression.md"
         ],
+        "Statistical Methods" => [
+            "commonrandom.md",
+            "importance_skills.md",
+            "hamiltonianmontecarlo.md",
+        ],
         "API Reference" => [
+            "samplingcontext.md",
             "contextinterface.md",
-            "interface.md",
             "reference.md",
             "algorithms.md"
         ]
