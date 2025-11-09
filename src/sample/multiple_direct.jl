@@ -122,6 +122,7 @@ end
 function disable!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, clock::K, when::Time) where {SamplerKey,K,Time,Chooser}
     which_prefix_search = md.chosen[clock]
     delete!(md.scan[which_prefix_search], clock)
+    delete!(md.chosen, clock)
 end
 
 

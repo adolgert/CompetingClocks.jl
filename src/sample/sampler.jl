@@ -168,6 +168,7 @@ function disable!(
     sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
 ) where {SamplerKey,Key,Time}
     disable!(sampler.propagator[sampler.chosen[clock]], clock, when)
+    delete!(sampler.chosen, clock)
 end
 
 
