@@ -1,3 +1,5 @@
+using InteractiveUtils
+
 export available_samplers, PetriMethod
 export NextReactionMethod, DirectMethod, FirstReactionMethod, FirstToFireMethod
 
@@ -92,6 +94,5 @@ end
 Returns a list of docstrings for all available samplers.
 """
 function available_samplers()
-    # The `@doc` macro won't work here so stick with `Base.Docs.doc`.
-    return [string(@doc atype) for atype in subtypes(SamplerSpec)]
+    return [string(Base.Docs.doc(atype)) for atype in InteractiveUtils.subtypes(SamplerSpec)]
 end
