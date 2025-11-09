@@ -84,6 +84,7 @@ makedocs(;
         "Home" => "index.md",
         "Getting Started" => [
             "install.md",
+            "quickstart.md",
             "mainloop.md",
             "guide.md",
             "distributions.md"
