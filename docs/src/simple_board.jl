@@ -38,8 +38,6 @@ const DirectionDelta = Dict(
 mutable struct SimulationFSM{Sampler}
     physical::PhysicalState
     sampler::Sampler
-    when::Float64
-    rng::Xoshiro
 end
 
 # ## Main Loop
@@ -48,9 +46,9 @@ end
 # events by disabling outdated ones and enabling new ones. The calls to
 # CompetingClocks are:
 #
-# * `next(sampler, current time, random number generator (RNG))`
-# * `enable!(sampler, event ID, distribution, current time, start time of clock, RNG)`
-# * `disable!(sampler, event ID, current time)`
+# * `next(sampler)`
+# * `enable!(sampler, event ID, distribution)`
+# * `disable!(sampler, event ID)`
 #
 # There are a lot of samplers in CompetingClocks to choose from. This example uses `CombinedNextReaction`
 # algorithm, which has good performance for a variety of distributions. Samplers in CompetingClocks
@@ -61,32 +59,33 @@ end
 const ClockKey = Tuple{Int,CartesianIndex{2},Direction}
 
 function run(event_count)
-    Sampler = CombinedNextReaction{ClockKey,Float64}
+    rng = Xoshiro(2947223)
+    builder = SamplerBuilder(ClockKey, Float64; sampler_spec=(:nextreaction,))
+    sampler = SamplingContext(builder, rng)
     physical = PhysicalState(zeros(Int, 10, 10))
     @test showable(MIME("text/plain"), physical)
-    sim = SimulationFSM{Sampler}(
+    sim = SimulationFSM(
         physical,
-        Sampler(),
-        0.0,
-        Xoshiro(2947223)
+        sampler,
     )
-    initialize!(sim.physical, 9, sim.rng)
+    initialize!(sim.physical, 9, rng)
     current_events = allowed_moves(sim.physical)
     for event_id in current_events
-        enable!(sim.sampler, event_id, Weibull(1.0), 0.0, 0.0, sim.rng)
+        enable!(sim.sampler, event_id, Weibull(1.0))
     end
 
     for i in 1:event_count
-        (when, what) = next(sim.sampler, sim.when, sim.rng)
+        (when, what) = next(sim.sampler)
         if isfinite(when) && !isnothing(what)
-            sim.when = when
+            fire!(sim.sampler, what, when)
+            delete!(current_events, what)
             move!(sim.physical, what)
             next_events = allowed_moves(sim.physical)
             for remove_event in setdiff(current_events, next_events)
-                disable!(sim.sampler, remove_event, when)
+                disable!(sim.sampler, remove_event)
             end
             for add_event in setdiff(next_events, current_events)
-                enable!(sim.sampler, add_event, Weibull(1.0), when, when, sim.rng)
+                enable!(sim.sampler, add_event, Weibull(1.0))
             end
             current_events = next_events
             @show (when, what)
