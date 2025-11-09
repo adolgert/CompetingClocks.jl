@@ -56,6 +56,11 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 end
 
 
+function SamplingContext(::Type{K}, ::Type{T}, rng::R; kwargs...) where {K,T,R<:AbstractRNG}
+    return SamplingContext(SamplerBuilder(K, T; kwargs...), rng)
+end
+
+
 """
     clone(sampling, rng)
 
