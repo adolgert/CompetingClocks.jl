@@ -31,7 +31,7 @@ using CompetingClocks
 example_clock = (3, 7)  # We will use clock IDs that are a tuple of 2 integers.
 model = MakeModel()
 (Key, Time) = (typeof(example_clock), Float64)
-builder = SamplerBuilder(Key, Time; sampler_spec=:firsttofire, common_random=true)
+builder = SamplerBuilder(Key, Time; common_random=true)
 rng = Xoshiro(9469922)
 sampler = SamplingContext(builder, rng)
 for trial_idx in 1:100
