@@ -118,7 +118,7 @@ at any point during a simulation. They are always calulated relative to the
 last event to `fire!()`, even if `next()` has been called.
 ```julia
 builder = SamplerBuilder(KeyType, Float64;
-    trajectory_likelihood=true)
+    path_likelihood=true)
 sampler = SamplingContext(builder, rng)
 # After simulation, the log_prob is a Float64.
 log_prob = pathloglikelihood(sampler, end_time)

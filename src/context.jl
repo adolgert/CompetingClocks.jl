@@ -32,7 +32,7 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     sampler = build_sampler(builder)
     if builder.likelihood_cnt > 1
         likelihood = PathLikelihoods{K,T}(builder.likelihood_cnt)
-    elseif builder.trajectory_likelihood
+    elseif builder.path_likelihood
         likelihood = TrajectoryWatcher{K,T}()
     else
         likelihood = nothing
@@ -77,7 +77,7 @@ were making parallel RNGs with the `Random123` package, it might look like:
 master_seed = (0xd897a239, 0x77ff9238)
 rng = Philox4x((0, 0, 0, 0), master_seed)
 Key = Int64
-sampler = SamplingContext(SamplerBuilder(Key,Float64; trajectory_likelihood=true), rng)
+sampler = SamplingContext(SamplerBuilder(Key,Float64; path_likelihood=true), rng)
 observation_weight = zeros(Float64, particle_cnt)
 total_weight = zeros(Float64, particle_cnt)
 samplers = Vector{typeof(sampler)}(undef, particle_cnt)

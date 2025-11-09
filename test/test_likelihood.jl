@@ -169,7 +169,7 @@ end # module LikelihoodHelper
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -188,7 +188,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -208,7 +208,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -227,7 +227,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -246,7 +246,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -265,7 +265,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -288,7 +288,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -311,7 +311,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -334,7 +334,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -356,7 +356,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -379,7 +379,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -401,7 +401,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -424,7 +424,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -448,7 +448,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -473,7 +473,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -495,7 +495,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -520,7 +520,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true
@@ -545,7 +545,7 @@ end
     using Random
     rng = Xoshiro(2432343)
     K, T = (Symbol, Float64)
-    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), trajectory_likelihood=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), path_likelihood=true)
     sampler = SamplingContext(builder, rng)
     cs = ClockState()
     cs.check_sum = true

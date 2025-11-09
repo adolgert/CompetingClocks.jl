@@ -24,7 +24,7 @@ struct SamplerBuilder{K,T}
     clock_type::Type{K}
     time_type::Type{T}
     step_likelihood::Bool
-    trajectory_likelihood::Bool
+    path_likelihood::Bool
     debug::Bool
     recording::Bool
     common_random::Bool
@@ -36,7 +36,7 @@ end
 """
     SamplerBuilder(::Type{K}, ::Type{T};
         step_likelihood=false,
-        trajectory_likelihood=false,
+        path_likelihood=false,
         debug=false,
         recording=false,
         common_random=false,
@@ -50,7 +50,7 @@ an initial sampler.
 
  * `K` and `T` are the clock type and time type.
  * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
- * `trajectory_likelihood` - whether you will call `pathloglikelihood`
+ * `path_likelihood` - whether you will call `pathloglikelihood`
     at the end of a simulation run.
  * `debug` - Print log messages at the debug level.
  * `recording` - Store every enable and disable for later examination.
@@ -59,7 +59,7 @@ an initial sampler.
    It will create a group called `:all` that has this sampling method.
  * `start_time` - Sometimes a simulation shouldn't start at zero.
  * `likelihood_cnt` - The number of likelihoods to compute, corresponds to number of
-   distributions in `enable!` calls. This turns on `trajectory_likelihood`.
+   distributions in `enable!` calls. This turns on `path_likelihood`.
 
 # Example
 
@@ -72,7 +72,7 @@ context = SamplingContext(builder, rng)
 """
 function SamplerBuilder(::Type{K}, ::Type{T};
     step_likelihood=false,
-    trajectory_likelihood=false,
+    path_likelihood=false,
     debug=false,
     recording=false,
     common_random=false,
@@ -81,9 +81,9 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     likelihood_cnt=1,
 ) where {K,T}
     group = SamplerBuilderGroup[]
-    trajectory_likelihood = trajectory_likelihood || likelihood_cnt > 1
+    path_likelihood = path_likelihood || likelihood_cnt > 1
     builder = SamplerBuilder(
-        K, T, step_likelihood, trajectory_likelihood, debug, recording,
+        K, T, step_likelihood, path_likelihood, debug, recording,
         common_random, group, start_time, likelihood_cnt
     )
     if !isnothing(method)
@@ -128,7 +128,7 @@ end
 
 function auto_select_method(builder::SamplerBuilder)
     # Auto-select a sampler method based on builder requirements
-    if builder.trajectory_likelihood
+    if builder.path_likelihood
         return DirectMethod()
     elseif builder.step_likelihood
         return NextReactionMethod()
