@@ -221,8 +221,8 @@ function run_epochs(epoch_cnt, use_importance, rng)
     model = GeneExpression(params)
     builder = SamplerBuilder(
         Tuple{Symbol,Int}, Float64;
-        sampler_spec=:firsttofire,
-        trajectory_likelihood=true,
+        method=FirstToFireMethod(),
+        path_likelihood=true,
         likelihood_cnt=2,
     )
     sampler = SamplingContext(builder, rng)

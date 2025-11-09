@@ -48,8 +48,7 @@ end
 # * `enable!(sampler, event ID, distribution)`
 # * `disable!(sampler, event ID)`
 #
-# There are a lot of samplers in CompetingClocks to choose from. This example uses `CombinedNextReaction`
-# algorithm, which has good performance for a variety of distributions. Samplers in CompetingClocks
+# There are a lot of samplers in CompetingClocks to choose from. Samplers in CompetingClocks
 # require two type parameters, a key type for clocks and the type used to represent time.
 # In this case, the clock key type fully represents an event, giving the ID of the individual,
 # where they start, and which direction they may move.
@@ -62,7 +61,7 @@ end
 
 function run(event_count)
     rng = Xoshiro(2947223)
-    builder = SamplerBuilder(ClockKey, Float64; sampler_spec=(:nextreaction,))
+    builder = SamplerBuilder(ClockKey, Float64)
     sampler = SamplingContext(builder, rng)
     physical = PhysicalState(zeros(Int, 10, 10))
     sim = SimulationFSM(

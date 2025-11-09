@@ -7,7 +7,7 @@ using SafeTestsets
 
     rng = Xoshiro(234243234)
     (K, T) = (Int64, Float64)
-    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, common_random=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), common_random=true)
     sampler = SamplingContext(builder, rng)
     watched = Set(1:5)
     for startup in watched
@@ -31,7 +31,7 @@ end
 
     rng = Xoshiro(234243234)
     (K, T) = (Int64, Float64)
-    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, common_random=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), common_random=true)
     sampler = SamplingContext(builder, rng)
 
     trace = Dict{Int,Float64}()
@@ -71,7 +71,7 @@ end
 
     rng = Xoshiro(234243234)
     (K, T) = (Int64, Float64)
-    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire, common_random=true)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod(), common_random=true)
     sampler = SamplingContext(builder, rng)
 
     trace = Dict{Int,Float64}()

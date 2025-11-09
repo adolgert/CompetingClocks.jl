@@ -54,11 +54,11 @@ A sampler group is
  * A Symbol name for the sampler.
  * An inclusion function from `(ClockKey, Distribution)` to `Bool` that decides
    whether a given event belongs to this sampler.
- * An optional `sampler_spec` to say what kind of sampler this group should use.
+ * An optional `method` to say what kind of sampler this group should use.
 
 ```julia
 builder = SamplerBuilder(KeyType, Float64)
-add_group!(builder, :sparky => (x,d) -> x[1] == :recover, sampler_spec=(:nextreaction,))
+add_group!(builder, :sparky => (x,d) -> x[1] == :recover, method=NextReaction())
 add_group!(builder, :forthright=>(x,d) -> x[1] == :infect)
 sampler = SamplingContext(builder, rng)
 ```
