@@ -86,6 +86,7 @@ makedocs(;
             "install.md",
             "quickstart.md",
             "mainloop.md",
+            "choosing_sampler.md",
             "guide.md",
             "distributions.md"
         ],
