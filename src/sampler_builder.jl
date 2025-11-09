@@ -126,6 +126,17 @@ function CompetingClocks.choose_sampler(
     return chooser.matcher(clock, distribution)
 end
 
+function auto_select_method(builder::SamplerBuilder)
+    # Auto-select a sampler method based on builder requirements
+    if builder.trajectory_likelihood
+        return DirectMethod()
+    elseif builder.step_likelihood
+        return NextReactionMethod()
+    else
+        return FirstToFireMethod()
+    end
+end
+
 function build_sampler(builder::SamplerBuilder)
     K = builder.clock_type
     T = builder.time_type
@@ -133,12 +144,14 @@ function build_sampler(builder::SamplerBuilder)
         sampler = FirstToFireMethod()(K, T)
         matcher = nothing
     elseif length(builder.group) == 1
-        sampler = builder.group[1].method(K, T)
+        method = isnothing(builder.group[1].method) ? auto_select_method(builder) : builder.group[1].method
+        sampler = method(K, T)
         matcher = nothing
     else
         competes = builder.group
         for compete in competes
-            compete.instance = compete.method(K, T)
+            method = isnothing(compete.method) ? auto_select_method(builder) : compete.method
+            compete.instance = method(K, T)
         end
         # Any direct method gets added to the others for combination.
         inclusion = Dict(samp.name => samp.selector for samp in competes)

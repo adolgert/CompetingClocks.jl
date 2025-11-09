@@ -11,7 +11,7 @@ import InteractiveUtils: @code_typed
     K = Int64
     T = Float64
     rng = Xoshiro(899987987)
-    builder = SamplerBuilder(K, T; sampler_spec=:firsttofire)
+    builder = SamplerBuilder(K, T; method=FirstToFireMethod())
     sampler = SamplingContext(builder, rng)
     for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
         enable!(sampler, clock_id, Exponential(propensity))
@@ -32,9 +32,9 @@ end
 
     K = Int64
     T = Float64
-    for SamplerType in [:firsttofire, :direct, :firstreaction, :nextreaction]
+    for SamplerType in [FirstToFireMethod(), DirectMethod(), FirstReactionMethod(), NextReactionMethod()]
         rng = Xoshiro(90422342)
-        builder = SamplerBuilder(K, T; sampler_spec=SamplerType)
+        builder = SamplerBuilder(K, T; method=SamplerType)
         context = SamplingContext(builder, rng)
         test_enable = Set{Int64}()
         for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])

@@ -29,7 +29,7 @@ struct DirectMethod <: SamplerSpec
     memory_management::Symbol
     search_algorithm::Symbol
     DirectMethod() = new(:remove, :tree)
-    function Direct(symbols...)
+    function DirectMethod(symbols...)
         mem = nothing
         search = nothing
         for sym in symbols
@@ -40,7 +40,7 @@ struct DirectMethod <: SamplerSpec
                 isnothing(search) || error("Specify one of :tree or :array to DirectMethod")
                 search = sym
             else
-                error("Direct method accepts arguments :keep, :remove, :tree, :array not $sym")
+                error("Specify one of :keep, :remove, :tree, or :array to DirectMethod, not $sym")
             end
         end
         new(isnothing(mem) ? :remove : mem, isnothing(search) ? :tree : search)
@@ -92,5 +92,6 @@ end
 Returns a list of docstrings for all available samplers.
 """
 function available_samplers()
-    return [@doc atype for atype in subtypes(SamplerSpec)]
+    # The `@doc` macro won't work here so stick with `Base.Docs.doc`.
+    return [string(@doc atype) for atype in subtypes(SamplerSpec)]
 end
