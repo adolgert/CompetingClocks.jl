@@ -7,10 +7,15 @@ CurrentModule = CompetingClocks
 The main interface to the package is the [`SamplingContext`](@ref).
 Within that class are the samplers themselves. This describes their interface.
 
+## Constructors
+
+```@docs
+CompetingClocks.SamplingContext(::Type{K}, ::Type{T}, rng::R; kwargs...) where {K,T,R<:AbstractRNG}
+CompetingClocks.SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
+```
+
 ## Use a Sampler
 
-Low-level sampler interface. Most users should use [`SamplingContext`](@ref) instead,
-which is documented in [Context Interface](@ref).
 
 ```@docs
 CompetingClocks.enable!(::SSA{K,T}, ::K, ::UnivariateDistribution, ::T, ::T, ::AbstractRNG) where {K,T}
