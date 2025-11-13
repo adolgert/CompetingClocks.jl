@@ -6,22 +6,6 @@ CurrentModule = CompetingClocks
 
 The choice of sampler determines specific algorithms that are used to sample, update, and disable clocks. Helpers also exist that are useful for logging, utilizing common random numbers, and hierarchical sampling.
 
-## Sampler Supertype
-
-See [Sampler Interface](@ref) for the complete `SSA` documentation.
-
-```@docs
-SSA
-```
-
-## Sampler Types
-
-```@docs
-FirstReaction
-FirstToFire
-DirectCall
-CombinedNextReaction
-```
 
 ## Sampling Helpers
 
@@ -30,15 +14,9 @@ CommonRandom
 freeze_crn!
 reset_crn!
 split!
-haskey
 misscount
 misses
-enabled
-MultiSampler
 ChatReaction
-Petri
-DebugWatcher
-TrackWatcher
 consume_survival
 sampling_space
 steploglikelihood

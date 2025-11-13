@@ -61,8 +61,7 @@ end
 
 function run(event_count)
     rng = Xoshiro(2947223)
-    builder = SamplerBuilder(ClockKey, Float64)
-    sampler = SamplingContext(builder, rng)
+    sampler = SamplingContext(ClockKey, Float64, rng)
     physical = PhysicalState(zeros(Int, 10, 10))
     sim = SimulationFSM(
         physical,

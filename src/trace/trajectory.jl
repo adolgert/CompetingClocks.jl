@@ -1,5 +1,12 @@
 using Base
 
+"""
+    TrajectoryWatcher{K,T}
+
+This doesn't sample but calculates the likelihood of the path of samples from
+start to finish. It has many of the same interface functions as a sampler,
+but the core value is in the [`pathloglikelihood`](@ref) function.
+"""
 mutable struct TrajectoryWatcher{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
     loglikelihood::Float64

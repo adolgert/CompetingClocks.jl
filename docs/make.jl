@@ -1,6 +1,8 @@
 using CompetingClocks
 using Documenter
 using Literate
+using Random
+using Distributions
 
 
 rebuild_literate = "--fresh" in ARGS
@@ -80,25 +82,20 @@ makedocs(;
             "quickstart.md",
             "mainloop.md",
             "choosing_sampler.md",
-            "guide.md",
-            "distributions.md"
         ],
         "User Guide" => [
             "integration-guide.md",
-            "interface.md",
+            "low_level_interface.md",
             "samplers.md",
             "hierarchical.md",
             "debugging.md",
-            "distrib.md",
-            "background.md",
-            "GSMP" => "gsmp.md",
-            "memory.md",
         ],
         "Examples" => [
-            "Birth-death Process" => "constant_birth.md",
-            "SIR Model" => "sir.md",
             "Reliability" => "reliability.md",
-            "Gene Expression" => "gene_expression.md"
+            "SIR Model" => "sir.md",
+            "Birth-death Process" => "constant_birth.md",
+            "memory.md",
+            "Gene Expression" => "gene_expression.md",
         ],
         "Statistical Methods" => [
             "commonrandom.md",
@@ -106,10 +103,16 @@ makedocs(;
             "hamiltonianmontecarlo.md",
         ],
         "API Reference" => [
-            "samplingcontext.md",
             "contextinterface.md",
             "reference.md",
-            "algorithms.md"
+            "algorithms.md",
+        ],
+        "Trunk" => [
+            "distrib.md",
+            "distributions.md",
+            "background.md",
+            "guide.md",
+            "GSMP" => "gsmp.md",
         ]
     ],
 )

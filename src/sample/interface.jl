@@ -124,7 +124,7 @@ end
     getindex(sampler, clock::KeyType)
 
 Return stored state for a particular clock. If the clock does not exist,
-a `KeyError` will be thrown.
+a `KeyError` will be thrown. Different samplers have **different stored state.**
 """
 function Base.getindex(sampler::SSA{K,T}, clock::K) where {K,T}
     error("Not implemented for $(typeof(sampler))")

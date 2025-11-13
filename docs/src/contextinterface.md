@@ -4,7 +4,8 @@
 
 ```@docs
 CompetingClocks.SamplingContext(::Type{K}, ::Type{T}, rng::R; kwargs...) where {K,T,R<:AbstractRNG}
-CompetingClocks.SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}SamplerBuilder
+CompetingClocks.SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
+CompetingClocks.SamplerBuilder
 CompetingClocks.add_group!
 ```
 

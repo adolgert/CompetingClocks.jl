@@ -1,6 +1,8 @@
 export SetOfSets
 
 """
+    SetOfSets{K,T<:AbstractSet{K}} <: AbstractSet{K}
+
 A `SetOfSets` presents sets as a read-only unified set. The goal is to reduce memory allocation
 by not presuming the client wants an instance of a Set object or an instance of
 a Vector object. They may want to test is something is `in` the sets or want
