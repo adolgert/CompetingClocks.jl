@@ -107,7 +107,7 @@ end
 """
     PartialPropensityMethod()
 
-Exact, continuous-time sampler using composition–rejection over groups.
+Exact, continuous-time sampler using composition-rejection over groups.
 Only for exponential distributions. This variant of partial-propensity
 composition-rejection implements the sampler but not the reaction network. The
 reaction-network can be implemented outside of the sampler.

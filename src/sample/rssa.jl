@@ -1,12 +1,7 @@
-
 # rssa.jl
 #
 # Exact Rejection-based Stochastic Simulation Algorithm (RSSA)
 # for continuous-time Markov jump processes (exponential clocks).
-#
-# It matches the sampler interface shown in firsttofire.jl:
-#   next, enable!, fire!, disable!, reset!, clone, copy_clocks!,
-#   jitter!, haskey/keys/length/getindex.
 #
 # Algorithmic core:
 # - Maintain per-clock *true* rate a_i and a certified upper bound \bar a_i >= a_i.
@@ -31,6 +26,7 @@ export RSSA, set_bound!, set_global_bound_factor!
     RSSA{KeyType,TimeType}(; bound_factor=1.05)
 
 Rejection-based SSA with global Fenwick tree for candidate selection.
+This is for exponential distributions only not time-dependent rates.
 - `bound_factor` ≥ 1.0 controls default upper bounds: \\bar a_i ← max(\\bar a_i, bound_factor * a_i).
   Set to 1.0 for no rejections (reduces to direct-method timing with tree selection).
 """

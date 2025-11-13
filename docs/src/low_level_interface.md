@@ -44,7 +44,9 @@ CompetingClocks.CombinedNextReaction{K,T}
 CompetingClocks.DirectCall{K,T,P}
 CompetingClocks.FirstReaction{K,T}
 CompetingClocks.FirstToFire{K,T}
+CompetingClocks.PSSACR{K,T}
 CompetingClocks.Petri{K,T}
+CompetingClocks.RSSA{K,T}
 ```
 
 ## Hierarchical Sampling

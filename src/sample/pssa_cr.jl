@@ -72,10 +72,14 @@ Assumptions:
   selection: group by probability ∝ group-sum, then within-group by rejection from a uniform
   proposal with acceptance `λ/λ_max_group`.
 
-Performance notes:
+### Performance notes:
 - Choose `ngroups` so that groups remain small and rate magnitudes similar.
   If you possess "owner" metadata (partial-propensity style), call `assign_group!`
   *before* `enable!` to place clocks with common owners into the same group.
+
+### References:
+ - R. Ramaswamy & I. F. Sbalzarini, "A partial-propensity variant of the composition-rejection SSA", J. Chem. Phys. 132, 044102 (2010).
+ - A. Slepoy, A. P. Thompson, S. J. Plimpton, "A constant-time kinetic Monte Carlo algorithm...", J. Chem. Phys. 128, 205101 (2008).
 """
 mutable struct PSSACR{K,T} <: SSA{K,T}
     # Per-clock current rate λ_k
