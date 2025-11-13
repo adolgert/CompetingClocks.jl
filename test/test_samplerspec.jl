@@ -60,6 +60,32 @@ end
 end
 
 
+@safetestset samplerspec_rssa = "SamplerSpec rssa method" begin
+    using CompetingClocks
+
+    spec = RejectionMethod()
+    sampler = spec(Int, Float64)
+    @test isa(sampler, SSA)
+    
+    spec2 = RejectionMethod(1.04)
+    sampler2 = spec2(Int, Float64)
+    @test isa(sampler2, SSA)
+end
+
+
+@safetestset samplerspec_pssacr = "SamplerSpec pssacr method" begin
+    using CompetingClocks
+
+    spec = PartialPropensityMethod()
+    sampler = spec(Int, Float64)
+    @test isa(sampler, SSA)
+    
+    spec2 = PartialPropensityMethod(128)
+    sampler2 = spec2(Int, Float64)
+    @test isa(sampler2, SSA)
+end
+
+
 @safetestset samplerspec_petri = "SamplerSpec petri method" begin
     using CompetingClocks
 

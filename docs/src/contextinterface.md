@@ -16,7 +16,9 @@ CompetingClocks.NextReactionMethod
 CompetingClocks.DirectMethod
 CompetingClocks.FirstReactionMethod
 CompetingClocks.FirstToFireMethod
+CompetingClocks.PartialPropensityMethod
 CompetingClocks.PetriMethod
+CompetingClocks.RejectionMethod
 ```
 
 

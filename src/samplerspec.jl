@@ -2,6 +2,7 @@ using InteractiveUtils
 
 export available_samplers, PetriMethod
 export NextReactionMethod, DirectMethod, FirstReactionMethod, FirstToFireMethod
+export RejectionMethod, PartialPropensityMethod
 
 # Define types a user can choose to specify which sampler they want.
 # We make these auxiliary types so that the inner methods can be configurable
@@ -86,6 +87,36 @@ firing time and saves it in a queue.
 """
 struct FirstToFireMethod <: SamplerSpec end
 (::FirstToFireMethod)(K, T) = FirstToFire{K,T}()
+
+
+"""
+    RejectionMethod(bound_factor=1.05)
+
+A rejection-based algorithm. Only for exponential distributions, this may be
+the fastest for large simulations. The `bound_factor>= 1.0` controls the default
+upper bounds. Set to 1.0 for no rejections, which reduces this to the direct
+method.
+"""
+struct RejectionMethod <: SamplerSpec
+    bound_factor::Float64
+    RejectionMethod(bound_factor=1.05) = new(bound_factor)
+end
+(rssa::RejectionMethod)(K, T) = RSSA{K,T}(; bound_factor=rssa.bound_factor)
+
+
+"""
+    PartialPropensityMethod()
+
+Exact, continuous-time sampler using composition-rejection over groups.
+Only for exponential distributions. This variant of partial-propensity
+composition-rejection implements the sampler but not the reaction network. The
+reaction-network can be implemented outside of the sampler.
+"""
+struct PartialPropensityMethod <: SamplerSpec
+    ngroups::Int
+    PartialPropensityMethod(ngroups=64) = new(ngroups)
+end
+(pssa::PartialPropensityMethod)(K, T) = PSSACR{K,T}(; ngroups=pssa.ngroups)
 
 
 """
