@@ -5,9 +5,6 @@
 # in the spirit of Partial-Propensity SSA with Composition–Rejection (PSSA-CR).
 #
 # Design goals:
-# - Match the sampler interface shown in firsttofire.jl (enable!, next, fire!, disable!, reset!, clone, copy_clocks!, jitter!, haskey/keys/length/getindex).
-# - Work with Exponential clocks (Markov jump processes). Reject non-Exponential.
-# - Provide exact sampling of the next reaction and time: Δt ~ Exp(a0), reaction chosen via composition–rejection within groups.
 # - Be usable without reaction-network structure; optional manual grouping API is provided to recover PSSA-style efficiency when you have owner/group metadata.
 #
 # SIMPLIFICATIONS FROM THE ORIGINAL PSSA-CR ALGORITHM (Ramaswamy & Sbalzarini 2010):
@@ -67,7 +64,6 @@ export PSSACR
     PSSACR{KeyType,TimeType}(; ngroups::Int=64)
 
 Exact, continuous-time sampler using composition–rejection over groups.
-Meant to be a drop-in replacement where `FirstToFire` is used.
 
 Assumptions:
 - Each enabled clock is Exponential with rate λ (i.e., distribution `Exponential(θ)` where λ=1/θ).
@@ -75,10 +71,6 @@ Assumptions:
 - Time to next event is drawn from `Exp(∑λ)`, and the firing key is drawn by a two-stage
   selection: group by probability ∝ group-sum, then within-group by rejection from a uniform
   proposal with acceptance `λ/λ_max_group`.
-
-Interface compatibility:
-- `next` is idempotent: it caches one upcoming `(time,clock)` until invalidated by `fire!`,
-  `enable!`, `disable!`, or `jitter!`.
 
 Performance notes:
 - Choose `ngroups` so that groups remain small and rate magnitudes similar.
