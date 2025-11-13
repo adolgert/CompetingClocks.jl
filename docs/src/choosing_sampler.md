@@ -16,15 +16,14 @@ How to make a sampler for events in CompetingClocks.jl.
 
 Every event in a simulation has an identifying key which can be any immutable Julia
 type. A `Tuple` key type works fine, but it will be more performant to use a
-concrete type for the `KeyType`. The second argument to the `SamplerBuilder`
+concrete type for the `KeyType`. The second argument
 is a type to use for time. Basic usage:
 ```julia
-builder = SamplerBuilder(KeyType, Float64)
-sampler = SamplingContext(builder, rng)
+sampler = SamplingContext(KeyType, Float64, rng)
 ```
-The sampler, itself, takes an `AbstractRNG` as its second argument.
+The sampler takes a `Random.AbstractRNG` as its second argument.
 
-Specify features for the sampler with keyword arguments to the `SamplerBuilder`.
+Specify features for the sampler with keyword arguments.
 These features determine the type of the sampler.
 
  * `step_likelihood=false`---Setting this to `true` let's you calculate the

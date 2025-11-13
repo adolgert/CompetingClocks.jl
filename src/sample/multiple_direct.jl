@@ -1,12 +1,18 @@
 export MultipleDirect
 
 
-# MultipleDirect is a sampler that contains multiple prefix-search
-# data structures.
-# Here SamplerKey is an identifier for the sampler.
-# K is the type of the Clock key.
-# Time is a Float64 or other clock time.
-# Chooser is a function that selects a prefix-search given a clock key.
+"""
+    MultipleDirect{SamplerKey,K,Time,Chooser} <: SSA{K,Time}
+
+MultipleDirect is a sampler that contains multiple prefix-search
+data structures.
+Here SamplerKey is an identifier for the sampler.
+K is the type of the Clock key.
+Time is a Float64 or other clock time.
+Chooser is a function that selects a prefix-search given a clock key.
+This differs from a [`MultiSampler`](@ref) because this works only for
+exponential distributions, and it combines them by summing propensities.
+"""
 mutable struct MultipleDirect{SamplerKey,K,Time,Chooser} <: SSA{K,Time}
     scan::Vector{KeyedPrefixSearch} # List of prefix-search data structures.
     totals::Vector{Time}

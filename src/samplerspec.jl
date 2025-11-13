@@ -12,11 +12,16 @@ abstract type SamplerSpec end
     NextReactionMethod()
 
 Uses Anderson's Modified Next Reaction method for distributions in an
-Exponential class and the Next Reaction method for other distributions.
-Because it reuses draws, this makes best use of Common Random Numbers.
+Exponential class (Exponential, Weibull, Erlang) and the Next Reaction method
+for other distributions. Yes, these two methods are mixed into one sampler because
+Julia's holy traits pattern makes it efficient to use the fastest sampler on
+a distribution-by-distribution basis. Because it reuses draws, this is the best choice if
+you want to do variance reduction with Common Random Numbers.
 """
 struct NextReactionMethod <: SamplerSpec end
 (::NextReactionMethod)(K, T) = CombinedNextReaction{K,T}()
+
+
 """
     DirectMethod()
     DirectMethod(memory::Symbol, search::Symbol)
@@ -25,7 +30,10 @@ Use this to specify any Direct method for Exponential distributions. Defaults
 to `memory=:remove` so it limits memory growth over time but `memory=:keep`
 will be faster if the space of clock keys is limited. Defaults to
 `search=:tree` for best performance for many enabled clocks but `search=:scan`
-is faster for small numbers of clocks.
+is faster for small numbers of clocks. The different kinds of methods, like
+"Optimized Direct Methods" amount to using different computer science techniques
+for scanning sums of hazard rates, and that's what the `search` algorithm lets
+you choose.
 """
 struct DirectMethod <: SamplerSpec
     memory_management::Symbol
@@ -56,15 +64,20 @@ function (ss::DirectMethod)(K,T)
         ss.search_algorithm == :tree ? BinaryTreePrefixSearch : CumSumPrefixSearch,
         )
 end
+
+
 """
     FirstReactionMethod()
 
 The classic sampler that draws every clock at every time step. Very fast for
 very small numbers of enabled clocks and returns a new `next()` every time it
-is called which helps when resampling paths.
+is called which helps when resampling paths. Other samplers return the same
+value every time you call `next()` unless you `jitter!` them, which is expensive.
 """
 struct FirstReactionMethod <: SamplerSpec end
 (::FirstReactionMethod)(K, T) = FirstReaction{K,T}()
+
+
 """
     FirstToFireMethod()
 
@@ -73,12 +86,15 @@ firing time and saves it in a queue.
 """
 struct FirstToFireMethod <: SamplerSpec end
 (::FirstToFireMethod)(K, T) = FirstToFire{K,T}()
+
+
 """
     PetriMethod()
     PetriMethod(dt)
 
 Samples by picking at random ignoring distributions. Good for testing rare
-cases in simulations. Increments time `dt=1.0` by default.
+cases in simulations. Increments time `dt=1.0` by default. It's called "Petri"
+because a Petri net model always chooses the next event at random.
 """
 struct PetriMethod <: SamplerSpec
     dt::Float64

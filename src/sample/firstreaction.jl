@@ -59,7 +59,7 @@ end
 function enable!(fr::ChatReaction{K,T}, clock::K, distribution::UnivariateDistribution,
     te::T, when::T, rng::AbstractRNG) where {K,T}
 
-    # It's OK i fhte clock ∈ keys(fr.enabled.enabled)
+    # It's OK if the clock ∈ keys(fr.enabled.enabled)
     enable!(fr.enabled, clock, distribution, te, when, rng)
     push!(fr.enables, clock)
 end

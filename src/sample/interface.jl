@@ -31,6 +31,12 @@ Tell the sampler to start a clock.
  * `when::TimeType` - The current time of the simulation.
  * `rng::AbstractRNG` - A random number generator.
 
+These times are **absolute** since the start of the simulation. The current time
+should be `when`. If you want to shift the distribution so that this event cannot
+happen for a little while then choose `enablingtime > when`. If you want to modify
+the distribution by shifting it left, then choose `enablingtime < when`. Usually,
+`enablingtime == when`. It is also possible to always use `enablingtime == when`
+and use the `truncated()` function to modify distributions.
 """
 function enable!(
     sampler::SSA{K,T},
@@ -118,7 +124,7 @@ end
     getindex(sampler, clock::KeyType)
 
 Return stored state for a particular clock. If the clock does not exist,
-a `KeyError` will be thrown.
+a `KeyError` will be thrown. Different samplers have **different stored state.**
 """
 function Base.getindex(sampler::SSA{K,T}, clock::K) where {K,T}
     error("Not implemented for $(typeof(sampler))")

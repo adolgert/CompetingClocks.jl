@@ -104,13 +104,24 @@ For instance, this could mean adjusting each event's bias factor until the log-w
 
 ### Cross-entropy (CE) method
 
-Consider this a structured version of AIS. You choose bias parameters $\theta$ to minimize the Kullback-Liebler.
+This structured version of adaptive importance sampling runs
+the simulation multiple times. You let it tell you the optimal choice of parameters
+to reduce variance in your estimate of the rare event.
+One each run, you choose bias parameters $\theta$ to minimize the Kullback-Liebler.
 
 ```math
 \mbox{KL}(p^*||q_\theta)
 ```
 
-Here $p^*$ is the conditional distribution on the rare event. An implementation trick: use current samples and weight them by whether they hit the rare event, and re-estimate $\theta$.
+Here $p^*$ is the conditional distribution on the rare event.
+
+It helps to use common random numbers. Using mixtures is just fine with this
+method, and you can select among the mixture proposals. As in other cases, the
+self-normalized estimator is more robust than the unbiased estimator.
+
+ 1. P.-T. de Boer, D. P. Kroese, S. Mannor, and R. Y. Rubinstein. “A Tutorial on the Cross‑Entropy Method.” *Annals of Operations Research* 134 (2005): 19–67.
+ 2. R. Y. Rubinstein. “The Cross‑Entropy Method for Combinatorial and Continuous Optimization.” *Methodology and Computing in Applied Probability* 1, no. 2 (1999): 127–190.
+ 3. R. Y. Rubinstein and D. P. Kroese. *The Cross‑Entropy Method: A Unified Approach to Combinatorial Optimization, Monte‑Carlo Simulation and Machine Learning.* Springer, 2004.
 
 ## Variance-reduction companions
 

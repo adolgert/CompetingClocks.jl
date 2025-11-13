@@ -8,6 +8,15 @@ struct PathEntry{K,T}
 end
 
 
+"""
+    PathLikelihoods{K,T}
+
+Calculates the likelihood of one path of events and times according to a vector
+of different distributions. This accepts a vector of distributions in each
+`enable!` call. This can be useful for tuning distribution parameters, but its
+main use is for importance sampling with mixtures of distribution parameters in
+order to stabilize importance sampling.
+"""
 mutable struct PathLikelihoods{K,T}
     enabled::Dict{K,PathEntry{K,T}}
     loglikelihood::Vector{Float64}

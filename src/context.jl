@@ -1,18 +1,7 @@
 export SamplingContext, enable!, fire!, isenabled, freeze_crn!
 export sample_from_distribution!
 
-"""
-The SamplingContext is responsible for doing a perfect forwarding to multiple
-components that implement the desired features in a sampler.
 
-It uses a Context pattern where each type parameter is either present or
-Nothing, and the compiler knows to optimize-away the Nothing.
-We keep the internal logic simple. If something is present, call it.
-
- - memory
- - delayed transitions
- - hierarchical samplers
-"""
 mutable struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
     sampler::Sampler # The actual sampler
     rng::RNG
@@ -26,6 +15,11 @@ mutable struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
 end
 
 
+"""
+    SamplingContext(builder::SamplerBuilder, rng)
+
+Uses the [`SamplerBuilder`](@ref) to make a SamplingContext.
+"""
 function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
     T = builder.time_type
@@ -56,6 +50,52 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 end
 
 
+
+"""
+    SamplingContext(::Type{K}, ::Type{T}, rng::AbstractRNG;
+        step_likelihood=false,
+        path_likelihood=false,
+        debug=false,
+        recording=false,
+        common_random=false,
+        method=nothing,
+        start_time::T,
+        likelihood_cnt::Int
+        )
+
+The SamplingContext is responsible for doing a perfect forwarding to multiple
+components that implement the desired features in a sampler.
+
+It uses a Context pattern where each type parameter is either present or
+Nothing, and the compiler knows to optimize-away the Nothing.
+We keep the internal logic simple. If something is present, call it.
+
+ - memory
+ - delayed transitions
+ - hierarchical samplers
+
+ * `K` and `T` are the clock type and time type.
+ * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
+ * `path_likelihood` - whether you will call `pathloglikelihood`
+    at the end of a simulation run.
+ * `debug` - Print log messages at the debug level.
+ * `recording` - Store every enable and disable for later examination.
+ * `common_random` - Use common random numbers during sampling.
+ * `method` - If you want a single, particular sampler, put its `SamplerSpec` here.
+   It will create a group called `:all` that has this sampling method.
+ * `start_time` - Sometimes a simulation shouldn't start at zero.
+ * `likelihood_cnt` - The number of likelihoods to compute, corresponds to number of
+   distributions in `enable!` calls. This turns on `path_likelihood`.
+
+# Example
+
+```julia
+builder = SamplerBuilder(Tuple,Float64)
+add_group!(builder, :sparky => (x,d) -> x[1] == :recover, method=NextReaction())
+add_group!(builder, :forthright=>(x,d) -> x[1] == :infect)
+context = SamplingContext(builder, rng)
+```
+"""
 function SamplingContext(::Type{K}, ::Type{T}, rng::R; kwargs...) where {K,T,R<:AbstractRNG}
     return SamplingContext(SamplerBuilder(K, T; kwargs...), rng)
 end
@@ -280,6 +320,14 @@ function disable!(ctx::SamplingContext{K,T}, clock::K) where {K,T}
 end
 
 
+"""
+    next(ctx::SamplingContext)
+
+Return `(when, clock-key)` for the next event. This does NOT fire the event.
+You can check if `when` is past the end time of the simulation and choose not
+to fire that event. For samplers like `FirstReactionMethod`, you could call this
+many times to generate many possible events.
+"""
 function next(ctx::SamplingContext{K,T}) where {K,T}
     next(ctx.sampler, ctx.time, ctx.rng)
 end
@@ -304,7 +352,7 @@ end
     reset!(sampling)
 
 Clears all clock values in a `SamplingContext` at the top of a loop over
-simulations.
+simulations. Call this instead of allocating a new sampler for each iteration.
 """
 function reset!(ctx::SamplingContext{K,T}) where {K,T}
     ctx.likelihood !== nothing && reset!(ctx.likelihood)
@@ -319,7 +367,10 @@ end
 
 Used for splitting a simulation near a rare event. You keep a vector of samplers
 and once your current sampler reaches a simulation state, copy its state into
-the vector of samplers and pick up where it left off.
+the vector of samplers and pick up where it left off. The destination `SamplingContext`
+has its own random number generator which will not be overwritten. The destination
+sampler will be jittered so that it will return different `next()` samples
+from the same set of enabled clocks.
 """
 function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
     copy_clocks!(dst.sampler, src.sampler)
