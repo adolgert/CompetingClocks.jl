@@ -89,20 +89,6 @@ function travel_run(step_cnt, sampler::SSA, travel_model, rng)
 end
 
 
-function replay_commands(commands, sampler, rng)
-    for command in commands
-        if command[1] == :enable
-            enable!(sampler, command[2:end]..., rng)
-        elseif command[1] == :fire
-            fire!(sampler, command[2:end]...)
-        elseif command[1] == :disable
-            disable!(sampler, command[2:end]...)
-        else
-            error("unknown command $(command[1])")
-        end
-    end
-end
-
 function travel_make_run()
     rng = Xoshiro(98327423)
     model = TravelModel(2, 1, :forget, rng)
