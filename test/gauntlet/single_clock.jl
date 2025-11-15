@@ -1,11 +1,13 @@
+using Base.Threads: @threads, nthreads, threadid
+using CompetingClocks: hazard
 
-@raw"""
+"""
     mark_calibration_brier(distributions, fired_clock, when)
 
 Calculating one component of the Brier score. The whole Brier score is
 
 ```math
-    \frac{1}{N}\sum_i^N \sum_i^R (f_{ti}-o_{ti})^2
+    \\frac{1}{N}\\sum_i^N \\sum_i^R (f_{ti}-o_{ti})^2
 ```
 
 where ``o_{ti}`` is 1 for the fired clock and 0 otherwise. Here ``f_{ti}`` is
@@ -31,8 +33,13 @@ end
 
 
 function mark_calibration_conditional_time(draws, distributions)
-    total = @reduce(+, @threads :static for i in eachindex(draws)
-        mark_calibration_brier(distributions, draws[i][1], draws[i][2])
-    end)
-    return total
+    # Use thread-local storage for reduction
+    partial_sums = zeros(Threads.nthreads())
+
+    @threads for i in eachindex(draws)
+        tid = Threads.threadid()
+        partial_sums[tid] += mark_calibration_brier(distributions, draws[i][1], draws[i][2])
+    end
+
+    return sum(partial_sums)
 end

@@ -35,12 +35,13 @@ struct TravelModel
     memory::Vector{Float64}
     remember::Bool
 end
-function TravelModel(state_cnt, graph_type, memory_type, rng)
+
+function TravelModel(state_cnt::Int, graph_type::Int, memory_type::Symbol, rng::AbstractRNG)
     g = travel_make_graph(graph_type, state_cnt)
     rates = travel_rates_exponential(state_cnt, rng)
-    TravelModel(g, rates, zeros(Float64, state_cnt), memory_type == :remember)
+    return TravelModel(g, rates, zeros(Float64, state_cnt), memory_type == :remember)
 end
-travel_init_state(tr::TravelModel, rng) = rand(rng, nv(tr.g))
+travel_init_state(tr::TravelModel, rng) = rand(rng, 1:nv(tr.g))
 travel_enabled(tr::TravelModel, state) = Set(neighbors(tr.g, state))
 
 # This sampler is a low-level sampler. This is for testing individual samplers,

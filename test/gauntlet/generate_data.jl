@@ -1,4 +1,4 @@
-using Iterators
+using Base.Threads: @threads
 
 function replay_commands(commands, sampler, rng)
     for command in commands
@@ -41,8 +41,9 @@ Returns a dict with enabled distributions at the final event.
 Returns a `Dict{Int,DistributionState}()`.
 """
 function final_enabled_distributions(commands, dist_cnt)
-    dist = Vector{Union{DistributionState,Nothing}}(nothing, dist_cnt)
-    found = Vector{Bool}(false, dist_cnt)
+    dist = Vector{Union{DistributionState,Nothing}}(undef, dist_cnt)
+    fill!(dist, nothing)
+    found = fill(false, dist_cnt)
     for idx in reverse(eachindex(commands))
         cmd = commands[idx]
         if cmd[1] == :disable || cmd[1] == :fire
@@ -72,8 +73,8 @@ end
 function generate_data(samplers, when, rng)
     data = similar(samplers, Tuple{Int,Float64})
     @threads for run_idx in eachindex(samplers)
-        when, which = next(samplers[run_idx], when, rng)
-        data[run_idx] = (which, when)
+        next_when, which = next(samplers[run_idx], when, rng)
+        data[run_idx] = (which, next_when)
     end
     return data
 end
