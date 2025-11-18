@@ -40,41 +40,43 @@ end
 Returns a dict with enabled distributions at the final event.
 Returns a `Dict{Int,DistributionState}()`.
 """
-function final_enabled_distributions(commands, dist_cnt)
-    dist = Vector{Union{DistributionState,Nothing}}(undef, dist_cnt)
-    fill!(dist, nothing)
-    found = fill(false, dist_cnt)
+function final_enabled_distributions(commands)
+    dist = Dict{Int,Union{DistributionState,Nothing}}()
     for idx in reverse(eachindex(commands))
         cmd = commands[idx]
         if cmd[1] == :disable || cmd[1] == :fire
             dist_idx = cmd[2]
-            if !found[dist_idx]
+            if !haskey(dist, dist_idx)
                 dist[dist_idx] = nothing
-                found[dist_idx] = true
             end
         elseif cmd[1] == :enable
             dist_idx = cmd[2]
-            if !found[dist_idx]
+            if !haskey(dist, dist_idx)
                 dist[dist_idx] = DistributionState(cmd[3], cmd[4])
-                found[dist_idx] = true
             end
+        else
+            error("Unknown command $(cmd)")
         end
     end
-    enabled = Dict{Int,DistributionState}()
-    for copy_idx in eachindex(dist)
-        if !isnothing(dist[copy_idx])
-            enabled[copy_idx] = dist[copy_idx]
-        end
-    end
-    return enabled
+    return Dict(k => v for (k, v) in dist if !isnothing(v))
 end
 
 
-function generate_data(samplers, when, rng)
+function sample_samplers(samplers, when, rng)
     data = similar(samplers, Tuple{Int,Float64})
     @threads for run_idx in eachindex(samplers)
         next_when, which = next(samplers[run_idx], when, rng)
         data[run_idx] = (which, next_when)
     end
     return data
+end
+
+
+function travel_make_run()
+    rng = Xoshiro(98327423)
+    model = Travel(2, TravelGraph.path, TravelMemory.forget, rng)
+    sampler = FirstReaction{Int,Float64}()
+    commands = travel_run(5, sampler, model, rng)
+    sampler2 = FirstReaction{Int,Float64}()
+    replay_commands(commands, sampler2, rng)
 end
