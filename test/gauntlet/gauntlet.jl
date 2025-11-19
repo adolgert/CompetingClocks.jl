@@ -4,10 +4,12 @@ using SafeTestsets
 using CompetingClocks
 using Distributions
 using Random
+using HypothesisTests
 
 include("travel.jl")
 include("generate_data.jl")
-include("single_clock.jl")
+include("mark_calibration.jl")
+include("doob_meyer.jl")
 include("experiments.jl")
 
 using .TravelModel
