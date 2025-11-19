@@ -15,14 +15,14 @@ function replay_commands(commands, sampler, rng)
 end
 
 
-function parallel_replay(commands, replica_cnt, base_seed)
+function parallel_replay(commands, replica_cnt, rng::Vector{T}) where {T<:AbstractRNG}
     samplers = Vector{FirstReaction{Int,Float64}}(undef, replica_cnt)
-    rng = [Xoshiro(base_seed + i) for i in 1:replica_cnt]
     for construct_idx in 1:replica_cnt
         samplers[construct_idx] = FirstReaction{Int,Float64}()
     end
     @threads for run_idx in 1:replica_cnt
-        replay_commands(commands, samplers[run_idx], rng[run_idx])
+        tid = Threads.threadid()
+        replay_commands(commands, samplers[run_idx], rng[tid])
     end
     when = commands[end][end]
     return samplers, when
@@ -33,6 +33,7 @@ struct DistributionState
     d::UnivariateDistribution
     enabling_time::Float64
 end
+
 
 """
     final_enabled_distributions(commands, dist_cnt)
@@ -62,13 +63,24 @@ function final_enabled_distributions(commands)
 end
 
 
-function sample_samplers(samplers, when, rng)
+function sample_samplers(samplers, when, rng::Vector{T}) where {T<:AbstractRNG}
     data = similar(samplers, Tuple{Int,Float64})
     @threads for run_idx in eachindex(samplers)
-        next_when, which = next(samplers[run_idx], when, rng)
+        tid = Threads.threadid()
+        next_when, which = next(samplers[run_idx], when, rng[tid])
         data[run_idx] = (which, next_when)
     end
     return data
+end
+
+
+function jumble!(sample_data::Vector{Tuple{Int,Float64}}, rng)
+    reorder = shuffle(rng, 1:length(sample_data))
+    clocks = [x[1] for x in sample_data]
+    shuffle!(rng, clocks)
+    for i in eachindex(clocks)
+        sample_data[i] = (clocks[i], sample_data[i][2])
+    end
 end
 
 

@@ -15,16 +15,26 @@ the hazard of one clock divided by the total hazard. This function calculates
 the above for one outcome ``i``.
 """
 function mark_calibration_brier(distributions, fired_clock, when)
-    total_hazard = zero(Float64)
-    numerator = zero(Float64)
-    for (clock, dist_state) in distributions
-        offset = clock == fired_clock ? one(Float64) : zero(Float64)
-        fired_hazard = hazard(dist_state.d, when - dist_state.enabling_time)
-        total_hazard += fired_hazard
-        numerator += (fired_hazard - offset)^2
+    total_hazard = 0.0
+    hazards = Dict{Int,Float64}()
+    for (clock, ds) in distributions
+        h = hazard(ds.d, when - ds.enabling_time)
+        hazards[clock] = h
+        total_hazard += h
     end
-    return numerator / total_hazard^2
+    total_hazard == 0.0 && return 0.0
+
+    s = 0.0
+    for (clock, h) in hazards
+        p = h / total_hazard
+        y = clock == fired_clock ? 1.0 : 0.0
+        s += (p - y)^2
+    end
+    # Divide by distributions because this it the number of classes
+    # for multiclass Brier.
+    return s / length(distributions)
 end
+
 
 
 """
