@@ -49,5 +49,5 @@ function two_sample_ad_single()
     draws_b = retrieve_draws(commands, sampler_cnt, rng)
 
     distributions = final_enabled_distributions(commands)
-    ad_two_sample(draws_a, draws_b, collect(keys(distributions)))
+    ad_two_sample(draws_a, draws_b, collect(keys(distributions)); verbose=true)
 end

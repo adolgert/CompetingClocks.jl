@@ -25,17 +25,18 @@ function travel_make_graph(i, n)
 end
 
 
-function travel_make_rate(i, rng)
-    if i == 1
+function travel_make_rate(kind, idx, cnt, rng)
+    if kind == 1
         # Second member of tuple is a time offset.
-        (Exponential(0.2 * rand(rng, Float64) + 1.0), 0.0)
+        rate = (exp.(range(-2, stop=2, length=cnt)))[idx]
+        (Exponential(inv(rate)), 0.0)
     else
-        error("make_rate $i isn't defined")
+        error("make_rate $kind isn't defined")
     end
 end
 
 function travel_rates_exponential(n, rng)
-    hazards = [travel_make_rate(1, rng) for _ in 1:n]
+    hazards = [travel_make_rate(1, idx, n, rng) for idx in 1:n]
     return Dict((i, j) => hazards[j] for i in 1:n for j in 1:n)
 end
 
