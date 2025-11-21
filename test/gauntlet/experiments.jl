@@ -36,3 +36,18 @@ function doob_meyer_single()
     @show dm_test
     @show pvalue(dm_test)
 end
+
+
+function two_sample_ad_single()
+    rng = [Xoshiro(98327423 + 298432*i) for i in 1:Threads.maxthreadid()]
+    model = Travel(5, TravelGraph.complete, TravelMemory.forget, rng[1])
+    sampler = FirstReaction{Int,Float64}()
+    commands = travel_run(5, sampler, model, rng[1])
+
+    sampler_cnt = 10000
+    draws_a = retrieve_draws(commands, sampler_cnt, rng)
+    draws_b = retrieve_draws(commands, sampler_cnt, rng)
+
+    distributions = final_enabled_distributions(commands)
+    ad_two_sample(draws_a, draws_b, collect(keys(distributions)))
+end

@@ -62,9 +62,10 @@ function final_enabled_distributions(commands)
     return Dict(k => v for (k, v) in dist if !isnothing(v))
 end
 
+const ClockDraw = Tuple{Int,Float64}
 
 function sample_samplers(samplers, when, rng::Vector{T}) where {T<:AbstractRNG}
-    data = similar(samplers, Tuple{Int,Float64})
+    data = similar(samplers, ClockDraw)
     @threads for run_idx in eachindex(samplers)
         tid = Threads.threadid()
         next_when, which = next(samplers[run_idx], when, rng[tid])
@@ -74,8 +75,14 @@ function sample_samplers(samplers, when, rng::Vector{T}) where {T<:AbstractRNG}
 end
 
 
-function jumble!(sample_data::Vector{Tuple{Int,Float64}}, rng)
-    reorder = shuffle(rng, 1:length(sample_data))
+function retrieve_draws(commands, sampler_cnt, rng)
+    samplers, final_time = parallel_replay(commands, sampler_cnt, rng)
+    draws = sample_samplers(samplers, final_time, rng)
+    return draws
+end
+
+
+function jumble!(sample_data::Vector{ClockDraw}, rng)
     clocks = [x[1] for x in sample_data]
     shuffle!(rng, clocks)
     for i in eachindex(clocks)
