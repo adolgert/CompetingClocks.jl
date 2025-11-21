@@ -9,6 +9,7 @@ include("erlang_loss.jl")
 
 # All available test files
 all_tests = [
+    "test_package.jl",
     "test_combinednr.jl",
     "test_context.jl",
     "test_direct.jl",

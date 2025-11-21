@@ -18,7 +18,7 @@ function mark_calibration_brier(distributions, fired_clock, when)
     total_hazard = 0.0
     hazards = Dict{Int,Float64}()
     for (clock, ds) in distributions
-        h = hazard(ds.d, when - ds.enabling_time)
+        h = hazard(ds.d, ds.enabling_time, when)
         hazards[clock] = h
         total_hazard += h
     end
