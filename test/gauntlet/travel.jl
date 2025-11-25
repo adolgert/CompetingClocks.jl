@@ -9,10 +9,15 @@ using EnumX
 
 export travel_commands, travel_make_run, travel_make_graph, travel_make_rate
 export travel_rates_exponential, Travel, travel_init_state, travel_enabled
-export travel_run, TravelMemory, TravelGraph
+export travel_run, TravelMemory, TravelGraph, TravelRateDist, TravelRateCount
+export TravelDelay, TravelConfig
 
 @enumx TravelMemory forget remember
 @enumx TravelGraph path cycle complete clique
+@enumx TravelRateDist exponential general
+@enumx TravelRateCount destination pair
+@enumx TravelRateDelay none right left some
+
 
 function travel_make_graph(i, n)
     g = Dict(
@@ -35,7 +40,7 @@ end
 # A rate is a `travel` rate when there is one rate for each start-finish pair of locations.
 function travel_rates_exponential_pair(n, rng)
     hazards = [exp.(range(-2, stop=2, length=cnt*(cnt-1)))]
-    rates = Dict{Tuple{Int,Int}}()
+    rates = Dict{Tuple{Int,Int},Tuple{UnivariateDistribution}}()
     idx = 1
     for i in 1:n for j in 1:n
         i == j && continue
@@ -44,6 +49,7 @@ function travel_rates_exponential_pair(n, rng)
     end
     return rates
 end
+
 
 function random_distribution(rng)
     didx = rand(rng, 1:3)
@@ -64,17 +70,27 @@ function random_distribution(rng)
 end
 
 
-function travel_rates_general(n, rng)
-    # An individual rate can be destination-only
-    is_dest_rate() = rand(rng, 1:8) == 1
-    for dest_loc in 1:n
-        if is_dest_rate()
-            dist = random_distribution()
-            for source_loc in 1:n
-                source_loc == dest_loc && continue
-            end
+function travel_rates_general_destination(n, rng)
+    rates = Dict{Tuple{Int,Int},Tuple{UnivariateDistribution}}()
+    for target in 1:n
+        dist = random_distribution(rng)
+        for source in 1:n
+            source == target && continue
+            dist[(source, target)] = dist
         end
     end
+    return dist
+end
+
+
+function travel_rates_general_pair(n, rng)
+    rates = Dict{Tuple{Int,Int},Tuple{UnivariateDistribution}}()
+    for source in 1:n, target in 1:n
+        source == target && continue
+        dist = random_distribution(rng)
+        dist[(source, target)] = dist
+    end
+    return dist
 end
 
 
@@ -85,10 +101,58 @@ struct Travel
     remember::TravelMemory.T
 end
 
-function Travel(state_cnt::Int, graph_type::TravelGraph.T, memory_type::TravelMemory.T, rng::AbstractRNG)
-    g = travel_make_graph(graph_type, state_cnt)
-    rates = travel_rates_exponential(state_cnt, rng)
-    return Travel(g, rates, zeros(Float64, state_cnt), memory_type)
+
+function draw_delay(delay::TravelRateDelay.T, rng)
+    if delay == TravelRateDelay.none
+        return zero(Float64)
+    elseif delay == TravelRateDelay.left
+        return rand(rng, Uniform(-0.5, -0.1))
+    elseif delay == TravelRateDelay.right
+        return rand(rng, Uniform(0.1, 2.0))
+    else
+        return rand(rng, Uniform(-0.5, 2.0))
+    end
+end
+
+
+function delay_generator(state_cnt::Int, delay::TravelRateDelay.T, count::TravelRateCount.T, rng::AbstractRNG)
+    delays = Dict{(Int,Int),Float64}()
+    if count == TravelRateCount.destination
+        for destination in 1:state_cnt
+            delay = draw_delay(delay, rng)
+            for source in 1:state_cnt
+                source == destination && continue
+                delays[(source, destination)] = delay
+            end
+        end
+    else
+        for destination in 1:state_cnt
+            for source in 1:state_cnt
+                source == destination && continue
+                delay = draw_delay(delay, rng)
+                delays[(source, destination)] = delay
+            end
+        end
+    end
+    return delays
+end
+
+
+struct TravelConfig
+    memory::TravelMemory.T
+    graph::TravelGraph.T
+    dist::TravelRateDist.T
+    count::TravelRateCount.T
+    delay::TravelRateDelay.T
+end
+
+
+function Travel(state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
+    g = travel_make_graph(config.graph, state_cnt)
+    rates = travel_rates_exponential_destination(state_cnt, rng)
+    delays = delay_generator(state_cnt, config.delay, config.count, rng)
+    full_rate = Dict((i, j) => (rates[(i, j)], delays[(i, j)]) for (i, j) in keys(rates))
+    return Travel(g, full_rate, zeros(Float64, state_cnt), config.memory)
 end
 travel_init_state(tr::Travel, rng) = rand(rng, 1:nv(tr.g))
 travel_enabled(tr::Travel, state) = Set(neighbors(tr.g, state))

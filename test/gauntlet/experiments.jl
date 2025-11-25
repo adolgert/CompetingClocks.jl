@@ -3,7 +3,11 @@ using .TravelModel
 
 function mark_calibration_single()
     rng = [Xoshiro(98327423 + 298432*i) for i in 1:Threads.maxthreadid()]
-    model = Travel(5, TravelGraph.complete, TravelMemory.forget, rng[1])
+    config = TravelConfig(
+        TravelMemory.forget, TravelGraph.complete, TravelRateDist.exponential,
+        TravelRateCount.destination, TravelRateDelay.none
+        )
+    model = Travel(5, config, rng[1])
     sampler = FirstReaction{Int,Float64}()
     commands = travel_run(5, sampler, model, rng[1])
 
@@ -23,7 +27,11 @@ end
 
 function doob_meyer_single()
     rng = [Xoshiro(98327423 + 298432*i) for i in 1:Threads.maxthreadid()]
-    model = Travel(5, TravelGraph.complete, TravelMemory.forget, rng[1])
+    config = TravelConfig(
+        TravelMemory.forget, TravelGraph.complete, TravelRateDist.exponential,
+        TravelRateCount.destination, TravelRateDelay.none
+        )
+    model = Travel(5, config, rng[1])
     sampler = FirstReaction{Int,Float64}()
     commands = travel_run(5, sampler, model, rng[1])
 
@@ -40,7 +48,11 @@ end
 
 function two_sample_ad_single()
     rng = [Xoshiro(98327423 + 298432*i) for i in 1:Threads.maxthreadid()]
-    model = Travel(5, TravelGraph.complete, TravelMemory.forget, rng[1])
+    config = TravelConfig(
+        TravelMemory.forget, TravelGraph.complete, TravelRateDist.exponential,
+        TravelRateCount.destination, TravelRateDelay.none
+        )
+    model = Travel(5, config, rng[1])
     sampler = FirstReaction{Int,Float64}()
     commands = travel_run(5, sampler, model, rng[1])
 

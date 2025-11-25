@@ -93,7 +93,11 @@ end
 
 function travel_make_run()
     rng = Xoshiro(98327423)
-    model = Travel(2, TravelGraph.path, TravelMemory.forget, rng)
+    config = TravelConfig(
+        TravelMemory.forget, TravelGraph.path, TravelRateDist.exponential,
+        TravelRateCount.destination, TravelRateDelay.none
+        )
+    model = Travel(2, config, rng)
     sampler = FirstReaction{Int,Float64}()
     commands = travel_run(5, sampler, model, rng)
     sampler2 = FirstReaction{Int,Float64}()

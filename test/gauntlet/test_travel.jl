@@ -50,6 +50,10 @@ using .TravelModel
     @testset "TravelModel Construction" begin
         rng = Xoshiro(12345)
 
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.path, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
         model = Travel(3, TravelGraph.path, TravelMemory.forget, rng)
         @test model isa Travel
         @test nv(model.g) == 3
@@ -62,7 +66,11 @@ using .TravelModel
 
     @testset "State Initialization and Enabled" begin
         rng = Xoshiro(12345)
-        model = Travel(3, TravelGraph.cycle, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.cycle, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(3, config, rng)
 
         state = travel_init_state(model, rng)
         @test state isa Int
@@ -74,7 +82,11 @@ using .TravelModel
 
     @testset "Simulation Run" begin
         rng = Xoshiro(12345)
-        model = Travel(3, TravelGraph.cycle, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.cycle, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(3, config, rng)
         sampler = FirstReaction{Int,Float64}()
 
         commands = travel_run(5, sampler, model, rng)
@@ -96,7 +108,11 @@ end
 @testset "Generate Data Smoke Tests" begin
     @testset "Replay Commands" begin
         rng = Xoshiro(98327423)
-        model = Travel(2, TravelGraph.path, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.path, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(2, config, rng)
         sampler = FirstReaction{Int,Float64}()
         commands = travel_run(5, sampler, model, rng)
 
@@ -109,7 +125,11 @@ end
 
     @testset "Parallel Replay" begin
         rng = Xoshiro(98327423)
-        model = Travel(2, TravelGraph.path, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.path, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(2, config, rng)
         sampler = FirstReaction{Int,Float64}()
         commands = travel_run(5, sampler, model, rng)
 
@@ -123,7 +143,11 @@ end
 
     @testset "Final Enabled Distributions" begin
         rng = Xoshiro(98327423)
-        model = Travel(3, TravelGraph.cycle, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.cycle, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(3, config, rng)
         sampler = FirstReaction{Int,Float64}()
         commands = travel_run(5, sampler, model, rng)
         @test !isempty(commands)
@@ -142,7 +166,11 @@ end
 
     @testset "Sample Samplers" begin
         rng = Xoshiro(98327423)
-        model = Travel(2, TravelGraph.path, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.path, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(2, config, rng)
         sampler = FirstReaction{Int,Float64}()
         commands = travel_run(5, sampler, model, rng)
 
@@ -178,7 +206,11 @@ end
     @testset "Mark Calibration Conditional Time" begin
         # Generate some test data
         rng = Xoshiro(98327423)
-        model = Travel(3, TravelGraph.cycle, TravelMemory.forget, rng)
+        config = TravelConfig(
+            TravelMemory.forget, TravelGraph.cycle, TravelRateDist.exponential,
+            TravelRateCount.destination, TravelRateDelay.none
+            )
+        model = Travel(3, config, rng)
         sampler = FirstReaction{Int,Float64}()
         commands = travel_run(10, sampler, model, rng)
 
