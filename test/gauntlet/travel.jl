@@ -25,20 +25,58 @@ function travel_make_graph(i, n)
 end
 
 
-function travel_make_rate(kind, idx, cnt, rng)
-    if kind == 1
-        # Second member of tuple is a time offset.
-        rate = (exp.(range(-2, stop=2, length=cnt)))[idx]
-        (Exponential(inv(rate)), 0.0)
+# A rate is a `destination` rate when there is one rate per destination location.
+function travel_rates_exponential_destination(n, rng)
+    hazards = [exp.(range(-2, stop=2, length=cnt))]
+    return Dict((i, j) => Exponential(inv(hazards[j])) for i in 1:n for j in 1:n if i != j)
+end
+
+
+# A rate is a `travel` rate when there is one rate for each start-finish pair of locations.
+function travel_rates_exponential_pair(n, rng)
+    hazards = [exp.(range(-2, stop=2, length=cnt*(cnt-1)))]
+    rates = Dict{Tuple{Int,Int}}()
+    idx = 1
+    for i in 1:n for j in 1:n
+        i == j && continue
+        rates[(i, j)] = Exponential(inv(hazards[idx]))
+        idx += 1
+    end
+    return rates
+end
+
+function random_distribution(rng)
+    didx = rand(rng, 1:3)
+    if didx == 1
+        r = -2 + 4 * rand(rng)
+        Exponential(inv(exp(r)))
+    elseif didx == 2
+        alpha = rand(rng, Uniform(0.7, 1.3))
+        theta = rand(rng, Uniform(-2, 2))
+        Weibull(alpha, inv(exp(theta)))
+    elseif didx == 3
+        alpha = rand(rng, Uniform(1.0, 6.0))
+        theta = rand(rng, Uniform(-2, 2))
+        Gamma(alpha, inv(exp(theta)))
     else
-        error("make_rate $kind isn't defined")
+        error("Can't make distribution for $didx")
     end
 end
 
-function travel_rates_exponential(n, rng)
-    hazards = [travel_make_rate(1, idx, n, rng) for idx in 1:n]
-    return Dict((i, j) => hazards[j] for i in 1:n for j in 1:n)
+
+function travel_rates_general(n, rng)
+    # An individual rate can be destination-only
+    is_dest_rate() = rand(rng, 1:8) == 1
+    for dest_loc in 1:n
+        if is_dest_rate()
+            dist = random_distribution()
+            for source_loc in 1:n
+                source_loc == dest_loc && continue
+            end
+        end
+    end
 end
+
 
 struct Travel
     g::SimpleGraph{Int64}
