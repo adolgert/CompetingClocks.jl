@@ -16,15 +16,15 @@ end
 
 
 """
-    parallel_replay(commands, replica_cnt::Int, rng::Vector)
+    parallel_replay(commands, sampler, replica_cnt::Int, rng::Vector)
 
 Returns (vector of samplers, time of last event). The samplers are all initialized
 to the last event at the same time with the same previously-fired events.
 """
-function parallel_replay(commands, replica_cnt, rng::Vector{T}) where {T<:AbstractRNG}
-    samplers = Vector{FirstReaction{Int,Float64}}(undef, replica_cnt)
+function parallel_replay(commands, sampler::S, replica_cnt, rng::Vector{T}) where {S <: SSA, T<:AbstractRNG}
+    samplers = Vector{S}(undef, replica_cnt)
     for construct_idx in 1:replica_cnt
-        samplers[construct_idx] = FirstReaction{Int,Float64}()
+        samplers[construct_idx] = clone(sampler)
     end
     @threads for run_idx in 1:replica_cnt
         tid = Threads.threadid()
@@ -103,8 +103,8 @@ end
 Given a set of commands, creates `sampler_cnt` samplers and gets one sample
 from each of them. Returns `(Vector{ClockDraw}, final_time::Float64)`.
 """
-function retrieve_draws(commands, sampler_cnt, rng)
-    samplers, final_time = parallel_replay(commands, sampler_cnt, rng)
+function retrieve_draws(commands, sampler, sampler_cnt, rng)
+    samplers, final_time = parallel_replay(commands, sampler, sampler_cnt, rng)
     draws = sample_samplers(samplers, final_time, rng)
     return draws, final_time
 end

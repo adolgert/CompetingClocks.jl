@@ -146,6 +146,7 @@ struct TravelConfig
     delay::TravelRateDelay.T
 end
 
+Base.@show()
 
 function Travel(state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
     g = travel_make_graph(config.graph, state_cnt)

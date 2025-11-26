@@ -10,15 +10,16 @@ using HypothesisTests
 Set verbose=true to get detailed diagnostic information about test quality and reliability.
 """
 function ad_two_sample(draws_a::Vector{ClockDraw}, draws_b::Vector{ClockDraw}, clocks; verbose=false)
-    results = []
+    results = Any[]
 
     # Test holding times which are times for specific clocks to fire.
     for clock in clocks
         times_a = [x[2] for x in draws_a if x[1] == clock]
         times_b = [x[2] for x in draws_b if x[1] == clock]
         result = KSampleADTest(times_a, times_b)
-        push!(results, ("Clock $clock", result))
-        @show clock, pvalue(result)
+        pv = pvalue(result)
+        push!(results, (;test="ad-two-sample", clock, pvalue=pv, result))
+        @show clock, pv
 
         if verbose
             ad_diagnostic_report(result)
@@ -29,8 +30,8 @@ function ad_two_sample(draws_a::Vector{ClockDraw}, draws_b::Vector{ClockDraw}, c
     times_a = [x[2] for x in draws_a]
     times_b = [x[2] for x in draws_b]
     result = KSampleADTest(times_a, times_b)
-    push!(results, ("Overall", result))
-    @show pvalue(result)
+    pv = pvalue(result)
+    push!(results, (; test="ad-two-sample", clock=0, pvalue, result))
 
     if verbose
         ad_diagnostic_report(result)

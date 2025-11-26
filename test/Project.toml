@@ -17,6 +17,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestEnv = "1e6cf692-eddd-4d53-88a5-2d735e33781b"
+UnitTestDesign = "239896fa-e45a-40e8-9993-3c434b0bc450"
 
 [sources]
 CompetingClocks = {path = ".."}
