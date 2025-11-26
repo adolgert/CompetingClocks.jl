@@ -42,6 +42,14 @@ docs/src/sir.md
 # environment.
 Manifest.toml
 
+*.png
+*.ttf
+docs/notes/createkwlists.jl
+docs/notes/createucclist.jl
+*.sty
+*.pdf
+./results/
+
 # General
 .DS_Store
 .AppleDouble

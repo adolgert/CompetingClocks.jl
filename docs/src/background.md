@@ -11,17 +11,17 @@ a model.
 
 The discrete case is much easier to understand than the continuous case
 because it can be explained without employing any results from calculus.
-Throughout this section, $\bf{X}$ will be assumed to real-valued random
-variable. For example, $\bf{X}$ could represent latent periods for
+Throughout this section, $\mathbf{X}$ will be assumed to real-valued random
+variable. For example, $\mathbf{X}$ could represent latent periods for
 measles.
 
 It frequently happens that random samples of the real valued variables
-such as $\bf{X}$ are actually analyzed on a discrete scale. For example
+such as $\mathbf{X}$ are actually analyzed on a discrete scale. For example
 Stocks' data on latent periods of measles in
 `latent_period` is based on daily visits
 by patients [Stocks:1931].
 
-The (cumulative) distribution of $\bf{X}$ is defined as
+The (cumulative) distribution of $\mathbf{X}$ is defined as
 
 $$F_{X}(k) = \mathcal{P}[x \le k]$$
 
@@ -41,7 +41,7 @@ density at day $k$ should be interpreted as the probability of the
 appearance of symptoms since the previous visit on day $k-1$.
 
 The *hazard* is defined as the conditional probability that the value of
-a random selection from $\bf{X}$ equals $k$ given it this value is
+a random selection from $\mathbf{X}$ equals $k$ given it this value is
 already known to exceed $k-1$. Using the usual rules for computing
 conditional probabilities, the hazard is given by the following ratio
 
@@ -62,7 +62,7 @@ present symptoms on day $k$. This is the origin of the term in the
 denominator.
 
 ![Figure 2. Estimated hazards of latent periods for measles in London
-circa 1931](assets/Stocks_hazard.svg)
+circa 1931](assets/Stocks_hazard.png)
 
 On any given day, the hazard for latent periods can be interpreted as
 the rate of appearance of symptoms per asymptomatic (infected but not
@@ -73,7 +73,7 @@ symptoms when examined on day 10.
 
 ![Figure 3. Each participant of the Stocks study could either become
 symptomatic or leave the study. Focusing on the hazard accounts for the
-effect of those who leave.](assets/stocks_person.svg)
+effect of those who leave.](assets/stocks_person.png)
 
 This interpretation is extremely important because it connects a hazard
 with a rate for a specific process, and that rate has well defined units
@@ -85,7 +85,7 @@ times when the depletion effect is most pronounced.
 
 ### Continuous case
 
-The random variable $\bf{X}$ is again assumed to be a real-valued, but
+The random variable $\mathbf{X}$ is again assumed to be a real-valued, but
 the measurements will not be binned as above. The cumulative
 distribution not an integer $k$ but a continuous time interval, $\tau$.
 
@@ -133,7 +133,7 @@ simulate a *Markov chain* or *Markov process*.
 
 ## Markov Chain for Discrete-Time Trajectories
 
-Roughly speaking, a *Markov chain*, $\bf{X}$, is a probabilistic system
+Roughly speaking, a *Markov chain*, $\mathbf{X}$, is a probabilistic system
 that makes random jumps among a finite set of distinct states,
 $s_0, s_1, s_2, \ldots, s_N$ such that the probability of choosing the
 next state, $X_{n+1}$ depends only on the current state, $X_n$. In
@@ -169,28 +169,28 @@ sense to record the times at which the transitions occur as part of the
 process itself.
 
 The first step in this generalization is to define a stochastic process
-$\bf{Y}$ that includes the transition times as well as the state,
+$\mathbf{Y}$ that includes the transition times as well as the state,
 $Y_{n} = (s_{j},t_{n})$.
 
 The second step is to treat time on a truly continuous basis by defining
-a new stochastic process, $\bf{Z}$, from $\bf{Y}$ by the rule
+a new stochastic process, $\mathbf{Z}$, from $\mathbf{Y}$ by the rule
 $Z_{t} = s_k$ in the time interval $t_n \le t
-< t_{n+1}$ given $Y_{n} = (s_k, t_n)$ . In other words, $\bf{Z}_{t}$ is
-a piecewise constant version of $\bf{Y}$ as shown in
+< t_{n+1}$ given $Y_{n} = (s_k, t_n)$ . In other words, $\mathbf{Z}_{t}$ is
+a piecewise constant version of $\mathbf{Y}$ as shown in
 `piecewise_Z`.
 
 ![Figure 4. **Realization of a continuous time stochastic process and
-associated Markov chain.**](assets/piecewise_Z.svg)
+associated Markov chain.**](assets/piecewise_Z.png)
 
-A realization of the process $\bf{Y}$ is defined by the closed diamonds
+A realization of the process $\mathbf{Y}$ is defined by the closed diamonds
 (left end points) alone. Similarly, a realization of the process
-$\bf{Z}_t$ is illustrated by the closed diamonds and line segments. The
+$\mathbf{Z}_t$ is illustrated by the closed diamonds and line segments. The
 closed and open diamonds at the ends of the line segment indicate that
 the segments include the left but not the right end points.
 
 The memoryless property for Markov processes is considerably more
 delicate than in the case of Markov chain because the time variable is
-continuous rather than discrete. In the case of $\bf{Y}$, the
+continuous rather than discrete. In the case of $\mathbf{Y}$, the
 conditional probabilities for state transitions of must satisfy
 
 $$\mathcal{P}[Y_{n+1} = (s_{l},t_{n+1}) | Y_0=(s_i, t_0), Y_1=(s_j, t_1),

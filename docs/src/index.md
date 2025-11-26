@@ -3,8 +3,11 @@ CurrentModule = CompetingClocks
 ```
 
 # CompetingClocks
-[![Coverage](https://codecov.io/gh/adolgert/CompetingClocks.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/adolgert/CompetingClocks.jl)
-
+```@raw html
+<a href="https://codecov.io/gh/adolgert/CompetingClocks.jl">
+  <img src="https://codecov.io/gh/adolgert/CompetingClocks.jl/branch/main/graph/badge.svg" alt="Coverage">
+</a>
+```
 Fast, composable samplers for stochastic discrete-event simulation.
 This package gives your simulation or simulation framework statistical features like common random
 numbers, likelihood tracking, and first-class support for non-Exponential distributions.
@@ -19,7 +22,7 @@ or to calculate the likelihood of a sample path for statistical estimation.
  * Generalized stochastic Petri nets.
  * Generalized semi-Markov Processes.
 
-![CompetingClocks chooses the next transition but the simulation tracks state and changes to state.](assets/CompetingClocksTopLevel.svg)
+![CompetingClocks chooses the next transition but the simulation tracks state and changes to state.](assets/CompetingClocksTopLevel.png)
 
 ## Implementation Based on
 

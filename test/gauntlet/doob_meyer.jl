@@ -13,6 +13,7 @@ function (dsf::DistributionIntegratedHazard)(t)
     return exp(total)
 end
 
+
 function doob_meyer(times::Vector{Float64}, distributions::Vector{DistributionState}, when::Float64)
     Gamma = DistributionIntegratedHazard(distributions)
     Gamma_0 = Gamma(when)
@@ -20,5 +21,13 @@ function doob_meyer(times::Vector{Float64}, distributions::Vector{DistributionSt
     for idx in eachindex(times)
         uniform_draws[idx] = 1.0 - exp(-Gamma(times[idx]) - Gamma_0)
     end
-    ApproximateOneSampleKSTest(uniform_draws, Uniform(0, 1))
+    test = ApproximateOneSampleKSTest(uniform_draws, Uniform(0, 1))
+    p = pvalue(test)
+    (; pvalue=p, supremum_of_difference=test.δ, test=test)
+end
+
+
+function doob_meyer(draws::Vector{ClockDraw}, distributions::Vector{DistributionState}, when::Float64)
+    forget_clock = [x[2] for x in draws]
+    return doob_meyer(forget_clock, distributions, when)
 end
