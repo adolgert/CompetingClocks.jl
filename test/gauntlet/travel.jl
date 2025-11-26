@@ -224,8 +224,8 @@ function travel_run(step_cnt, sampler::SSA, travel_model, rng)
 end
 
 
-function travel_commands(step_cnt, state_cnt::Int, graph_type::TravelGraph.T, memory_type::TravelMemory.T, rng::AbstractRNG)
-    model = Travel(state_cnt, graph_type, memory_type, rng)
+function travel_commands(step_cnt::Int, state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
+    model = Travel(state_cnt, config, rng)
     sampler = FirstReaction{Int,Float64}()
     commands = travel_run(step_cnt, sampler, model, rng)
     return commands

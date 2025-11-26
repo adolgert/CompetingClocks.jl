@@ -6,6 +6,10 @@ using Distributions
 
 
 rebuild_literate = "--fresh" in ARGS
+make_pdf = "--pdf" in ARGS
+# `make_pdf` may require latex and font support.
+# sudo apt install latexmk texlive-luatex texlive-fonts-extra fonts-lmodern
+# sudo luaotfload-tool --update
 
 # Literate puts images into png files in the same directory as the source
 # but we would like them in the assets subdirectory instead, so here we
@@ -62,19 +66,25 @@ for (source, target) in adliterate
     end
 end
 
-makedocs(;
-    modules=[CompetingClocks],
-    authors="Andrew Dolgert <adolgert@uw.edu>",
-    sitename="CompetingClocks.jl Documentation",
-    checkdocs=:none,  # Don't require all internal methods to be documented
-    format=Documenter.HTML(;
+if make_pdf
+    format = Documenter.LaTeX()
+else
+    format = Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         edit_link="main",
         size_threshold_warn=2^17,
         size_threshold=2^18,
         canonical="https://adolgert.github.io/CompetingClocks.jl",
         assets=String[],
-    ),
+    )
+end
+
+makedocs(;
+    modules=[CompetingClocks],
+    authors="Andrew Dolgert <adolgert@uw.edu>",
+    sitename="CompetingClocks.jl Documentation",
+    checkdocs=:none,  # Don't require all internal methods to be documented
+    format=format,
     pages=[
         "Home" => "index.md",
         "Getting Started" => [

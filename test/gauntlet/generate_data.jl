@@ -15,6 +15,12 @@ function replay_commands(commands, sampler, rng)
 end
 
 
+"""
+    parallel_replay(commands, replica_cnt::Int, rng::Vector)
+
+Returns (vector of samplers, time of last event). The samplers are all initialized
+to the last event at the same time with the same previously-fired events.
+"""
 function parallel_replay(commands, replica_cnt, rng::Vector{T}) where {T<:AbstractRNG}
     samplers = Vector{FirstReaction{Int,Float64}}(undef, replica_cnt)
     for construct_idx in 1:replica_cnt
@@ -29,6 +35,10 @@ function parallel_replay(commands, replica_cnt, rng::Vector{T}) where {T<:Abstra
 end
 
 
+"""
+Represents a shifted distribution, so it's the distribution and a left-right
+shift to the zero-point of the distribution.
+"""
 struct DistributionState
     d::UnivariateDistribution
     enabling_time::Float64
@@ -62,8 +72,20 @@ function final_enabled_distributions(commands)
     return Dict(k => v for (k, v) in dist if !isnothing(v))
 end
 
+
+"""
+Represents one sample of one sampler, so it's a clock and a time,
+where the clock is an integer in 1:N and the time is greater than the last event
+time.
+"""
 const ClockDraw = Tuple{Int,Float64}
 
+
+"""
+    sample_samplers(samplers, when, rng::Vector)
+
+Samples one event from each sampler. Returns `Vector{ClockDraw}`.
+"""
 function sample_samplers(samplers, when, rng::Vector{T}) where {T<:AbstractRNG}
     data = similar(samplers, ClockDraw)
     @threads for run_idx in eachindex(samplers)
@@ -75,13 +97,25 @@ function sample_samplers(samplers, when, rng::Vector{T}) where {T<:AbstractRNG}
 end
 
 
+"""
+    retrieve_draws(commands, sampler_cnt, rng)
+
+Given a set of commands, creates `sampler_cnt` samplers and gets one sample
+from each of them. Returns `(Vector{ClockDraw}, final_time::Float64)`.
+"""
 function retrieve_draws(commands, sampler_cnt, rng)
     samplers, final_time = parallel_replay(commands, sampler_cnt, rng)
     draws = sample_samplers(samplers, final_time, rng)
-    return draws
+    return draws, final_time
 end
 
 
+"""
+    jumble!(sample_data::Vector{ClockDraw}, rng)
+
+Used for permutation testing, this mixes which clock goes with which
+sampling time.
+"""
 function jumble!(sample_data::Vector{ClockDraw}, rng)
     clocks = [x[1] for x in sample_data]
     shuffle!(rng, clocks)
