@@ -3,20 +3,6 @@
 # Exact Rejection-based Stochastic Simulation Algorithm (RSSA)
 # for continuous-time Markov jump processes (exponential clocks).
 #
-# Algorithmic core:
-# - Maintain per-clock *true* rate a_i and a certified upper bound \bar a_i >= a_i.
-# - Maintain Ā = sum_i \bar a_i and a Fenwick tree over { \bar a_i } for O(log N) sampling.
-# - Draw candidate times from Exp(Ā). Select candidate clock i by Categorical(\bar a_i/Ā).
-# - Accept with probability a_i / \bar a_i; otherwise reject and continue thinning.
-#
-# Exactness: standard thinning of a Poisson process with rate Ā, with acceptance a_i/\bar a_i,
-# yields the target Markov jump process (homogeneous propensities). See Thanh et al. (2014, 2015).
-#
-# Notes:
-# - This implementation targets time-homogeneous propensities (Exponential only).
-#   For time-dependent rates (tRSSA), you need piecewise-time envelopes and an integral sampler;
-#   these can be added as a thin extension without changing the public interface.
-#
 using Random
 using Distributions: UnivariateDistribution, Exponential, rate
 
@@ -29,6 +15,20 @@ Rejection-based SSA with global Fenwick tree for candidate selection.
 This is for exponential distributions only not time-dependent rates.
 - `bound_factor` ≥ 1.0 controls default upper bounds: \\bar a_i ← max(\\bar a_i, bound_factor * a_i).
   Set to 1.0 for no rejections (reduces to direct-method timing with tree selection).
+
+# Algorithmic core:
+ - Maintain per-clock *true* rate a_i and a certified upper bound \bar a_i >= a_i.
+ - Maintain Ā = sum_i \bar a_i and a Fenwick tree over { \bar a_i } for O(log N) sampling.
+ - Draw candidate times from Exp(Ā). Select candidate clock i by Categorical(\bar a_i/Ā).
+ - Accept with probability a_i / \bar a_i; otherwise reject and continue thinning.
+
+Exactness: standard thinning of a Poisson process with rate Ā, with acceptance a_i/\bar a_i,
+yields the target Markov jump process (homogeneous propensities). See Thanh et al. (2014, 2015).
+
+Notes:
+ - This implementation targets time-homogeneous propensities (Exponential only).
+   For time-dependent rates (tRSSA), you need piecewise-time envelopes and an integral sampler;
+   these can be added as a thin extension without changing the public interface.
 """
 mutable struct RSSA{K,T} <: SSA{K,T}
     idx_of::Dict{K,Int}           # key → index (stable; indices are never reused)
@@ -141,6 +141,8 @@ function _ensure_index!(s::RSSA{K,T}, key::K) where {K,T}
     if idx != 0
         return idx
     end
+
+    # Append new, disabled clock
     push!(s.keys_vec, key)
     push!(s.present, false)
     push!(s.a, zero(T))
@@ -148,6 +150,16 @@ function _ensure_index!(s::RSSA{K,T}, key::K) where {K,T}
     push!(s.bit, zero(T))
     idx = length(s.keys_vec)
     s.idx_of[key] = idx
+
+    # Rebuild Fenwick tree over current bounds for enabled clocks
+    fill!(s.bit, zero(T))
+    for j in 1:idx
+        if s.present[j] && s.abar[j] > zero(T)
+            _bit_add!(s.bit, j, s.abar[j])
+        end
+    end
+    # Note: we do *not* touch s.Abar here; it is still the sum of abar over enabled clocks.
+
     return idx
 end
 
@@ -172,19 +184,25 @@ end
 function set_global_bound_factor!(s::RSSA{K,T}, bf) where {K,T}
     s.bound_factor = convert(T, bf)
     s.bound_factor < one(T) && (s.bound_factor = one(T))
-    # rebuild BIT and Abar
     fill!(s.bit, zero(T))
     s.Abar = zero(T)
     for idx in 1:length(s.keys_vec)
         if s.present[idx]
-            s.abar[idx] = max(s.bound_factor * s.a[idx], eps(T))
-            _bit_add!(s.bit, idx, s.abar[idx])
-            s.Abar += s.abar[idx]
+            if s.a[idx] <= zero(T)
+                s.abar[idx] = zero(T)
+            else
+                s.abar[idx] = s.bound_factor * s.a[idx]
+            end
+            if s.abar[idx] > zero(T)
+                _bit_add!(s.bit, idx, s.abar[idx])
+                s.Abar += s.abar[idx]
+            end
         end
     end
     _invalidate!(s)
     return s
 end
+
 
 # ---- interface methods ----
 
@@ -214,7 +232,8 @@ function enable!(s::RSSA{K,T},
     s.a[idx] = λ
 
     # Choose a default bound if needed
-    newabar = max(oldabar, s.bound_factor * λ)
+    # If λ is zero, force abar to zero to avoid infinite loops in next()
+    newabar = λ > zero(T) ? max(oldabar, s.bound_factor * λ) : zero(T)
     if !old_enabled
         # enable
         s.present[idx] = true
@@ -275,7 +294,10 @@ function next(s::RSSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
     end
 
     t = when
+    iteration = 0
     while true
+        iteration += 1
+
         # candidate time from Exp(Abar)
         Δ = rand(rng, Exponential(inv(s.Abar)))
         t += Δ
@@ -286,6 +308,7 @@ function next(s::RSSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
 
         # in case of numerical corner cases, resample
         if j < 1 || j > length(s.keys_vec) || !s.present[j] || s.abar[j] <= zero(T)
+
             continue
         end
 

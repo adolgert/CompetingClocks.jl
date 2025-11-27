@@ -66,12 +66,33 @@ function experiment_set(sampler_method, sut, rng_single)
 end
 
 
+function experiment_focused()
+    arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}()
+    push!(arrangements,
+        (
+            RejectionMethod(),
+            SamplerSUT(
+                TravelConfig(
+                    TravelMemory.forget,
+                    TravelGraph.cycle,
+                    TravelRateDist.exponential,
+                    TravelRateCount.destination,
+                    TravelRateDelay.none
+                ),
+                5,
+                10_000
+            )
+        )
+    )
+    return arrangements
+end
+
+
 function experiment_exponential()
     graph = [TravelGraph.cycle, TravelGraph.complete,]
     count = [TravelRateCount.destination, TravelRateCount.pair,]
     sampler_spec = [
-        RejectionMethod(),
-        PartialPropensityMethod(), DirectMethod(:keep, :tree),
+        RejectionMethod(), PartialPropensityMethod(), DirectMethod(:keep, :tree),
         DirectMethod(:keep, :array), DirectMethod(:remove, :tree),
         DirectMethod(:remove, :array),
         ]
@@ -104,7 +125,7 @@ function experiment_range()
         FirstReactionMethod(), FirstToFireMethod(), NextReactionMethod(),
         ]
     state_cnt = [4, 5, 6]
-    configurations = all_pairs(
+    configurations = full_factorial(
         memory, graph, dist, count, delay, collect(1:length(sampler_spec)),
         state_cnt
         )
@@ -124,7 +145,8 @@ function run_experiments()
     rng_single = Xoshiro(882342987)
     configurations1 = experiment_range()
     configurations2 = experiment_exponential()
-    configurations = vcat(configurations1, configurations2)
+    configurations = vcat(configurations2, configurations1)
+    # configurations = experiment_focused()
     println("There are $(length(configurations)) configurations.")
     results = Vector{Any}(undef, length(configurations))
     for gen_idx in eachindex(configurations)
