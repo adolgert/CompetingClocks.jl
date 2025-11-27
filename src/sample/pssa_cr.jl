@@ -263,7 +263,7 @@ end
 # Required interface: `fire!` has no internal scheduled time to remove.
 # We simply invalidate the cached next event.
 function fire!(s::PSSACR{K,T}, clock::K, when::T) where {K,T}
-    _invalidate!(s)
+    disable!(s, clock, when)
     return s
 end
 

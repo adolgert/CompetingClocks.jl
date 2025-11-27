@@ -43,7 +43,11 @@ function (score::ScoreEvents)(when::Float64, which::Int64)
     )
     ks = collect(keys(probs))
     score.mark_brier += briers[which]
-    score.mark_null .+= sample(score.rng, [briers[k] for k in ks], Weights([probs[j] for j in ks]))
+    score.mark_null .+= sample(
+        score.rng,
+        [briers[k] for k in ks], Weights([probs[j] for j in ks]),
+        length(score.mark_null)
+        )
 
     score.last_state = which
     score.last_time = when
@@ -58,7 +62,9 @@ function waiting_metric(score::ScoreEvents)
     for idx in keys(score.waiting_cumulant)
         test = ApproximateOneSampleKSTest(score.waiting_cumulant[idx], Uniform(0, 1))
         p = pvalue(test)
-        push!(measures, (; pvalue=p, clock=idx, count = length(score.waiting_cumulant[idx]), supremum_of_difference=test.δ, test=test))
+        push!(measures,
+            (; pvalue=p, name="doob", clock=idx, count = length(score.waiting_cumulant[idx]), supremum_of_difference=test.δ, test=test)
+            )
     end
     return measures
 end
@@ -69,7 +75,8 @@ function mark_calibration(score::ScoreEvents)
     return (;
         pvalue=(1 + count(x -> x >= score.mark_brier, score.mark_null)) / (B + 1),
         count = score.step_cnt,
-        clock = 0
+        clock = 0,
+        name="mark",
     )
 end
 

@@ -66,26 +66,55 @@ function experiment_set(sampler_method, sut, rng_single)
 end
 
 
-function experiment_range()
-    memory = [TravelMemory.forget,]
+function experiment_exponential()
     graph = [TravelGraph.cycle, TravelGraph.complete,]
-    dist = [TravelRateDist.exponential, TravelRateDist.general]
-    count = [TravelRateCount.destination, TravelRateCount.pair]
-    delay = [TravelRateDelay.none, TravelRateDelay.right]
-    sampler_spec = [FirstReactionMethod(), FirstToFireMethod()]
-    step_cnt = [5, 6]
-    state_cnt = [4, 5]
+    count = [TravelRateCount.destination, TravelRateCount.pair,]
+    sampler_spec = [
+        RejectionMethod(),
+        PartialPropensityMethod(), DirectMethod(:keep, :tree),
+        DirectMethod(:keep, :array), DirectMethod(:remove, :tree),
+        DirectMethod(:remove, :array),
+        ]
+    state_cnt = [4, 5, 6]
     configurations = full_factorial(
-        memory, graph, dist, count, delay, collect(1:length(sampler_spec)), step_cnt, state_cnt
+        graph, count, collect(1:length(sampler_spec)),
+        state_cnt
+        )
+    arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}(undef, length(configurations))
+    memory = TravelMemory.forget
+    dist = TravelRateDist.exponential
+    delay = TravelRateDelay.none
+    for idx in eachindex(configurations)
+        configuration = configurations[idx]
+        config = TravelConfig(memory, configuration[1], dist, configuration[2], delay)
+        sampler = sampler_spec[configuration[3]]
+        state_cnt = configuration[4]
+        arrangements[idx] = (sampler, SamplerSUT(config, state_cnt, 10000))
+    end
+    return arrangements
+end
+
+function experiment_range()
+    memory = [TravelMemory.forget, TravelMemory.remember,]
+    graph = [TravelGraph.cycle, TravelGraph.complete,]
+    dist = [TravelRateDist.exponential, TravelRateDist.general,]
+    count = [TravelRateCount.destination, TravelRateCount.pair,]
+    delay = [TravelRateDelay.none, TravelRateDelay.right,]
+    sampler_spec = [
+        FirstReactionMethod(), FirstToFireMethod(), NextReactionMethod(),
+        ]
+    state_cnt = [4, 5, 6]
+    configurations = all_pairs(
+        memory, graph, dist, count, delay, collect(1:length(sampler_spec)),
+        state_cnt
         )
     arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}(undef, length(configurations))
     for idx in eachindex(configurations)
         configuration = configurations[idx]
         config = TravelConfig(configuration[1:5]...)
         sampler = sampler_spec[configuration[6]]
-        step_cnt = configuration[7]
-        state_cnt = configuration[8]
-        arrangements[idx] = (sampler, SamplerSUT(config, state_cnt, step_cnt))
+        state_cnt = configuration[7]
+        arrangements[idx] = (sampler, SamplerSUT(config, state_cnt, 10_000))
     end
     return arrangements
 end
@@ -93,10 +122,14 @@ end
 
 function run_experiments()
     rng_single = Xoshiro(882342987)
-    configurations = experiment_range()
+    configurations1 = experiment_range()
+    configurations2 = experiment_exponential()
+    configurations = vcat(configurations1, configurations2)
+    println("There are $(length(configurations)) configurations.")
     results = Vector{Any}(undef, length(configurations))
     for gen_idx in eachindex(configurations)
         sampler_spec, sut = configurations[gen_idx]
+        println("spec $sampler_spec sut $sut")
         results[gen_idx] = collect_data_single(sampler_spec, sut, rng_single)
     end
     scores = Vector{Tuple{Float64,Int}}(undef, length(results))
@@ -113,12 +146,24 @@ function run_experiments()
     println("=" ^ 80)
     println("lowest scores")
     println("=" ^ 80)
-    for examine in 1:10
+    for examine in 1:5
         value, config_idx = scores[examine]
         config = configurations[config_idx]
         println("value $value")
         println("config $config")
-        println("metrics $(results[config_idx])")
+        res_metrics = results[config_idx]
+        for res in res_metrics
+            println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+        end
+        println("=" ^ 80)
+        sampler_spec, sut = configurations[config_idx]
+        for i in 1:5
+            rep_metrics = collect_data_single(sampler_spec, sut, rng_single)
+            println("-"^80)
+            for res in rep_metrics
+                println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+            end
+        end
         println("=" ^ 80)
     end
 end

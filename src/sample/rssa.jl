@@ -259,7 +259,7 @@ end
 
 # After firing, nothing to remove; just invalidate cached sample.
 function fire!(s::RSSA{K,T}, key::K, when::T) where {K,T}
-    _invalidate!(s)
+    disable!(s, key, when)
     return s
 end
 
