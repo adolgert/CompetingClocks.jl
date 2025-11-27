@@ -1,6 +1,7 @@
 module TravelModel
 
 using CompetingClocks
+using CompetingClocks: SamplerSpec
 using Random
 using Distributions
 using Graphs
@@ -10,7 +11,7 @@ using EnumX
 export travel_commands, travel_make_run, travel_make_graph
 export Travel, travel_init_state, travel_enabled
 export travel_run, TravelMemory, TravelGraph, TravelRateDist, TravelRateCount
-export TravelRateDelay, TravelConfig, NoRecord, VectorRecord
+export TravelRateDelay, TravelConfig, NoRecord, VectorRecord, SamplerRecord
 
 @enumx TravelMemory forget remember
 @enumx TravelGraph path cycle complete clique
@@ -158,14 +159,33 @@ travel_init_state(tr::Travel, rng) = rand(rng, 1:nv(tr.g))
 travel_enabled(tr::Travel, state) = Set(neighbors(tr.g, state))
 
 abstract type CommandRecorder end
+
 struct NoRecord <: CommandRecorder end
+
 struct VectorRecord <: CommandRecorder
     commands::Vector{Tuple}
     VectorRecord() = new(Tuple[])
 end
 
+struct SamplerRecord{S,R} <: CommandRecorder
+    sampler::S
+    rng::R
+    SamplerRecord(sampler, rng) = new{typeof(sampler), typeof(rng)}(sampler, rng)
+end
+
 record!(::NoRecord, cmd) = nothing
+
 record!(r::VectorRecord, cmd) = push!(r.commands, cmd)
+
+function record!(r::SamplerRecord, cmd)
+    if cmd[1] == :enable
+        enable!(r.sampler, cmd[2:end]..., r.rng)
+    elseif cmd[1] == :disable
+        disable!(r.sampler, cmd[2:end]...)
+    elseif cmd[1] == :fire
+        fire!(r.sampler, cmd[2:end]...)
+    end
+end
 
 # This sampler is a low-level sampler. This is for testing individual samplers,
 # not the SamplingContext. As a result, we track the RNG and the current time.
@@ -235,10 +255,6 @@ function travel_run(step_cnt, sampler::SSA, travel_model, observe, recorder::Com
     end
 end
 
-
-function travel_run(step_cnt, sampler::SSA, travel_model, observe, rng)
-    travel_run()
-end
 
 function travel_commands(step_cnt::Int, state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
     model = Travel(state_cnt, config, rng)

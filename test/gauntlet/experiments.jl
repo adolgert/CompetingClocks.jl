@@ -2,13 +2,6 @@ using .TravelModel
 using UnitTestDesign
 
 
-struct SamplerSUT
-    travel::TravelConfig
-    state_cnt::Int
-    step_cnt::Int
-end
-
-
 function rng_set(single_rng)
     rng = Vector{Xoshiro}(undef, Threads.maxthreadid())
     rng[1] = single_rng
@@ -19,7 +12,7 @@ function rng_set(single_rng)
 end
 
 
-function mark_calibration_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
+function mark_calibration_single(smethod, sut::SamplerSUT, rng::Vector)
     sampler = smethod(Int,Float64)
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
 
@@ -36,7 +29,7 @@ function mark_calibration_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vec
 end
 
 
-function doob_meyer_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
+function doob_meyer_single(smethod, sut::SamplerSUT, rng::Vector)
     sampler = smethod(Int,Float64)
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
     distributions = final_enabled_distributions(commands)
@@ -48,7 +41,7 @@ function doob_meyer_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
 end
 
 
-function two_sample_ad_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
+function two_sample_ad_single(smethod, sut::SamplerSUT, rng::Vector)
     sampler = smethod(Int,Float64)
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
     distributions = final_enabled_distributions(commands)
@@ -85,7 +78,7 @@ function experiment_range()
     configurations = full_factorial(
         memory, graph, dist, count, delay, collect(1:length(sampler_spec)), step_cnt, state_cnt
         )
-    arrangements = Vector{Tuple{SSA,SamplerSUT}}(undef, length(configurations))
+    arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}(undef, length(configurations))
     for idx in eachindex(configurations)
         configuration = configurations[idx]
         config = TravelConfig(configuration[1:5]...)
@@ -103,14 +96,29 @@ function run_experiments()
     configurations = experiment_range()
     results = Vector{Any}(undef, length(configurations))
     for gen_idx in eachindex(configurations)
-        sampler, sut = configurations[gen_idx]
-        results[gen_idx] = experiment_set(sampler, sut, rng_single)
+        sampler_spec, sut = configurations[gen_idx]
+        results[gen_idx] = collect_data_single(sampler_spec, sut, rng_single)
     end
     scores = Vector{Tuple{Float64,Int}}(undef, length(results))
     for score_idx in eachindex(results)
-        scores[score_idx] = (minimum(x.pvalue for x in results[score_idx]), score_idx)
+        mmm = minimum(x.pvalue for x in results[score_idx])
+        # We take the minimum value across a set of clocks, so it is
+        # a minimum of a different number of values. Each of the values
+        # should be uniformly distributed, so the min is a convolution.
+        # Using this adjusts each min for the number of metrics.
+        adjusted = 1 - (1 - mmm)^length(results[score_idx])
+        scores[score_idx] = (adjusted, score_idx)
     end
     sort!(scores)
+    println("=" ^ 80)
     println("lowest scores")
-    println(scores[begin:begin + 10])
+    println("=" ^ 80)
+    for examine in 1:10
+        value, config_idx = scores[examine]
+        config = configurations[config_idx]
+        println("value $value")
+        println("config $config")
+        println("metrics $(results[config_idx])")
+        println("=" ^ 80)
+    end
 end

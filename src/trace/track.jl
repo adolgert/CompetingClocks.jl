@@ -174,21 +174,27 @@ end
 
 
 """
-    stepconditionalprobability(tw::EnabledWatcher, t, which_fires)
+    stepconditionalprobability(tw::EnabledWatcher, t)
 
-This is the probability that a particular clock fires at a given time, ``P[K|T]``.
+This is the probability that any particular clock fires at a given time, ``P[K|T]``.
+This returns a dictionary from clock to probability such that the sum is one.
 It is the probability over the space of clocks conditional on the firing time. If
 all distributions are Exponential, this won't depend on the time, but in other
 cases it will. This is useful for mark calibration testing.
 
 Note that `t0` isn't required because the hazard depends only on enabling times.
 """
-function stepconditionalprobability(tw::EnabledWatcher{K,T}, t, which_fires) where {K,T}
-    fired_entry = tw.enabled[which_fires]
-    h0 = hazard(fired_entry.distribution, fired_entry.te, t)
-    denominator = sum(entry -> hazard(entry.distribution, entry.te, t), values(tw.enabled))
-    denominator == zero(Float64) && return zero(Float64)
-    return h0 / denominator
+function stepconditionalprobability(tw::EnabledWatcher{K,T}, t) where {K,T}
+    marginal = Dict{K,Float64}(
+        entry.clock => hazard(entry.distribution, entry.te, t)
+        for entry in values(tw.enabled)
+    )
+    denominator = sum(values(marginal))
+    denominator == zero(Float64) && return marginal
+    for k in keys(marginal)
+        marginal[k] /= denominator
+    end
+    return marginal
 end
 
 
