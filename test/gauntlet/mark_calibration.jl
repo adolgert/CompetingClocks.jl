@@ -64,12 +64,12 @@ end
 This resamples with replacement in order to mimic repeated sampling from the
 same data-generating process.
 """
-function mark_calibration_nonparametric_bootstrap(commands, sampler_cnt, rng)
+function mark_calibration_nonparametric_bootstrap(commands, sampler, sampler_cnt, rng)
     B = 1000  # more stable than 100
     boot = zeros(Float64, B)
 
     # Build one “dataset” of draws once
-    samplers, final_time = parallel_replay(commands, sampler_cnt, rng)
+    samplers, final_time = parallel_replay(commands, sampler, sampler_cnt, rng)
     draws = sample_samplers(samplers, final_time, rng)
     distributions = final_enabled_distributions(commands)
 

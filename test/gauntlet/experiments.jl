@@ -24,7 +24,7 @@ function mark_calibration_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vec
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
 
     sampler_cnt = 10000
-    mark_calibration_nonparametric_bootstrap(commands, sampler_cnt, rng)
+    mark_calibration_nonparametric_bootstrap(commands, sampler, sampler_cnt, rng)
 
     samplers, final_time = parallel_replay(commands, sampler, sampler_cnt, rng)
     draws = sample_samplers(samplers, final_time, rng)
@@ -92,7 +92,7 @@ function experiment_range()
         sampler = sampler_spec[configuration[6]]
         step_cnt = configuration[7]
         state_cnt = configuration[8]
-        arrangments[idx] = (sampler, SamplerSUT(config, state_cnt, step_cnt))
+        arrangements[idx] = (sampler, SamplerSUT(config, state_cnt, step_cnt))
     end
     return arrangements
 end
