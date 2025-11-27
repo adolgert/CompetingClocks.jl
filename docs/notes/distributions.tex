@@ -135,15 +135,15 @@ Julia has one function to retrieve all parameters of a distribution and a few fu
 	Julia Function & Equation & Statistics name \\ \hline
 	\texttt{ccdf} & $S(x) = e^{-\int^x\lambda(s)ds}$ & Survival \\
 	\texttt{cdf} & $F(x) = 1 - S(x) = 1-e^{-\int^x\lambda(s)ds}$ & Cumulative distribution function \\
-	\texttt{pdf} & $f(x) = \lambda(x)e^{-\int^x\lambda(s)ds}$ & Probability distribution function \\
-	\texttt{logpdf} & $\ln\:f(x)$ & Log-likelihood \\
+	\texttt{pdf} & $f(x) = \lambda(x)e^{-\int^x\lambda(s)ds}$ & Probability density function \\
+	\texttt{logpdf} & $\ln\:f(x)$ & Log probability density \\
 	\texttt{logcdf} & $\ln\:F(x)$ & \\
 	\texttt{logdiffcdf} & $\ln\left(F(x_2)-F(x_1)\right)$ & \\
 	\texttt{logccdf} & $-\int^x\lambda(s)ds$ & Integrated hazard (negated) \\
 	\texttt{quantile} & $y = F^{-1}(x)$ & Inverse cumulative distribution function \\
 	\texttt{cquantile} & $y = F^{-1}(1-x)$ so $x = S(y)$ & Inverse Survival \\
 	\texttt{invlogcdf} & $x = \ln\:F(y)$ so $e^x = F(y)$ & \\
-	\texttt{invlogccdf} & $x = -\int_0^y\lambda(s)ds$ & Inverse integrated hazard \\ \hline
+	\texttt{invlogccdf} & $x = -\int_0^y\lambda(s)ds$ & Inverse negative integrated hazard \\ \hline
 \end{tabular}
 \caption{This translates between Julia functions and hazard-based notation. We can use this to find
 the shortest path to our calculation in code.\label{julia-translation}}
@@ -153,13 +153,13 @@ Later we will use two pairs of functions from \texttt{Distributions.jl} to imple
 
 \texttt{invlogccdf(d::UnivariateDistribution, x::Real)} can be translated into
 \begin{equation}
-e^x = G(y) = e^{\int_0^y\lambda(s)ds}.
+e^x = G(y) = e^{-\int_0^y\lambda(s)ds}.
 \end{equation}
 That means this function is the inverse of the integrated hazard.
 \begin{equation}
 x = \Lambda(y)
 \end{equation}
-In this package, the integrated hazard is called \texttt{logccdf}.
+In this package, the integrated hazard is the negative of \texttt{logccdf}.
 
 
 \section{Next Reaction for Non-Markov Processes}\label{sec:nextreaction}

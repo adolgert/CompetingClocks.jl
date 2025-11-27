@@ -132,13 +132,63 @@ end
 """
     steploglikelihood(tw::TrackWatcher, now, when_fires, which_fires)
 
-Calculate the log-likelihood of a single step in which the `which_fires`
+Calculate the log probability density of a single step in which the `which_fires`
 transition fires next. `now` is the current time. `when_fires` is the time when
 `which_fires` happens so `when > now`. You have to call this before the transition fires so that
 it is before transitions are enabled and disabled from the previous step.
+
+One way to compute a marginal likelihood of a particular clock firing ``P[K]``
+is to integrate:
+```julia
+Using QuadGK
+quadgk(t -> exp(steploglikelihood(tw, t0, t, clock)), t0, Inf)[1]
+```
+It would be slow but could be done.
 """
 function steploglikelihood(tw::EnabledWatcher{K,T}, t0, t, which_fires) where {K,T}
     _steploglikelihood(values(tw.enabled), t0, t, which_fires)
+end
+
+
+"""
+    stepcumulant(tw::EnabledWatcher{K,T}, t0, t)
+
+Given a firing time, return the cumulant of the waiting time. Each sample is from a
+distributon `P[K,T]` where `K` is the clock. This tells you the cumulant
+of the marginal `P[T]`. This calculation is used for a Doob-Meyer test of
+sampler correctness. The step-cumulant should be uniformly-distributed.
+This value is ``U=1-\\exp(-H)`` where ``H`` is the integrated hazard of the
+waiting time.
+"""
+function stepcumulant(tw::EnabledWatcher{K,T}, t0, t) where {K,T}
+    @assert t>= t0
+    return one(Float64) - exp(sum(
+        function (entry)
+            t < entry.te && return zero(Float64)
+            t0 < entry.te && return logccdf(entry.distribution, t - entry.te)
+            logccdf(entry.distribution, t - entry.te) - logccdf(entry.distribution, t0 - entry.te)
+        end,
+        values(tw.enabled)
+    ))
+end
+
+
+"""
+    stepconditionalprobability(tw::EnabledWatcher, t, which_fires)
+
+This is the probability that a particular clock fires at a given time, ``P[K|T]``.
+It is the probability over the space of clocks conditional on the firing time. If
+all distributions are Exponential, this won't depend on the time, but in other
+cases it will. This is useful for mark calibration testing.
+
+Note that `t0` isn't required because the hazard depends only on enabling times.
+"""
+function stepconditionalprobability(tw::EnabledWatcher{K,T}, t, which_fires) where {K,T}
+    fired_entry = tw.enabled[which_fires]
+    h0 = hazard(fired_entry.distribution, fired_entry.te, t)
+    denominator = sum(entry -> hazard(entry.distribution, entry.te, t), values(tw.enabled))
+    denominator == zero(Float64) && return zero(Float64)
+    return h0 / denominator
 end
 
 

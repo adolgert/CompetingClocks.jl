@@ -36,7 +36,6 @@ function mark_calibration_brier(distributions, fired_clock, when)
 end
 
 
-
 """
     mark_calibration_conditional_time(draws, distributions)
 

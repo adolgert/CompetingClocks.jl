@@ -88,7 +88,9 @@ end
         model = Travel(3, config, rng)
         sampler = FirstReaction{Int,Float64}()
 
-        commands = travel_run(5, sampler, model, rng)
+        rec = VectorRecord()
+        travel_run(5, sampler, model, (x,y) -> nothing, rec, rng)
+        commands = rec.commands
         @test commands isa Vector
         @test !isempty(commands)
         @test all(cmd -> cmd isa Tuple, commands)
@@ -113,11 +115,12 @@ end
             )
         model = Travel(2, config, rng)
         sampler = FirstReaction{Int,Float64}()
-        commands = travel_run(5, sampler, model, rng)
+        rec = VectorRecord()
+        travel_run(5, sampler, model, (x,y) -> nothing, rec, rng)
 
         sampler2 = FirstReaction{Int,Float64}()
         rng2 = Xoshiro(111)
-        replay_commands(commands, sampler2, rng2)
+        replay_commands(rec.commands, sampler2, rng2)
         # Should complete without error
         @test true
     end
@@ -130,7 +133,9 @@ end
             )
         model = Travel(2, config, rng)
         sampler = FirstReaction{Int,Float64}()
-        commands = travel_run(5, sampler, model, rng)
+        rec = VectorRecord()
+        travel_run(5, sampler, model, (x,y) -> nothing, rec, rng)
+        commands = rec.commands
 
         rng_vec = make_rng_vector(12345)
         samplers, when = parallel_replay(commands, sampler, 4, rng_vec)
@@ -149,7 +154,9 @@ end
             )
         model = Travel(3, config, rng)
         sampler = FirstReaction{Int,Float64}()
-        commands = travel_run(5, sampler, model, rng)
+        rec = VectorRecord()
+        travel_run(5, sampler, model, (x,y) -> nothing, rec, rng)
+        commands = rec.commands
         @test !isempty(commands)
 
         final_dist = final_enabled_distributions(commands)
@@ -172,7 +179,9 @@ end
             )
         model = Travel(2, config, rng)
         sampler = FirstReaction{Int,Float64}()
-        commands = travel_run(5, sampler, model, rng)
+        rec = VectorRecord()
+        travel_run(5, sampler, model, (x,y) -> nothing, rec, rng)
+        commands = rec.commands
 
         rng_vec = make_rng_vector(12345)
         samplers, when = parallel_replay(commands, sampler, 4, rng_vec)
@@ -213,7 +222,9 @@ end
             )
         model = Travel(3, config, rng)
         sampler = FirstReaction{Int,Float64}()
-        commands = travel_run(10, sampler, model, rng)
+        rec = VectorRecord()
+        travel_run(10, sampler, model, (x,y) -> nothing, rec, rng)
+        commands = rec.commands
 
         rng_vec = make_rng_vector(12345)
         samplers, when = parallel_replay(commands, sampler, 4, rng_vec)
