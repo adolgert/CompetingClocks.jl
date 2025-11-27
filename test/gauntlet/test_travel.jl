@@ -4,12 +4,15 @@ using Random
 using Distributions
 using Graphs
 using Base.Threads
+using HypothesisTests
 
 include("travel.jl")
+using .TravelModel
 include("generate_data.jl")
 include("mark_calibration.jl")
+include("running_score.jl")
+include("experiments.jl")
 
-using .TravelModel
 
 
 # Helper to create a vector of RNGs for threaded operations
@@ -238,5 +241,12 @@ end
         @test total isa Float64
         @test total >= 0.0
         @test isfinite(total)
+    end
+end
+
+
+@testset "Experiments Integration Tests" begin
+    @testset "run_experiments faster mode" begin
+        @test run_experiments(true)
     end
 end

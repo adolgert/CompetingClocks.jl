@@ -88,7 +88,7 @@ function experiment_focused()
 end
 
 
-function experiment_exponential()
+function experiment_exponential(faster::Bool)
     graph = [TravelGraph.cycle, TravelGraph.complete,]
     count = [TravelRateCount.destination, TravelRateCount.pair,]
     sampler_spec = [
@@ -97,7 +97,8 @@ function experiment_exponential()
         DirectMethod(:remove, :array),
         ]
     state_cnt = [4, 5, 6]
-    configurations = full_factorial(
+    design = faster ? all_pairs : full_factorial
+    configurations = design(
         graph, count, collect(1:length(sampler_spec)),
         state_cnt
         )
@@ -115,7 +116,7 @@ function experiment_exponential()
     return arrangements
 end
 
-function experiment_range()
+function experiment_range(faster::Bool)
     memory = [TravelMemory.forget, TravelMemory.remember,]
     graph = [TravelGraph.cycle, TravelGraph.complete,]
     dist = [TravelRateDist.exponential, TravelRateDist.general,]
@@ -125,7 +126,8 @@ function experiment_range()
         FirstReactionMethod(), FirstToFireMethod(), NextReactionMethod(),
         ]
     state_cnt = [4, 5, 6]
-    configurations = full_factorial(
+    design = faster ? all_pairs : full_factorial
+    configurations = design(
         memory, graph, dist, count, delay, collect(1:length(sampler_spec)),
         state_cnt
         )
@@ -141,17 +143,18 @@ function experiment_range()
 end
 
 
-function run_experiments()
+function run_experiments(faster=false)
+    echo = !faster
     rng_single = Xoshiro(882342987)
-    configurations1 = experiment_range()
-    configurations2 = experiment_exponential()
+    configurations1 = experiment_range(faster)
+    configurations2 = experiment_exponential(faster)
     configurations = vcat(configurations2, configurations1)
     # configurations = experiment_focused()
-    println("There are $(length(configurations)) configurations.")
+    echo && println("There are $(length(configurations)) configurations.")
     results = Vector{Any}(undef, length(configurations))
     for gen_idx in eachindex(configurations)
         sampler_spec, sut = configurations[gen_idx]
-        println("spec $sampler_spec sut $sut")
+        echo && println("spec $sampler_spec sut $sut")
         results[gen_idx] = collect_data_single(sampler_spec, sut, rng_single)
     end
     scores = Vector{Tuple{Float64,Int}}(undef, length(results))
@@ -165,27 +168,39 @@ function run_experiments()
         scores[score_idx] = (adjusted, score_idx)
     end
     sort!(scores)
-    println("=" ^ 80)
-    println("lowest scores")
-    println("=" ^ 80)
+    echo && println("=" ^ 80)
+    echo && println("lowest scores")
+    echo && println("=" ^ 80)
+    succeed = true
     for examine in 1:5
         value, config_idx = scores[examine]
         config = configurations[config_idx]
-        println("value $value")
-        println("config $config")
+        echo && println("value $value")
+        echo && println("config $config")
         res_metrics = results[config_idx]
+        group = Dict{Tuple{String,Int},Vector{Float64}}()
         for res in res_metrics
-            println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+            echo && println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+            group[(res.name, res.clock)] = [res.pvalue]
         end
-        println("=" ^ 80)
+        echo && println("=" ^ 80)
         sampler_spec, sut = configurations[config_idx]
         for i in 1:5
             rep_metrics = collect_data_single(sampler_spec, sut, rng_single)
-            println("-"^80)
+            echo && println("-"^80)
             for res in rep_metrics
-                println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+                echo && println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+                push!(group[(res.name, res.clock)], res.pvalue)
             end
         end
-        println("=" ^ 80)
+        for (metid, metvals) in group
+            m = median(metvals)
+            @assert m > 0.05
+            if m < 0.05
+                succeed = false
+            end
+        end
+        echo && println("=" ^ 80)
     end
+    return succeed
 end
