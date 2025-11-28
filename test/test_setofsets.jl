@@ -233,3 +233,53 @@ end
     sos_empty_subsets = SetOfSets([empty_a, empty_b])
     @test isempty(sos_empty_subsets)
 end
+
+@safetestset setofsets_union_edge_cases = "SetOfSets union edge cases" begin
+    using CompetingClocks: SetOfSets
+
+    # Union of empty SetOfSets with non-empty SetOfSets
+    empty_sos = SetOfSets(Set{Int}[])
+    a = Set([1, 2, 3])
+    non_empty = SetOfSets([a])
+
+    result = union(empty_sos, non_empty)
+    @test result isa SetOfSets
+    @test Set(collect(result)) == Set([1, 2, 3])
+
+    # Union in reverse order
+    result2 = union(non_empty, empty_sos)
+    @test result2 isa SetOfSets
+    @test Set(collect(result2)) == Set([1, 2, 3])
+
+    # Union of two empty SetOfSets
+    empty_sos2 = SetOfSets(Set{Int}[])
+    empty_result = union(empty_sos, empty_sos2)
+    @test empty_result isa SetOfSets
+    @test isempty(empty_result)
+
+    # Union with overlapping elements
+    b = Set([2, 3, 4])
+    c = Set([4, 5, 6])
+    sos1 = SetOfSets([a, b])
+    sos2 = SetOfSets([c])
+    result3 = union(sos1, sos2)
+    @test result3 isa SetOfSets
+    # Note: SetOfSets doesn't deduplicate, so length reflects sum of subset lengths
+    @test length(result3) == length(a) + length(b) + length(c)
+    # But iteration may yield duplicates from different subsets
+    @test all(x in result3 for x in 1:6)
+end
+
+@safetestset setofsets_isempty_single_subset = "SetOfSets isempty with single subset" begin
+    using CompetingClocks: SetOfSets
+
+    # Single empty subset
+    empty_set = Set{Int}()
+    sos_single_empty = SetOfSets([empty_set])
+    @test isempty(sos_single_empty)
+
+    # Single non-empty subset
+    non_empty_set = Set([42])
+    sos_single_nonempty = SetOfSets([non_empty_set])
+    @test !isempty(sos_single_nonempty)
+end
