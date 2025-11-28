@@ -28,6 +28,7 @@ include("sample/rssa.jl")
 include("variance/with_common_random.jl")
 include("sample/petri.jl")
 include("samplerspec.jl")
+include("delayed_state.jl")
 include("sampler_builder.jl")
 include("context.jl")
 

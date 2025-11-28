@@ -31,6 +31,7 @@ struct SamplerBuilder{K,T}
     group::Vector{SamplerBuilderGroup}
     start_time::T
     likelihood_cnt::Int
+    support_delayed::Bool   # NEW
 end
 
 """
@@ -42,7 +43,8 @@ end
         common_random=false,
         method=nothing,
         start_time::T,
-        likelihood_cnt::Int
+        likelihood_cnt::Int,
+        support_delayed=false,
         )
 
 A SamplerBuilder is responsible for recording a user's requirements and building
@@ -52,8 +54,7 @@ an initial sampler.
  * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
  * `path_likelihood` - whether you will call `pathloglikelihood`
     at the end of a simulation run.
- * `debug` - Print log messages at the debug level. Enabling this
-   stores every enabling and disabling event so don't leave it on.
+ * `debug` - Print log messages at the debug level.
  * `recording` - Store every enable and disable for later examination.
  * `common_random` - Use common random numbers during sampling.
  * `method` - If you want a single, particular sampler, put its `SamplerSpec` here.
@@ -61,15 +62,8 @@ an initial sampler.
  * `start_time` - Sometimes a simulation shouldn't start at zero.
  * `likelihood_cnt` - The number of likelihoods to compute, corresponds to number of
    distributions in `enable!` calls. This turns on `path_likelihood`.
-
-# Example
-
-```julia
-builder = SamplerBuilder(Tuple,Float64)
-add_group!(builder, :sparky => (x,d) -> x[1] == :recover, method=NextReaction())
-add_group!(builder, :forthright=>(x,d) -> x[1] == :infect)
-context = SamplingContext(builder, rng)
-```
+ * `support_delayed` - If `true`, the internal sampler key type becomes
+   `Tuple{K,Symbol}` to distinguish regular, initiation, and completion phases.
 """
 function SamplerBuilder(::Type{K}, ::Type{T};
     step_likelihood=false,
@@ -80,12 +74,14 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     method::Union{SamplerSpec,Nothing}=nothing,    # Ask for specific sampler.
     start_time::T=zero(T),
     likelihood_cnt=1,
+    support_delayed=false,
 ) where {K,T}
     group = SamplerBuilderGroup[]
     path_likelihood = path_likelihood || likelihood_cnt > 1
     builder = SamplerBuilder(
         K, T, step_likelihood, path_likelihood, debug, recording,
-        common_random, group, start_time, likelihood_cnt
+        common_random, group, start_time, likelihood_cnt,
+        support_delayed,
     )
     if !isnothing(method)
         add_group!(builder, :all => (x, d) -> true; method=method)
@@ -138,26 +134,37 @@ function auto_select_method(builder::SamplerBuilder)
     end
 end
 
+"""
+    build_sampler(builder::SamplerBuilder)
+
+Choose and construct the sampler(s) with the appropriate internal key type.
+
+If `builder.support_delayed` is `true`, the internal key type is
+`Tuple{K,Symbol}`, otherwise it is just `K`.
+"""
 function build_sampler(builder::SamplerBuilder)
-    K = builder.clock_type
-    T = builder.time_type
+    K_user = builder.clock_type
+    T      = builder.time_type
+
+    K_int = builder.support_delayed ? Tuple{K_user,Symbol} : K_user
+
     if length(builder.group) == 0
-        sampler = FirstToFireMethod()(K, T)
+        sampler = FirstToFireMethod()(K_int, T)
         matcher = nothing
     elseif length(builder.group) == 1
-        method = isnothing(builder.group[1].method) ? auto_select_method(builder) : builder.group[1].method
-        sampler = method(K, T)
+        method  = isnothing(builder.group[1].method) ? auto_select_method(builder) :
+                                                      builder.group[1].method
+        sampler = method(K_int, T)
         matcher = nothing
     else
         competes = builder.group
         for compete in competes
             method = isnothing(compete.method) ? auto_select_method(builder) : compete.method
-            compete.instance = method(K, T)
+            compete.instance = method(K_int, T)
         end
-        # Any direct method gets added to the others for combination.
         inclusion = Dict(samp.name => samp.selector for samp in competes)
-        matcher = FromInclusion{K}(make_key_classifier(inclusion))
-        sampler = MultiSampler{Symbol,K,T}(matcher)
+        matcher   = FromInclusion{K_int}(make_key_classifier(inclusion))
+        sampler   = MultiSampler{Symbol,K_int,T}(matcher)
         for samp in competes
             sampler[samp.name] = samp.instance
         end
