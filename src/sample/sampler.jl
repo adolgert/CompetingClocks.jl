@@ -172,7 +172,7 @@ function disable!(
 end
 
 
-function Base.getindex(sampler::MultiSampler, clock)
+function Base.getindex(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}, clock::Key) where {SamplerKey,Key,Time,Chooser}
     return getindex(sampler.propagator[sampler.chosen[clock]], clock)
 end
 
