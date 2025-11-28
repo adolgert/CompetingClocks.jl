@@ -1,6 +1,6 @@
 name = "CompetingClocks"
 uuid = "5bb9b785-358c-4fee-af0f-b94a146244a8"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Andrew Dolgert <andrew@dolgert.com>", "Sean L. Wu <slwood@gmail.com>"]
 
 [workspace]
