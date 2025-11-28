@@ -18,6 +18,8 @@ for other distributions. Yes, these two methods are mixed into one sampler becau
 Julia's holy traits pattern makes it efficient to use the fastest sampler on
 a distribution-by-distribution basis. Because it reuses draws, this is the best choice if
 you want to do variance reduction with Common Random Numbers.
+
+See [`CombinedNextReaction`](@ref).
 """
 struct NextReactionMethod <: SamplerSpec end
 (::NextReactionMethod)(K, T) = CombinedNextReaction{K,T}()
@@ -26,6 +28,10 @@ struct NextReactionMethod <: SamplerSpec end
 """
     DirectMethod()
     DirectMethod(memory::Symbol, search::Symbol)
+    DirectMethod(:keep, :scan)
+    DirectMethod(:keep, :tree)
+    DirectMethod(:remove, :scan)
+    DirectMethod(:remove, :tree)
 
 Use this to specify any Direct method for Exponential distributions. Defaults
 to `memory=:remove` so it limits memory growth over time but `memory=:keep`
@@ -35,6 +41,8 @@ is faster for small numbers of clocks. The different kinds of methods, like
 "Optimized Direct Methods" amount to using different computer science techniques
 for scanning sums of hazard rates, and that's what the `search` algorithm lets
 you choose.
+
+See [`DirectCall`](@ref).
 """
 struct DirectMethod <: SamplerSpec
     memory_management::Symbol
@@ -74,6 +82,8 @@ The classic sampler that draws every clock at every time step. Very fast for
 very small numbers of enabled clocks and returns a new `next()` every time it
 is called which helps when resampling paths. Other samplers return the same
 value every time you call `next()` unless you `jitter!` them, which is expensive.
+
+See [`FirstReaction`](@ref).
 """
 struct FirstReactionMethod <: SamplerSpec end
 (::FirstReactionMethod)(K, T) = FirstReaction{K,T}()
@@ -84,6 +94,8 @@ struct FirstReactionMethod <: SamplerSpec end
 
 The simplest and fastest sampler. When you `enable!()` a clock, this draws the
 firing time and saves it in a queue.
+
+See [`FirstToFire`](@ref).
 """
 struct FirstToFireMethod <: SamplerSpec end
 (::FirstToFireMethod)(K, T) = FirstToFire{K,T}()
@@ -96,6 +108,8 @@ A rejection-based algorithm. Only for exponential distributions, this may be
 the fastest for large simulations. The `bound_factor>= 1.0` controls the default
 upper bounds. Set to 1.0 for no rejections, which reduces this to the direct
 method.
+
+See [`RSSA`](@ref).
 """
 struct RejectionMethod <: SamplerSpec
     bound_factor::Float64
@@ -111,6 +125,8 @@ Exact, continuous-time sampler using composition-rejection over groups.
 Only for exponential distributions. This variant of partial-propensity
 composition-rejection implements the sampler but not the reaction network. The
 reaction-network can be implemented outside of the sampler.
+
+See [`PSSACR`](@ref).
 """
 struct PartialPropensityMethod <: SamplerSpec
     ngroups::Int
@@ -126,6 +142,8 @@ end
 Samples by picking at random ignoring distributions. Good for testing rare
 cases in simulations. Increments time `dt=1.0` by default. It's called "Petri"
 because a Petri net model always chooses the next event at random.
+
+See [`Petri`](@ref).
 """
 struct PetriMethod <: SamplerSpec
     dt::Float64

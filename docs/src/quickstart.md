@@ -1,4 +1,4 @@
-# CompetingClocks.jl Quickstart
+# Quickstart
 
 Learn CompetingClocks.jl basics by building a minimal simulation.
 
@@ -20,8 +20,7 @@ population = Set(1:person_cnt)
 # Events will be identified by a tuple of type and individual.
 const ClockKey = Tuple{Symbol,Int}
 # Create a sampler.
-builder = SamplerBuilder(ClockKey, Float64)
-sampler = SamplingContext(builder, rng)
+sampler = SamplingContext(ClockKey, Float64, rng)
 enable!(sampler, (:birth, 0), Exponential(inv(length(population) * 2.0)))
 for mort in population
     enable!(sampler, (:death, mort), Gamma(inv(1.5)))
@@ -51,7 +50,7 @@ end
  3. Create a sampler.
  4. Enable initial events.
  5. Ask what happens next and
-    - `fire!` that event.
+    - `fire!` that event, which also disables the event.
     - Handle changes to state and enabled events.
 
 You tell it what *could* happen with `enable!()`, ask what happens `next()`,
@@ -62,20 +61,23 @@ So that you can stop a simulation at a fixed time rather than after an event.
 
 Learn More Techniques
 
- - State management: your-first-sim.md - Better state handling.
- - Choosing samplers: choosign-samplers.md - When to use which algorithm.
+ - State management: [Sample Main Loop](@ref "Sample Main Loop") - Better state handling.
+ - Choosing samplers: [Choosing a Sampler](@ref "Choosing a Sampler") - When to use which algorithm.
  - Real examples:
-   - SIR
-   - reliability
+   - [SIR Model](sir.md)
+   - [Reliability](reliability.md)
+   - [Birth-Death Process](constant_birth.md)
+   - [Gene Expression](gene_expression.md)
 
 Advanced Features
 
- - Get likelihoods: likelihood-tutorial
- - Variance reduction: variance-reduction.md
- - Build a framework: integration-guide.md
+ - [Get likelihoods](@ref "Importance Sampling for Simulation")
+ - [Variance reduction](@ref "Common Random Numbers")
+ - [Build a framework](@ref "Integration Guide")
 
 API Reference
 
- - api.md#enable - Full parameter documentation
- - api.md#next - Return value details
- - api.md#samplerbuilder - Configuration options
+ - [Build a Context](@ref "Building a Context")
+ - [`CompetingClocks.enable!`](@ref) - Parameter documenation.
+ - [`CompetingClocks.next`](@ref) - Return value details.
+ - [`CompetingClocks.SamplerBuilder`](@ref) - Configuration options.

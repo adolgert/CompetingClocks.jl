@@ -27,3 +27,14 @@ The `DebugWatcher` records every time an event is enabled or disabled.
 You wouldn't normally want to use all of this time and memory (and memory churn),
 but it can be helpful to see the trace of all events enabled and disabled,
 in addition to those that fired.
+
+```julia
+for enabling_event in enabled_history(sampler)
+    println("$(enabling_event.clock), $(enabling_event.when)")
+end
+for disabling_event in disabled_history(sampler)
+    println("$(disabling_event.clock), $(disabling_event.when)")
+end
+```
+
+Look at [`CompetingClocks.enabled_history`](@ref) and [`CompetingClocks.disabled_history`](@ref).

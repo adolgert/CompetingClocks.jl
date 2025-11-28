@@ -106,7 +106,7 @@ end
 
 @safetestset context_with_step_likelihood = "SamplingContext with step_likelihood" begin
     using CompetingClocks: SamplingContext, SamplerBuilder, enable!, next, fire!
-    using CompetingClocks: steploglikelihood, FirstToFireMethod
+    using CompetingClocks: steploglikelihood, FirstToFireMethod, enabled_history, disabled_history
     using Random: Xoshiro
     using Distributions: Exponential
 
@@ -126,11 +126,15 @@ end
     @test isfinite(ll)
 
     fire!(ctx, which, when)
+
+    @test_throws "`recording=true`" enabled_history(ctx)
+    @test_throws "`recording=true`" disabled_history(ctx)
 end
 
 
 @safetestset context_with_debug = "SamplingContext with debug/recording" begin
     using CompetingClocks: SamplingContext, SamplerBuilder, enable!, next, fire!, disable!
+    using CompetingClocks: enabled_history, disabled_history
     using Random: Xoshiro
     using Distributions: Exponential
 
@@ -146,12 +150,15 @@ end
 
     when, which = next(ctx)
     fire!(ctx, which, when)
+    @test length(disabled_history(ctx)) == 1
 
     # Disable the other clock
     other = which == 1 ? 2 : 1
     disable!(ctx, other)
 
     @test length(ctx) == 0
+    @test length(enabled_history(ctx)) == 2
+    @test length(disabled_history(ctx)) == 2
 end
 
 
