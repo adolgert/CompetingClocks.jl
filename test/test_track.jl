@@ -341,3 +341,313 @@ end
     dw_log = DebugWatcher{Int,Float64}()
     @test dw_log.log == true
 end
+
+
+@safetestset track_trackwatcher_clone = "TrackWatcher clone" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: clone
+    using Random
+
+    rng = Xoshiro(5555555)
+
+    # Create and populate a TrackWatcher
+    tw = TrackWatcher{Int,Float64}()
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 2, Gamma(2.0, 1.0), 1.0, 1.0, rng)
+    enable!(tw, 3, Weibull(1.5, 2.0), 2.0, 2.0, rng)
+
+    @test length(tw) == 3
+
+    # Clone should create an empty watcher with same type parameters
+    cloned = clone(tw)
+    @test cloned isa TrackWatcher{Int,Float64}
+    @test length(cloned) == 0
+    @test isempty(cloned.enabled)
+
+    # Original should be unchanged
+    @test length(tw) == 3
+end
+
+
+@safetestset track_jitter = "EnabledWatcher jitter!" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: jitter!
+    using Random
+
+    rng = Xoshiro(6666666)
+
+    # jitter! on TrackWatcher should do nothing (returns nothing)
+    tw = TrackWatcher{Int,Float64}()
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    result = jitter!(tw, 1.0, rng)
+    @test result === nothing
+    # The enabled clock should be unchanged
+    @test length(tw) == 1
+    @test haskey(tw, 1)
+end
+
+
+@safetestset track_memorysampler_keytype = "MemorySampler keytype" begin
+    using CompetingClocks: FirstToFire, MemorySampler, keytype
+    using CompetingClocks
+
+    # Create MemorySampler with Int64 keys
+    propagator = MemorySampler(FirstToFire{Int64,Float64}())
+    @test keytype(propagator) == Int64
+
+    # Create MemorySampler with Symbol keys
+    propagator_sym = MemorySampler(FirstToFire{Symbol,Float64}())
+    @test keytype(propagator_sym) == Symbol
+
+    # Create MemorySampler with String keys
+    propagator_str = MemorySampler(FirstToFire{String,Float32}())
+    @test keytype(propagator_str) == String
+end
+
+
+@safetestset track_memorysampler_getindex = "MemorySampler getindex" begin
+    using CompetingClocks: FirstToFire, MemorySampler
+    using CompetingClocks
+    using Random: Xoshiro
+    using Distributions
+
+    propagator = MemorySampler(FirstToFire{Int64,Float64}())
+    rng = Xoshiro(7777777)
+
+    # Enable some clocks
+    enable!(propagator, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(propagator, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(propagator, 3, Exponential(3.0), 0.0, 0.0, rng)
+
+    # getindex should delegate to the underlying sampler
+    # For FirstToFire, getindex returns the firing time
+    t1 = propagator[1]
+    t2 = propagator[2]
+    t3 = propagator[3]
+
+    @test t1 isa Float64
+    @test t2 isa Float64
+    @test t3 isa Float64
+    @test t1 >= 0.0
+    @test t2 >= 0.0
+    @test t3 >= 0.0
+end
+
+
+@safetestset track_isenabled_enabled = "TrackWatcher isenabled and enabled" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: isenabled, enabled
+    using Random
+
+    rng = Xoshiro(8888888)
+
+    tw = TrackWatcher{Int,Float64}()
+
+    # Initially nothing is enabled
+    @test !isenabled(tw, 1)
+    @test !isenabled(tw, 2)
+    @test isempty(enabled(tw))
+
+    # Enable some clocks
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 2, Exponential(2.0), 0.5, 0.5, rng)
+
+    @test isenabled(tw, 1)
+    @test isenabled(tw, 2)
+    @test !isenabled(tw, 3)
+
+    enabled_keys = collect(enabled(tw))
+    @test length(enabled_keys) == 2
+    @test 1 in enabled_keys
+    @test 2 in enabled_keys
+
+    # Disable one
+    disable!(tw, 1, 1.0)
+    @test !isenabled(tw, 1)
+    @test isenabled(tw, 2)
+
+    enabled_keys_after = collect(enabled(tw))
+    @test length(enabled_keys_after) == 1
+    @test 2 in enabled_keys_after
+end
+
+
+@safetestset track_trackwatcher_iterate = "TrackWatcher iteration" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+
+    rng = Xoshiro(9999999)
+
+    tw = TrackWatcher{Int,Float64}()
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 2, Gamma(2.0, 1.0), 1.0, 1.0, rng)
+    enable!(tw, 3, Weibull(1.5, 2.0), 2.0, 2.0, rng)
+
+    # Test iteration via for-loop (uses Base.iterate)
+    clocks_seen = Int[]
+    for entry in tw
+        push!(clocks_seen, entry.clock)
+        @test entry.distribution isa Distributions.UnivariateDistribution
+        @test entry.te isa Float64
+        @test entry.when isa Float64
+    end
+
+    @test length(clocks_seen) == 3
+    @test sort(clocks_seen) == [1, 2, 3]
+end
+
+
+@safetestset track_disable_nonexistent = "TrackWatcher disable nonexistent clock" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+
+    rng = Xoshiro(1010101)
+
+    tw = TrackWatcher{Int,Float64}()
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # Disabling a clock that doesn't exist should not error
+    disable!(tw, 999, 1.0)  # This clock was never enabled
+    @test length(tw) == 1
+    @test haskey(tw, 1)
+end
+
+
+@safetestset track_enable_replaces = "TrackWatcher enable replaces existing" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+
+    rng = Xoshiro(2020202)
+
+    tw = TrackWatcher{Int,Float64}()
+
+    # Enable clock 1 with one distribution
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    @test tw[1].distribution isa Exponential
+    @test tw[1].te == 0.0
+    @test tw[1].when == 0.0
+
+    # Enable clock 1 again with different distribution and times
+    # This should replace the existing entry (after disabling it internally)
+    enable!(tw, 1, Gamma(2.0, 1.0), 5.0, 5.0, rng)
+    @test length(tw) == 1  # Still only one clock
+    @test tw[1].distribution isa Gamma
+    @test tw[1].te == 5.0
+    @test tw[1].when == 5.0
+end
+
+
+@safetestset track_steploglikelihood_edge_cases = "steploglikelihood edge cases" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+
+    rng = Xoshiro(3030303)
+
+    tw = TrackWatcher{Int,Float64}()
+
+    # Case: t < te (firing time is before the enabling time offset)
+    # This is the case where the clock hasn't "started" yet
+    enable!(tw, 1, Exponential(1.0), 5.0, 0.0, rng)  # te=5.0, when=0.0
+
+    # If t < te and this clock fires, should return -Inf
+    ll_fires_early = steploglikelihood(tw, 0.0, 3.0, 1)
+    @test ll_fires_early == -Inf
+
+    # If t < te and a different clock fires, should return 0 for this clock's contribution
+    enable!(tw, 2, Exponential(1.0), 0.0, 0.0, rng)  # te=0.0
+    ll_other_fires = steploglikelihood(tw, 0.0, 3.0, 2)
+    @test ll_other_fires < 0  # Should be finite since clock 2 can fire
+    @test isfinite(ll_other_fires)
+end
+
+
+@safetestset track_stepcumulant = "stepcumulant function" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: stepcumulant
+    using Random
+
+    rng = Xoshiro(4040404)
+
+    tw = TrackWatcher{Int,Float64}()
+
+    # Single exponential clock - cumulant should be between 0 and 1
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # Test at various times
+    for t in [0.1, 0.5, 1.0, 2.0, 5.0]
+        c = stepcumulant(tw, 0.0, t)
+        @test 0.0 <= c <= 1.0
+    end
+
+    # At t=0, cumulant should be 0
+    c_zero = stepcumulant(tw, 0.0, 0.0)
+    @test c_zero ≈ 0.0 atol=1e-10
+
+    # Test with t < te (before distribution starts)
+    tw2 = TrackWatcher{Int,Float64}()
+    enable!(tw2, 1, Exponential(1.0), 5.0, 0.0, rng)
+    c_early = stepcumulant(tw2, 0.0, 3.0)
+    @test c_early ≈ 0.0 atol=1e-10
+end
+
+
+@safetestset track_stepconditionalprobability = "stepconditionalprobability function" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: stepconditionalprobability, hazard
+    using Random
+
+    rng = Xoshiro(5050505)
+
+    tw = TrackWatcher{Int,Float64}()
+
+    # Two exponential clocks with same rate - should have equal probability
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 2, Exponential(1.0), 0.0, 0.0, rng)
+
+    probs = stepconditionalprobability(tw, 1.0)
+    @test length(probs) == 2
+    @test probs[1] ≈ 0.5 atol=1e-10
+    @test probs[2] ≈ 0.5 atol=1e-10
+    @test sum(values(probs)) ≈ 1.0 atol=1e-10
+
+    # Different rates - higher rate should have higher probability
+    tw2 = TrackWatcher{Int,Float64}()
+    enable!(tw2, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1
+    enable!(tw2, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2
+
+    probs2 = stepconditionalprobability(tw2, 1.0)
+    @test probs2[2] > probs2[1]  # Clock 2 has higher rate
+    @test sum(values(probs2)) ≈ 1.0 atol=1e-10
+end
+
+
+@safetestset track_stepconditionalprobability_zero_hazard = "stepconditionalprobability zero hazard" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: stepconditionalprobability
+    using Random
+
+    rng = Xoshiro(6060606)
+
+    tw = TrackWatcher{Int,Float64}()
+
+    # Enable a clock with te in the future so hazard at current time is 0
+    enable!(tw, 1, Exponential(1.0), 10.0, 0.0, rng)
+
+    # At t=5.0, the clock hasn't started (te=10.0), so hazard should be 0
+    # When all hazards are zero, the function should return the dict with zeros
+    probs = stepconditionalprobability(tw, 5.0)
+    @test length(probs) == 1
+    # The hazard at t=5 for a distribution starting at te=10 should be 0
+    # because t < te
+end
