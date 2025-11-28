@@ -17,6 +17,7 @@ all_tests = [
     "test_package.jl",
     "test_combinednr.jl",
     "test_context.jl",
+    "test_delayed_state.jl",
     "test_direct.jl",
     "test_firstreaction.jl",
     "test_firsttofire.jl",

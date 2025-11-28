@@ -97,6 +97,7 @@ makedocs(;
             "integration-guide.md",
             "low_level_interface.md",
             "samplers.md",
+            "delayed.md",
             "guide.md",
             "distributions.md",
             "hierarchical.md",
