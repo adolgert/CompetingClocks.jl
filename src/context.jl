@@ -1,5 +1,5 @@
 export SamplingContext, enable!, fire!, isenabled, freeze_crn!
-export sample_from_distribution!
+export sample_from_distribution!, enabled_history, disabled_history
 export next_delayed, timetype
 
 mutable struct SamplingContext{K,T,Sampler<:SSA,RNG,Like,CRN,Dbg,DS}
@@ -633,5 +633,36 @@ function pathloglikelihood(ctx::SamplingContext, endtime)
             error("The sampler doesn't support pathloglikelihood " *
                   "unless you request it in the builder.")
         end
+    end
+end
+
+
+"""
+    enabled_history(ctx::SamplingContext)
+
+Returns a `Vector{EnablingEntry{K,T}}` that has every time a clock was enabled.
+
+See [`CompetingClocks.EnablingEntry`](@ref).
+"""
+function enabled_history(ctx::SamplingContext)
+    if !isnothing(ctx.debug)
+        return enabled_history(ctx.debug)
+    else
+        error("In order to get history of enabling create context with `recording=true`")
+    end
+end
+
+"""
+    disabled_history(ctx::SamplingContext)
+
+Returns a `Vector{DisablingEntry{K,T}}` that has every time a clock was disabled.
+
+See [`CompetingClocks.DisablingEntry`](@ref).
+"""
+function disabled_history(ctx::SamplingContext)
+    if !isnothing(ctx.debug)
+        return disabled_history(ctx.debug)
+    else
+        error("In order to get history of disabling create context with `recording=true`")
     end
 end
