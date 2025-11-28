@@ -16,7 +16,6 @@ reset_crn!
 split!
 misscount
 misses
-ChatReaction
 consume_survival
 sampling_space
 steploglikelihood
