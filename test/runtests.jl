@@ -2,6 +2,11 @@ using CompetingClocks
 using SafeTestsets
 using Test
 
+# Run the "test_neverdist.jl" tests by calling:
+# ```bash
+# julia --project -e 'using Pkg;Pkg.test(; test_args = ["neverdist"])'`
+# ```
+
 # Not tests. These are helper functions for tests.
 include("vas.jl")
 include("test_utility.jl")
@@ -20,6 +25,7 @@ all_tests = [
     "test_keyedprefixsearch.jl",
     "test_likelihood.jl",
     "test_multiple_direct.jl",
+    "test_neverdist.jl",
     "test_nrtransition.jl",
     "test_petri.jl",
     "test_prefixsearch.jl",
