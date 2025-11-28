@@ -14,7 +14,15 @@ When you apply importance sampling in simulation, the workflow feels like this:
 
 The main problem is that too large of bias on distributions can lead to mathematical underflow in calculation of the weights. Intuitively, a stochastic simulation can have a lot of individual sampled events, and each event's probability multiplies to get the probability of a path of samples in a trajectory. If those samples are repeatedly biased, they can cause numbers that are too small to represent.
 ```math
-w = \frac{L(\lambda_{\mbox{target}})}{L(\lambda_{\mbox{proposal}})} = \left(\frac{\lambda_{\mbox{target}}}{\lambda_{\mbox{proposal}}}\right)^N e^{-(\lambda_{\mbox{target}} - \lambda_{\mbox{proposal}})T}
+w = \frac{L(\lambda_{\mbox{target}})}{L(\lambda_{\mbox{proposal}})}
+```
+
+```math
+ = \left(\frac{\lambda_{\mbox{target}}}{\lambda_{\mbox{proposal}}}\right)^N
+```
+
+```math
+e^{-(\lambda_{\mbox{target}} - \lambda_{\mbox{proposal}})T}
 ```
 What you'll see in practice is that the initial simulation, under $p$, works fine, that a small change in a distribution's parameters still works fine, and then the importance-weighted estimates fall off a cliff and show values like $10^{-73}$.
 

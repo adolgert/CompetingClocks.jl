@@ -15,11 +15,10 @@
 
 # CompetingClocks implements common random numbers by recording the state of the random number generator every time a clock is enabled. There are other ways to do this, but this one works with the [CombinedNextReaction](@ref) and [FirstToFire](@ref) samplers. The workflow you would use looks notionally like:
 
-#   1. Create a sampler.
-#   2. Wrap it in a [CommonRandom](@ref).
-#   3. Run a lot of simulations in order to explore and record all possible clock states. Run `reset!(recorder)` after each simulation.
-#   4. For every parameter set to try, run it the same way, using `reset!` after each run.
-#   5. Compare outcomes.
+#   1. Create a sampler with the keyword argument `common_random=true`.
+#   2. Run a lot of simulations in order to explore and record all possible clock states. Run `reset!(recorder)` after each simulation.
+#   3. For every parameter set to try, run it the same way, using `reset!` after each run.
+#   4. Compare outcomes.
 
 # Because the `CommonRandom` stores the state of the random number generator at each step, it works best with random number generators that have small state, such as Xoshiro on a linear congruential generator (LCG).
 
