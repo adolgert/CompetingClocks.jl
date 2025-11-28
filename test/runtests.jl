@@ -36,6 +36,7 @@ all_tests = [
     "test_sampler_builder.jl",
     "test_setofsets.jl",
     "test_track.jl",
+    "test_trajectory.jl",
     "test_vas_integrate.jl",
     "test_vas.jl",
     "test_with_common_random.jl",
