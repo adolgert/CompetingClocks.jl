@@ -21,6 +21,7 @@ all_tests = [
     "test_nrtransition.jl",
     "test_petri.jl",
     "test_prefixsearch.jl",
+    "test_pssa_cr.jl",
     "test_sampler.jl",
     "test_samplerspec.jl",
     "test_sampler_builder.jl",

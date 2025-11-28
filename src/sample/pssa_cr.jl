@@ -338,8 +338,8 @@ end
 # Here we only cache the *single* next event. We return its time iff it belongs to `clock`.
 function Base.getindex(s::PSSACR{K,T}, clock::K) where {K,T}
     s.cached_next === nothing && throw(KeyError(clock))
-    key = getfield(s.cached_next, :clock)
-    if key == clock
+    k = getfield(s.cached_next, :key)
+    if k == clock
         return getfield(s.cached_next, :time)
     else
         throw(KeyError(clock))
