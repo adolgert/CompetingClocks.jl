@@ -2,7 +2,10 @@
 # Low-level Sampler Interface
 
 The main interface to the package is the [`SamplingContext`](@ref).
-Within that class are the samplers themselves. This describes their interface.
+The `SamplingContext` contains sampling algorithms and other helper classes. This describes the interface to underlying sampling algorithms, which differ slightly:
+
+ * They don't hold a random number generator internally so it is passed as an argument.
+ * All input times are absolute, so the enabling time of a distribution is given in absolute time.
 
 ## Common Interface to Low-level Samplers
 
@@ -45,8 +48,8 @@ CompetingClocks.DirectCall{K,T,P}
 CompetingClocks.FirstReaction{K,T}
 CompetingClocks.FirstToFire{K,T}
 CompetingClocks.PSSACR{K,T}
-CompetingClocks.Petri{K,T}
 CompetingClocks.RSSA{K,T}
+CompetingClocks.Petri{K,T}
 ```
 
 ## Hierarchical Sampling

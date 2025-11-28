@@ -49,7 +49,8 @@ performant for sampling.
 This package doesn't use Tasks or thread guards because it is so common to
 run multiple copies of a simulation, each on its own thread. If you run
 multiple simulations, it can be more correct to use random number generators
-that work in parallel, such as those in the `Random123` package.
+that work in parallel, such as those in the `Random123` package or the `jump!()`
+method for the `Xoshiro` sampler in the `Random` package.
 
 ### State and Dependencies
 
@@ -58,14 +59,14 @@ events. It can be very helpful for performance if you use information about
 relationships among events to limit updates to the samplers. There are a few
 kinds of dependency graphs that may help.
 
- * When one event fires, it changes state. Which other events could be, or are,
-   enabled because of the changed state?
- * When one event fires, it changes state. Which other events have transition
-   rates that depend on that state? The event may remain enabled, but its
+ * Dependency Graph---When one event fires, it changes state. Which other events could be
+   enabled or disabled because of the changed state?
+ * Rate Dependency Graph---When one event fires, it changes state. Which other events have transition
+   *rates* that depend on that state? The event may remain enabled, but its
    distribution of firing times may have a different parameter value.
- * When one event fires, you might know directly which other events have
+ * Event-to-event Graph---When one event fires, you might know directly which other events have
    enabling rules or transition rates that depend on that first event, without
-   needing to ask what state changed.
+   needing to ask what state changed and what events depend on the state.
 
 How you represent a dependency graph depends on the problem.
 
@@ -94,7 +95,7 @@ Split the sampler into groups so that each region is faster.
 ```julia
 builder = SamplerBuilder(EventKey, Float64)
 for region in spatial_grid
-    add_group!(builder, regin.name => (key, dist) -> key.location == region.id)
+    add_group!(builder, region.name => (key, dist) -> key.location == region.id)
 end
 ```
 
@@ -102,8 +103,8 @@ end
 Map reactions to events.
 ```julia
 function enable_reaction!(sampler, reaction, state, params)
-    rate = calculate_propensity(reaction, state, params)
-    enable!(sampler, reaction.id, Exponential(1/rate))
+    propensity = calculate_propensity(reaction, state, params)
+    enable!(sampler, reaction.id, Exponential(1/propensity))
 end
 ```
 
@@ -123,6 +124,8 @@ sampler = SamplingContext(builder, rng)
 # After simulation, the log_prob is a Float64.
 log_prob = pathloglikelihood(sampler, end_time)
 ```
+The resulting value is the likelihood of a single trajectory of the system.
+The `pathloglikelihood` is a regular function and can be differentiated.
 
 ## Variance reduction
 Construct the sampler with the `common_random` option.
@@ -130,10 +133,13 @@ Construct the sampler with the `common_random` option.
 builder = SamplerBuilder(KeyType, Float64; common_random=true)
 sampler = SamplingContext(builder, rng)
 ```
-Run it a bunch of times. Each run will pin more random draws. Then use
+Run the simulation a bunch of times, calling `reset!()` between runs to
+clear the sampler's memory of the previous run but save the common random
+numbers. Each run will pin more random draws. Then use
 `freeze_crn!` to stop collecting random draws.
 ```julia
 for i in 1:warm_up
+    reset!(sampler)
     results1 = run_simulation(model, sampler)
 end
 freeze_crn!(sampler)  # Lock random draws
@@ -173,7 +179,7 @@ of each copy by one over the number of copies.
 
 CompetingClocks offers a `split!` function that copies the state to a vector
 of clocks and keeps a `split_weight` as a record of how many times splitting
-was done. Take a look at the implementation of `split!()`.
+was done. Take a look at the implementation of [`CompetingClocks.split!()`](@ref).
 
 Your code might keep the sampler in the main simulation framework, in which case
 you would include the sampler in the cloning and copying process.
@@ -187,12 +193,12 @@ sampler = SamplingContext(builder, rng)
 ```
 Then run with logging on.
 ```julia
-with_logger(ConsoleLogger(stdout, Logging.Info)) do
+with_logger(ConsoleLogger(stdout, Logging.Debug)) do
     observed, importance = run_epochs(100)
 end
 ```
 
-There is also a chaos-monkey option called a `Petri` sampler.
+There is also a [chaos-monkey](https://en.wikipedia.org/wiki/Chaos_engineering) option called a `Petri` sampler.
 This sampler always advances time by the same time step `dt=1.0` by default,
 and it ignores the clock distributions. It chooses any enabled sampler at
 each step, with the goal of finding unusual sampling paths. This is surprisingly
@@ -200,9 +206,8 @@ effective at finding logic errors in code to change state.
 
 ## Performance Considerations
 
-**Type Stability**---The ClockKey is a place where it can be very helpful to
-use different types to describe different kinds of events, but it's also a place
-where type stability makes the calculations faster.
+**Type Stability**---Use a concrete type for the
+ClockKey for more speed.
 
 **Sampler Choice**---If there are a lot of clocks enabled at the same time,
 the the sampler choice can be important. Experts in traffic simulation use
@@ -212,5 +217,3 @@ samplers about whether clock keys are reused.
 
 **Memory Allocation**---Instead of making a new sampler for each run, use
 `reset!(sampler)` between runs to clear out the clocks.
-
-In short, make a sampler choice and benchmark.

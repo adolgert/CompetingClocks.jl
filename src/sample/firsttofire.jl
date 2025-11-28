@@ -18,6 +18,10 @@ When a clock is first enabled, this sampler asks the clock when it would
 fire and saves that time in a sorted heap of future times. Then it works
 through the heap, one by one. When a clock is disabled, its future firing time
 is removed from the list. There is no memory of previous firing times.
+
+This uses a `DataStructures.MutableBinaryMinHeap` which is a Fibonacci
+heap. It has been tested against many other heaps and rarely loses by more
+than a few percent, so we are sticking with it.
 """
 mutable struct FirstToFire{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}

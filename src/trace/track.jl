@@ -4,21 +4,18 @@ using Distributions: UnivariateDistribution
 export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
 export pathloglikelihood, fire!, absolute_enabling
 
-# A Watcher has an enable!() and a disable!() function but lacks
-# the next() function that a Sampler has. You can attach a watcher
-# to a model in order to provide more information about active
-# clocks.
-#
-# `when`` and `te`` are in absolute times.
-# Here are the possible cases:
-# Let's call the simulation time `now`
-# At the moment of creation `when=now`. `te` can be less than, the same as, or greater than `when`.
-# For later calls, `when < now` strictly less than. So you can have
-#  * `te<=when < now`,
-#  * `when<=te<now`,
-#  * `when<te=now`, or
-#  * `when<now<te`.
-#
+"""
+    EnablingEntry{K,T}(clock::K, distribution, te::T, when::T)
+
+Records that `clock` is enabled at time `when` with an enabling time
+`te` (in absolute time) that sets the zero of the `distribution`.
+
+# Fields
+ - `clock::K`: The key for the event/clock/transition.
+ - `distribution::Distributions.UnivariateDistribution`, a distribution of clock firing times.
+ - `te::T` - An absolute time to use as the zero-time for the distribution. Usually the same as `when`.
+ - `when::T` - The time this clock was enabled.
+"""
 struct EnablingEntry{K,T}
     clock::K
     distribution::UnivariateDistribution
@@ -27,6 +24,15 @@ struct EnablingEntry{K,T}
 end
 
 
+"""
+    DisablingEntry{K,T}(clock::K, when::T)
+
+Records that `clock` is disabled at time `when`.
+
+# Fields
+ - `clock::K`: The key for the event/clock/transition.
+ - `when::T` - The time this clock was enabled.
+"""
 struct DisablingEntry{K,T}
     clock::K
     when::T

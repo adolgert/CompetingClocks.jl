@@ -1,5 +1,5 @@
 export SamplingContext, enable!, fire!, isenabled, freeze_crn!
-export sample_from_distribution!
+export sample_from_distribution!, enabled_history, disabled_history
 
 
 mutable struct SamplingContext{K,T,Sampler<:SSA{K,T},RNG,Like,CRN,Dbg}
@@ -78,7 +78,8 @@ We keep the internal logic simple. If something is present, call it.
  * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
  * `path_likelihood` - whether you will call `pathloglikelihood`
     at the end of a simulation run.
- * `debug` - Print log messages at the debug level.
+ * `debug` - Print log messages at the debug level. Enabling this
+   stores every enabling and disabling event so don't leave it on.
  * `recording` - Store every enable and disable for later examination.
  * `common_random` - Use common random numbers during sampling.
  * `method` - If you want a single, particular sampler, put its `SamplerSpec` here.
@@ -411,6 +412,36 @@ function enabled(ctx::SamplingContext)
     return enabled(ctx.sampler)
 end
 
+
+"""
+    enabled_history(ctx::SamplingContext)
+
+Returns a `Vector{EnablingEntry{K,T}}` that has every time a clock was enabled.
+
+See [`CompetingClocks.EnablingEntry`](@ref).
+"""
+function enabled_history(ctx::SamplingContext)
+    if !isnothing(ctx.debug)
+        return enabled_history(ctx.debug)
+    else
+        error("In order to get history of enabling create context with `recording=true`")
+    end
+end
+
+"""
+    disabled_history(ctx::SamplingContext)
+
+Returns a `Vector{DisablingEntry{K,T}}` that has every time a clock was enabled.
+
+See [`CompetingClocks.DisablingEntry`](@ref).
+"""
+function disabled_history(ctx::SamplingContext)
+    if !isnothing(ctx.debug)
+        return disabled_history(ctx.debug)
+    else
+        error("In order to get history of disabling create context with `recording=true`")
+    end
+end
 
 """
     length(sampling)

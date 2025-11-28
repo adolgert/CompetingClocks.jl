@@ -41,6 +41,10 @@ CompetingClocks.clone(::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg}, rng::RNG)
 CompetingClocks.freeze_crn!(::SamplingContext)
 CompetingClocks.reset_crn!(::SamplingContext)
 CompetingClocks.enabled(::SamplingContext)
+CompetingClocks.enabled_history(::SamplingContext)
+CompetingClocks.disabled_history(::SamplingContext)
+CompetingClocks.EnablingEntry
+CompetingClocks.DisablingEntry
 Base.length(::SamplingContext)
 CompetingClocks.isenabled(::SamplingContext{K}, ::K) where {K}
 Base.keytype(::SamplingContext{K}) where {K}

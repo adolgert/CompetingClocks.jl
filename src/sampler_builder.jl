@@ -52,7 +52,8 @@ an initial sampler.
  * `step_likelihood` - whether you will call `steploglikelihood` before each `fire!`
  * `path_likelihood` - whether you will call `pathloglikelihood`
     at the end of a simulation run.
- * `debug` - Print log messages at the debug level.
+ * `debug` - Print log messages at the debug level. Enabling this
+   stores every enabling and disabling event so don't leave it on.
  * `recording` - Store every enable and disable for later examination.
  * `common_random` - Use common random numbers during sampling.
  * `method` - If you want a single, particular sampler, put its `SamplerSpec` here.

@@ -97,6 +97,8 @@ makedocs(;
             "integration-guide.md",
             "low_level_interface.md",
             "samplers.md",
+            "guide.md",
+            "distributions.md",
             "hierarchical.md",
             "debugging.md",
         ],
@@ -111,12 +113,14 @@ makedocs(;
             "commonrandom.md",
             "importance_skills.md",
             "hamiltonianmontecarlo.md",
-            "gen/overview.md",
-            "gen/distribution.md",
-            "gen/generative_function.md",
-            "gen/observation_likelihood.md",
-            "gen/importance_mixture.md",
-            "gen/hmc_paths.md",
+            "Gen.jl Integration" => [
+                "gen/overview.md",
+                "gen/distribution.md",
+                "gen/generative_function.md",
+                "gen/observation_likelihood.md",
+                "gen/importance_mixture.md",
+                "gen/hmc_paths.md",
+            ],
             "gen/turing_dist.md",
             "gen/survival_snippet.md",
         ],
@@ -125,13 +129,6 @@ makedocs(;
             "reference.md",
             "algorithms.md",
         ],
-        "Trunk" => [
-            "distrib.md",
-            "distributions.md",
-            "background.md",
-            "guide.md",
-            "GSMP" => "gsmp.md",
-        ]
     ],
 )
 

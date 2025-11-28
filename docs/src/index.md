@@ -37,23 +37,21 @@ or to calculate the likelihood of a sample path for statistical estimation.
 
 ## Usage
 
-The library provides you with samplers. Each sampler has the same interface. Here, a distribution is a [Distributions.ContinuousUnivariateDistribution](https://juliastats.org/Distributions.jl/stable/univariate/#Continuous-Distributions), `RNG` is a [random number generator](https://docs.julialang.org/en/v1/stdlib/Random/#Generators-(creation-and-seeding)), the `key` is some identifier (maybe an integer) for the event, and an enabling time is a zero-time for the given distribution.
+The library provides you with samplers. Each sampler has the same interface. Here, a distribution is a [Distributions.ContinuousUnivariateDistribution](https://juliastats.org/Distributions.jl/stable/univariate/#Continuous-Distributions), `RNG` is a [random number generator](https://docs.julialang.org/en/v1/stdlib/Random/#Generators-(creation-and-seeding)), the `key` is some identifier (maybe an integer, tuple, or pair) for the event, and an enabling time is a zero-time for the given distribution.
 
  * `enable!(sampler, key, distribution, enabling_time)` - to start the clock on when an event will fire next.
 
  * `disable!(sampler, key)` - to turn off an event so it can't fire.
 
- * `next(sampler)` - to ask this library who could fire next.
+ * `next(sampler)` - to ask this library who could fire next, and it return a (time, key).
 
  * `fire!(sampler, key, time)` - choose which event happens at what time.
 
-Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
-
 ## When NOT to use Competing Clocks
 
- * **Pure exponential distributions?** JumpProcesses.jl is a complete framework for this.
- * **Need ODE coupling?** Again, it's easier to stay within SciML and JumpProcesses.jl.
- * **Want high-level frameworks?** Try Agents.jl.
+ * **Pure exponential distributions and chemical systems?** JumpProcesses.jl is a complete framework for this.
+ * **Need ODE coupling?** Again, it's easier to stay within SciML and JumpProcesses.jl. CompetingClocks.jl supports ODEs as Dirac distributions.
+ * **Want high-level frameworks?** Try [Agents.jl](https://juliadynamics.github.io/Agents.jl/stable/) or [ConcurrentSim.jl](https://juliadynamics.github.io/ConcurrentSim.jl/stable/).
 
 CompetingClocks.jl is for:
 
