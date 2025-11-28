@@ -122,7 +122,7 @@ struct FromInclusion{K} <: SamplerChoice{Symbol,K}
 end
 
 function CompetingClocks.choose_sampler(
-    chooser::FromInclusion, clock, distribution::UnivariateDistribution)
+    chooser::FromInclusion{K}, clock::K, distribution::UnivariateDistribution) where {K}
     return chooser.matcher(clock, distribution)
 end
 
