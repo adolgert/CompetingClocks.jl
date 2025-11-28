@@ -31,7 +31,7 @@ function ad_two_sample(draws_a::Vector{ClockDraw}, draws_b::Vector{ClockDraw}, c
     times_b = [x[2] for x in draws_b]
     result = KSampleADTest(times_a, times_b)
     pv = pvalue(result)
-    push!(results, (; test="ad-two-sample", clock=0, pvalue, result))
+    push!(results, (; test="ad-two-sample", clock=0, pvalue=pv, result))
 
     if verbose
         ad_diagnostic_report(result)

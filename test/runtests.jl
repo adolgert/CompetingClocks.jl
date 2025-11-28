@@ -29,6 +29,7 @@ all_tests = [
     "test_vas_integrate.jl",
     "test_vas.jl",
     "test_with_common_random.jl",
+    "gauntlet/test_travel.jl",
 ]
 
 # Filter tests based on command-line arguments (ARGS)

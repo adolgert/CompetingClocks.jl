@@ -2,13 +2,6 @@ using .TravelModel
 using UnitTestDesign
 
 
-struct SamplerSUT
-    travel::TravelConfig
-    state_cnt::Int
-    step_cnt::Int
-end
-
-
 function rng_set(single_rng)
     rng = Vector{Xoshiro}(undef, Threads.maxthreadid())
     rng[1] = single_rng
@@ -19,12 +12,12 @@ function rng_set(single_rng)
 end
 
 
-function mark_calibration_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
+function mark_calibration_single(smethod, sut::SamplerSUT, rng::Vector)
     sampler = smethod(Int,Float64)
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
 
     sampler_cnt = 10000
-    mark_calibration_nonparametric_bootstrap(commands, sampler_cnt, rng)
+    mark_calibration_nonparametric_bootstrap(commands, sampler, sampler_cnt, rng)
 
     samplers, final_time = parallel_replay(commands, sampler, sampler_cnt, rng)
     draws = sample_samplers(samplers, final_time, rng)
@@ -36,7 +29,7 @@ function mark_calibration_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vec
 end
 
 
-function doob_meyer_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
+function doob_meyer_single(smethod, sut::SamplerSUT, rng::Vector)
     sampler = smethod(Int,Float64)
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
     distributions = final_enabled_distributions(commands)
@@ -48,7 +41,7 @@ function doob_meyer_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
 end
 
 
-function two_sample_ad_single(smethod::SamplerSpec, sut::SamplerSUT, rng::Vector)
+function two_sample_ad_single(smethod, sut::SamplerSUT, rng::Vector)
     sampler = smethod(Int,Float64)
     commands = travel_commands(sut.step_cnt, sut.state_cnt, sut.travel, rng[1])
     distributions = final_enabled_distributions(commands)
@@ -73,44 +66,141 @@ function experiment_set(sampler_method, sut, rng_single)
 end
 
 
-function experiment_range()
-    memory = [TravelMemory.forget,]
-    graph = [TravelGraph.cycle, TravelGraph.complete,]
-    dist = [TravelRateDist.exponential, TravelRateDist.general]
-    count = [TravelRateCount.destination, TravelRateCount.pair]
-    delay = [TravelRateDelay.none, TravelRateDelay.right]
-    sampler_spec = [FirstReactionMethod(), FirstToFireMethod()]
-    step_cnt = [5, 6]
-    state_cnt = [4, 5]
-    configurations = full_factorial(
-        memory, graph, dist, count, delay, collect(1:length(sampler_spec)), step_cnt, state_cnt
+function experiment_focused()
+    arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}()
+    push!(arrangements,
+        (
+            RejectionMethod(),
+            SamplerSUT(
+                TravelConfig(
+                    TravelMemory.forget,
+                    TravelGraph.cycle,
+                    TravelRateDist.exponential,
+                    TravelRateCount.destination,
+                    TravelRateDelay.none
+                ),
+                5,
+                10_000
+            )
         )
-    arrangements = Vector{Tuple{SSA,SamplerSUT}}(undef, length(configurations))
+    )
+    return arrangements
+end
+
+
+function experiment_exponential(faster::Bool)
+    graph = [TravelGraph.cycle, TravelGraph.complete,]
+    count = [TravelRateCount.destination, TravelRateCount.pair,]
+    sampler_spec = [
+        RejectionMethod(), PartialPropensityMethod(), DirectMethod(:keep, :tree),
+        DirectMethod(:keep, :array), DirectMethod(:remove, :tree),
+        DirectMethod(:remove, :array),
+        ]
+    state_cnt = [4, 5, 6]
+    design = faster ? all_pairs : full_factorial
+    configurations = design(
+        graph, count, collect(1:length(sampler_spec)),
+        state_cnt
+        )
+    arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}(undef, length(configurations))
+    memory = TravelMemory.forget
+    dist = TravelRateDist.exponential
+    delay = TravelRateDelay.none
+    for idx in eachindex(configurations)
+        configuration = configurations[idx]
+        config = TravelConfig(memory, configuration[1], dist, configuration[2], delay)
+        sampler = sampler_spec[configuration[3]]
+        state_cnt = configuration[4]
+        arrangements[idx] = (sampler, SamplerSUT(config, state_cnt, 10000))
+    end
+    return arrangements
+end
+
+function experiment_range(faster::Bool)
+    memory = [TravelMemory.forget, TravelMemory.remember,]
+    graph = [TravelGraph.cycle, TravelGraph.complete,]
+    dist = [TravelRateDist.exponential, TravelRateDist.general,]
+    count = [TravelRateCount.destination, TravelRateCount.pair,]
+    delay = [TravelRateDelay.none, TravelRateDelay.right,]
+    sampler_spec = [
+        FirstReactionMethod(), FirstToFireMethod(), NextReactionMethod(),
+        ]
+    state_cnt = [4, 5, 6]
+    design = faster ? all_pairs : full_factorial
+    configurations = design(
+        memory, graph, dist, count, delay, collect(1:length(sampler_spec)),
+        state_cnt
+        )
+    arrangements = Vector{Tuple{CompetingClocks.SamplerSpec,SamplerSUT}}(undef, length(configurations))
     for idx in eachindex(configurations)
         configuration = configurations[idx]
         config = TravelConfig(configuration[1:5]...)
         sampler = sampler_spec[configuration[6]]
-        step_cnt = configuration[7]
-        state_cnt = configuration[8]
-        arrangments[idx] = (sampler, SamplerSUT(config, state_cnt, step_cnt))
+        state_cnt = configuration[7]
+        arrangements[idx] = (sampler, SamplerSUT(config, state_cnt, 10_000))
     end
     return arrangements
 end
 
 
-function run_experiments()
+function run_experiments(faster=false)
+    echo = !faster
     rng_single = Xoshiro(882342987)
-    configurations = experiment_range()
+    configurations1 = experiment_range(faster)
+    configurations2 = experiment_exponential(faster)
+    configurations = vcat(configurations2, configurations1)
+    # configurations = experiment_focused()
+    echo && println("There are $(length(configurations)) configurations.")
     results = Vector{Any}(undef, length(configurations))
     for gen_idx in eachindex(configurations)
-        sampler, sut = configurations[gen_idx]
-        results[gen_idx] = experiment_set(sampler, sut, rng_single)
+        sampler_spec, sut = configurations[gen_idx]
+        echo && println("spec $sampler_spec sut $sut")
+        results[gen_idx] = collect_data_single(sampler_spec, sut, rng_single)
     end
     scores = Vector{Tuple{Float64,Int}}(undef, length(results))
     for score_idx in eachindex(results)
-        scores[score_idx] = (minimum(x.pvalue for x in results[score_idx]), score_idx)
+        mmm = minimum(x.pvalue for x in results[score_idx])
+        # We take the minimum value across a set of clocks, so it is
+        # a minimum of a different number of values. Each of the values
+        # should be uniformly distributed, so the min is a convolution.
+        # Using this adjusts each min for the number of metrics.
+        adjusted = 1 - (1 - mmm)^length(results[score_idx])
+        scores[score_idx] = (adjusted, score_idx)
     end
     sort!(scores)
-    println("lowest scores")
-    println(scores[begin:begin + 10])
+    echo && println("=" ^ 80)
+    echo && println("lowest scores")
+    echo && println("=" ^ 80)
+    succeed = true
+    for examine in 1:5
+        value, config_idx = scores[examine]
+        config = configurations[config_idx]
+        echo && println("value $value")
+        echo && println("config $config")
+        res_metrics = results[config_idx]
+        group = Dict{Tuple{String,Int},Vector{Float64}}()
+        for res in res_metrics
+            echo && println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+            group[(res.name, res.clock)] = [res.pvalue]
+        end
+        echo && println("=" ^ 80)
+        sampler_spec, sut = configurations[config_idx]
+        for i in 1:5
+            rep_metrics = collect_data_single(sampler_spec, sut, rng_single)
+            echo && println("-"^80)
+            for res in rep_metrics
+                echo && println("metric $(res.name) $(res.pvalue) $(res.clock) $(res.count)")
+                push!(group[(res.name, res.clock)], res.pvalue)
+            end
+        end
+        for (metid, metvals) in group
+            m = median(metvals)
+            @assert m > 0.05
+            if m < 0.05
+                succeed = false
+            end
+        end
+        echo && println("=" ^ 80)
+    end
+    return succeed
 end

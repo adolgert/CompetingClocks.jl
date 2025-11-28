@@ -19,7 +19,7 @@ function doob_meyer(times::Vector{Float64}, distributions::Vector{DistributionSt
     Gamma_0 = Gamma(when)
     uniform_draws = similar(times)
     for idx in eachindex(times)
-        uniform_draws[idx] = 1.0 - exp(-Gamma(times[idx]) - Gamma_0)
+        uniform_draws[idx] = 1.0 - exp(-Gamma(times[idx]) + Gamma_0)
     end
     test = ApproximateOneSampleKSTest(uniform_draws, Uniform(0, 1))
     p = pvalue(test)

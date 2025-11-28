@@ -1,16 +1,17 @@
 module TravelModel
 
 using CompetingClocks
+using CompetingClocks: SamplerSpec
 using Random
 using Distributions
 using Graphs
 using EnumX
 
 
-export travel_commands, travel_make_run, travel_make_graph, travel_make_rate
-export travel_rates_exponential, Travel, travel_init_state, travel_enabled
+export travel_commands, travel_make_run, travel_make_graph
+export Travel, travel_init_state, travel_enabled
 export travel_run, TravelMemory, TravelGraph, TravelRateDist, TravelRateCount
-export TravelDelay, TravelConfig
+export TravelRateDelay, TravelConfig, NoRecord, VectorRecord, SamplerRecord
 
 @enumx TravelMemory forget remember
 @enumx TravelGraph path cycle complete clique
@@ -32,17 +33,17 @@ end
 
 # A rate is a `destination` rate when there is one rate per destination location.
 function travel_rates_exponential_destination(n, rng)
-    hazards = [exp.(range(-2, stop=2, length=cnt))]
+    hazards = exp.(range(-2, stop=2, length=n))
     return Dict((i, j) => Exponential(inv(hazards[j])) for i in 1:n for j in 1:n if i != j)
 end
 
 
 # A rate is a `travel` rate when there is one rate for each start-finish pair of locations.
 function travel_rates_exponential_pair(n, rng)
-    hazards = [exp.(range(-2, stop=2, length=cnt*(cnt-1)))]
+    hazards = exp.(range(-2, stop=2, length=n*(n-1)))
     rates = Dict{Tuple{Int,Int},Tuple{UnivariateDistribution}}()
     idx = 1
-    for i in 1:n for j in 1:n
+    for i in 1:n, j in 1:n
         i == j && continue
         rates[(i, j)] = Exponential(inv(hazards[idx]))
         idx += 1
@@ -76,10 +77,10 @@ function travel_rates_general_destination(n, rng)
         dist = random_distribution(rng)
         for source in 1:n
             source == target && continue
-            dist[(source, target)] = dist
+            rates[(source, target)] = dist
         end
     end
-    return dist
+    return rates
 end
 
 
@@ -88,9 +89,9 @@ function travel_rates_general_pair(n, rng)
     for source in 1:n, target in 1:n
         source == target && continue
         dist = random_distribution(rng)
-        dist[(source, target)] = dist
+        rates[(source, target)] = dist
     end
-    return dist
+    return rates
 end
 
 
@@ -116,21 +117,21 @@ end
 
 
 function delay_generator(state_cnt::Int, delay::TravelRateDelay.T, count::TravelRateCount.T, rng::AbstractRNG)
-    delays = Dict{(Int,Int),Float64}()
+    delays = Dict{Tuple{Int,Int},Float64}()
     if count == TravelRateCount.destination
         for destination in 1:state_cnt
-            delay = draw_delay(delay, rng)
+            delay_val = draw_delay(delay, rng)
             for source in 1:state_cnt
                 source == destination && continue
-                delays[(source, destination)] = delay
+                delays[(source, destination)] = delay_val
             end
         end
     else
         for destination in 1:state_cnt
             for source in 1:state_cnt
                 source == destination && continue
-                delay = draw_delay(delay, rng)
-                delays[(source, destination)] = delay
+                delay_val = draw_delay(delay, rng)
+                delays[(source, destination)] = delay_val
             end
         end
     end
@@ -146,7 +147,6 @@ struct TravelConfig
     delay::TravelRateDelay.T
 end
 
-Base.@show()
 
 function Travel(state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
     g = travel_make_graph(config.graph, state_cnt)
@@ -158,35 +158,67 @@ end
 travel_init_state(tr::Travel, rng) = rand(rng, 1:nv(tr.g))
 travel_enabled(tr::Travel, state) = Set(neighbors(tr.g, state))
 
+abstract type CommandRecorder end
+
+struct NoRecord <: CommandRecorder end
+
+struct VectorRecord <: CommandRecorder
+    commands::Vector{Tuple}
+    VectorRecord() = new(Tuple[])
+end
+
+struct SamplerRecord{S,R} <: CommandRecorder
+    sampler::S
+    rng::R
+    SamplerRecord(sampler, rng) = new{typeof(sampler), typeof(rng)}(sampler, rng)
+end
+
+record!(::NoRecord, cmd) = nothing
+
+record!(r::VectorRecord, cmd) = push!(r.commands, cmd)
+
+function record!(r::SamplerRecord, cmd)
+    if cmd[1] == :enable
+        enable!(r.sampler, cmd[2:end]..., r.rng)
+    elseif cmd[1] == :disable
+        disable!(r.sampler, cmd[2:end]...)
+    elseif cmd[1] == :fire
+        fire!(r.sampler, cmd[2:end]...)
+    end
+end
+
 # This sampler is a low-level sampler. This is for testing individual samplers,
 # not the SamplingContext. As a result, we track the RNG and the current time.
-function travel_run(step_cnt, sampler::SSA, travel_model, rng)
-    commands = Vector{Tuple}()
+function travel_run(step_cnt, sampler::SSA, travel_model, observe, recorder::CommandRecorder, rng)
+    @assert hasmethod(observe, Tuple{Float64, Int64}) "observe must accept (time, clock)"
     system_state = travel_init_state(travel_model, rng)
     system_time = 0.0
     enabled_clocks = travel_enabled(travel_model, system_state)
     for clock in enabled_clocks
         dist, offset = travel_model.rates[(system_state, clock)]
         enable!(sampler, clock, dist, offset, system_time, rng)
-        push!(commands, (:enable, clock, dist, offset, system_time))
+        record!(recorder, (:enable, clock, dist, offset, system_time))
     end
     when, which = next(sampler, system_time, rng)
     for _ in 1:step_cnt
         @assert isfinite(when)
         @assert when > system_time
+
+        observe(when, which)
+
         for mem_idx in enabled_clocks
             travel_model.memory[mem_idx] += when - system_time
         end
         travel_model.memory[which] = 0.0
         fire!(sampler, which, when)
-        push!(commands, (:fire, which, when))
+        record!(recorder, (:fire, which, when))
         delete!(enabled_clocks, which)
         next_enabled = travel_enabled(travel_model, which)
         to_disable = setdiff(enabled_clocks, next_enabled)
         to_enable = setdiff(next_enabled, enabled_clocks)
         for dis_idx in to_disable
             disable!(sampler, dis_idx, when)
-            push!(commands, (:disable, dis_idx, when))
+            record!(recorder, (:disable, dis_idx, when))
         end
         for en_idx in to_enable
             en_rate, offset = travel_model.rates[(which, en_idx)]
@@ -194,7 +226,7 @@ function travel_run(step_cnt, sampler::SSA, travel_model, rng)
                 offset -= travel_model.memory[en_idx]
             end
             enable!(sampler, en_idx, en_rate, when + offset, when, rng)
-            push!(commands, (:enable, en_idx, en_rate, when + offset, when))
+            record!(recorder, (:enable, en_idx, en_rate, when + offset, when))
         end
         for un_idx in intersect(enabled_clocks, next_enabled)
             # Even if a clock was enabled before, the model might define a rate from
@@ -203,16 +235,16 @@ function travel_run(step_cnt, sampler::SSA, travel_model, rng)
             previous_rate, previous_offset = travel_model.rates[(system_state, un_idx)]
             current_rate, current_offset = travel_model.rates[(which, un_idx)]
             if previous_rate != current_rate || previous_offset != current_offset
-                # Flip a coin on whether we silently re-enable. Either way should
-                # be fine for all samplers, so let's check that it's fine.
+                # Flip a coin on whether we silently re-enable versus disabling and enabling.
+                # Either way should be fine for all samplers, so let's check that it's fine.
                 if rand(rng, Bool)
                     disable!(sampler, un_idx, when)
-                    push!(commands, (:disable, un_idx, when))
+                    record!(recorder, (:disable, un_idx, when))
                     enable!(sampler, un_idx, current_rate, when + current_offset, when, rng)
-                    push!(commands, (:enable, un_idx, current_rate, when + current_offset, when))
+                    record!(recorder, (:enable, un_idx, current_rate, when + current_offset, when))
                 else
                     enable!(sampler, un_idx, current_rate, when + current_offset, when, rng)
-                    push!(commands, (:enable, un_idx, current_rate, when + current_offset, when))
+                    record!(recorder, (:enable, un_idx, current_rate, when + current_offset, when))
                 end
             end
         end
@@ -221,15 +253,15 @@ function travel_run(step_cnt, sampler::SSA, travel_model, rng)
         system_state = which
         when, which = next(sampler, system_time, rng)
     end
-    return commands
 end
 
 
 function travel_commands(step_cnt::Int, state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
     model = Travel(state_cnt, config, rng)
     sampler = FirstReaction{Int,Float64}()
-    commands = travel_run(step_cnt, sampler, model, rng)
-    return commands
+    commands = VectorRecord()
+    travel_run(step_cnt, sampler, model, (x,y) -> nothing, commands, rng)
+    return commands.commands
 end
 
 end
