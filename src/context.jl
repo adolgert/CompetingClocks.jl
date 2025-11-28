@@ -184,6 +184,12 @@ function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
     ctx.debug !== nothing && enable!(ctx.debug, clock, dist, te, when, ctx.rng)
 end
 
+
+"""
+    enable!(ctx::SamplingContext, clock::K, dist::Vector)
+
+Enabling when there is no shift in enabling time and no delayed distributions.
+"""
 function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
                  clock::K, dist) where {K,T,Sampler,RNG,Like,CRN,Dbg}
     enable!(ctx, clock, dist, zero(T))
@@ -211,6 +217,13 @@ function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
     ctx.debug !== nothing && enable!(ctx.debug, clock, dist[sample_idx], te, when, ctx.rng)
 end
 
+
+"""
+    enable!(ctx::SamplingContext, clock::K, dist::Vector)
+
+Enabling for a vector of distributions (for importance sampling) when there
+is no shift in enabling time and no delayed distributions.
+"""
 function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
                  clock::K, dist::Vector) where {K,T,Sampler,RNG,Like,CRN,Dbg}
     enable!(ctx, clock, dist, zero(T))
@@ -244,6 +257,11 @@ function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
     ctx.debug !== nothing && enable!(ctx.debug, internal_clock, dist, te, when, ctx.rng)
 end
 
+"""
+    enable!(ctx::SamplingContext, clock::K, dist)
+
+Enabling when there is no shifted enabling time but there are delayed distributions.
+"""
 function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
                  clock::K, dist) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
     enable!(ctx, clock, dist, zero(T))
@@ -273,6 +291,12 @@ function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
     ctx.debug !== nothing && enable!(ctx.debug, internal_clock, dist[sample_idx], te, when, ctx.rng)
 end
 
+"""
+    enable!(ctx::SamplingContext, clock::K, dist::Vector)
+
+Enabling when there is a vector of distributions and no shifted enabling time for those distributions
+and there are delayed distributions.
+"""
 function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
                  clock::K, dist::Vector) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
     enable!(ctx, clock, dist, zero(T))
