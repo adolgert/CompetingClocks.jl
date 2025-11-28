@@ -17,7 +17,7 @@ include("experiments.jl")
 
 # Helper to create a vector of RNGs for threaded operations
 function make_rng_vector(seed::Integer)
-    rng = Vector{Xoshiro}(undef, max(Threads.nthreads(), 1))
+    rng = Vector{Xoshiro}(undef, max(Threads.maxthreadid(), 1))
     rng[1] = Xoshiro(seed)
     for i in 2:length(rng)
         rng[i] = Xoshiro(seed + i)
