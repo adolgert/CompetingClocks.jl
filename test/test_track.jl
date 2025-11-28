@@ -221,3 +221,123 @@ end
     copy_clocks!(dst, dw)
     @test length(dw.enabled) == 3 && length(dw.disabled) == 1
 end
+
+
+@safetestset track_debugwatcher_clone = "DebugWatcher clone" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: clone
+    using Random
+
+    rng = Xoshiro(9876543)
+
+    # Create and populate a DebugWatcher
+    dw = DebugWatcher{Int,Float64}()
+    enable!(dw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dw, 2, Gamma(2.0, 1.0), 1.0, 1.0, rng)
+    disable!(dw, 1, 2.0)
+
+    # Clone should create an empty watcher with same type parameters
+    cloned = clone(dw)
+    @test cloned isa DebugWatcher{Int,Float64}
+    @test isempty(cloned.enabled)
+    @test isempty(cloned.disabled)
+    @test cloned.log == dw.log
+
+    # Test clone preserves log setting
+    dw_nolog = DebugWatcher{String,Float64}(; log=false)
+    cloned_nolog = clone(dw_nolog)
+    @test cloned_nolog.log == false
+end
+
+
+@safetestset track_debugwatcher_reset = "DebugWatcher reset!" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: reset!
+    using Random
+
+    rng = Xoshiro(1234567)
+
+    # Create and populate a DebugWatcher
+    dw = DebugWatcher{Int,Float64}()
+    enable!(dw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dw, 2, Exponential(2.0), 0.5, 0.5, rng)
+    enable!(dw, 3, Exponential(3.0), 1.0, 1.0, rng)
+    disable!(dw, 1, 1.5)
+    disable!(dw, 2, 2.0)
+
+    @test length(dw.enabled) == 3
+    @test length(dw.disabled) == 2
+
+    # Reset should clear all entries
+    reset!(dw)
+    @test isempty(dw.enabled)
+    @test isempty(dw.disabled)
+
+    # Should be able to use it again after reset
+    enable!(dw, 10, Exponential(1.0), 0.0, 0.0, rng)
+    @test length(dw.enabled) == 1
+    @test dw.enabled[1].clock == 10
+end
+
+
+@safetestset track_debugwatcher_fire = "DebugWatcher fire!" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+
+    rng = Xoshiro(7654321)
+
+    dw = DebugWatcher{Int,Float64}()
+
+    # Enable some clocks
+    enable!(dw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dw, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(dw, 3, Exponential(3.0), 0.0, 0.0, rng)
+
+    @test length(dw.enabled) == 3
+    @test length(dw.disabled) == 0
+
+    # Fire clock 2 - this should add to disabled list
+    fire!(dw, 2, 1.5)
+    @test length(dw.disabled) == 1
+    @test dw.disabled[1].clock == 2
+    @test dw.disabled[1].when == 1.5
+
+    # Fire another clock
+    fire!(dw, 1, 2.0)
+    @test length(dw.disabled) == 2
+    @test dw.disabled[2].clock == 1
+    @test dw.disabled[2].when == 2.0
+
+    # Disable (not fire) the last one
+    disable!(dw, 3, 3.0)
+    @test length(dw.disabled) == 3
+    @test dw.disabled[3].clock == 3
+end
+
+
+@safetestset track_debugwatcher_log_option = "DebugWatcher log option" begin
+    using Distributions
+    using CompetingClocks
+    using Random
+
+    rng = Xoshiro(1111111)
+
+    # Test with logging disabled
+    dw_nolog = DebugWatcher{Int,Float64}(; log=false)
+    @test dw_nolog.log == false
+
+    # Operations should work without logging
+    enable!(dw_nolog, 1, Exponential(1.0), 0.0, 0.0, rng)
+    disable!(dw_nolog, 1, 1.0)
+    fire!(dw_nolog, 2, 2.0)
+
+    @test length(dw_nolog.enabled) == 1
+    @test length(dw_nolog.disabled) == 2
+
+    # Test with logging enabled (default)
+    dw_log = DebugWatcher{Int,Float64}()
+    @test dw_log.log == true
+end
