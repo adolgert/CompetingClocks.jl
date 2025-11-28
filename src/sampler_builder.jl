@@ -163,7 +163,7 @@ function build_sampler(builder::SamplerBuilder)
             compete.instance = method(K_int, T)
         end
         inclusion = Dict(samp.name => samp.selector for samp in competes)
-        matcher   = FromInclusion{K_int}(make_key_classifier(inclusion))
+        matcher   = FromInclusion{K_int}(make_key_classifier(inclusion, builder.support_delayed))
         sampler   = MultiSampler{Symbol,K_int,T}(matcher)
         for samp in competes
             sampler[samp.name] = samp.instance
@@ -173,13 +173,24 @@ function build_sampler(builder::SamplerBuilder)
 end
 
 
-function make_key_classifier(inclusion_criteria::Dict{Symbol,Function})
+"""
+    make_key_classifier(inclusion_criteria, unwrap_tuples)
+
+Create a function that classifies clock keys to sampler groups.
+
+When `unwrap_tuples=true` (delayed context), the internal key is `(user_key, phase)`
+but user-provided selectors expect just the `user_key`. This function unwraps
+the tuple before passing to the user's selector.
+"""
+function make_key_classifier(inclusion_criteria::Dict{Symbol,Function}, unwrap_tuples::Bool)
     # Convert to tuple for better type stability
     criteria_tuple = Tuple(inclusion_criteria)
 
     return function (key, dist)
+        # For delayed contexts, extract user key from (user_key, phase) tuple
+        user_key = unwrap_tuples && key isa Tuple ? key[1] : key
         for (symbol, criterion_func) in criteria_tuple
-            if criterion_func(key, dist)
+            if criterion_func(user_key, dist)
                 return symbol
             end
         end

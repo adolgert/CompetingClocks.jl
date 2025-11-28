@@ -8,7 +8,8 @@ using SafeTestsets
         :high => (k, d) -> k[1] == :mountain,
         :low => (k, d) -> k[1] == :valley
     )
-    func = make_key_classifier(testset)
+    # unwrap_tuples=false for regular (non-delayed) contexts
+    func = make_key_classifier(testset, false)
     @test func((:mountain, 17), Exponential()) == :high
     @test func((:valley, "saguaro"), Weibull()) == :low
     @test_throws ErrorException func((:forest, 32), Exponential())

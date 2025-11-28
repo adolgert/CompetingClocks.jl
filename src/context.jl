@@ -1,5 +1,6 @@
 export SamplingContext, enable!, fire!, isenabled, freeze_crn!
 export sample_from_distribution!
+export next_delayed, timetype
 
 mutable struct SamplingContext{K,T,Sampler<:SSA,RNG,Like,CRN,Dbg,DS}
     sampler::Sampler # The actual sampler (may use internal key type)
@@ -296,6 +297,11 @@ The `relative_te` shift applies only to the initiation, not the completion.
 """
 function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
                  clock::K, delayed::Delayed, relative_te::T=zero(T)) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+    # Clean up any existing events for this clock (e.g., if re-enabling during completion phase)
+    if haskey(ctx.delayed.durations, clock)
+        disable!(ctx, clock)
+    end
+
     when = ctx.time
     te   = when + relative_te
 
@@ -342,9 +348,12 @@ function disable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS}, clock::
     when = ctx.time
     for phase in (:regular, :initiate, :complete)
         internal_clock = (clock, phase)
-        ctx.likelihood !== nothing && disable!(ctx.likelihood, internal_clock, when)
-        disable!(ctx.sampler, internal_clock, when)
-        ctx.debug !== nothing && disable!(ctx.debug, internal_clock, when)
+        # Only disable if this phase is actually enabled
+        if isenabled(ctx.sampler, internal_clock)
+            ctx.likelihood !== nothing && disable!(ctx.likelihood, internal_clock, when)
+            disable!(ctx.sampler, internal_clock, when)
+            ctx.debug !== nothing && disable!(ctx.debug, internal_clock, when)
+        end
     end
     if ctx.delayed !== nothing
         delete!(ctx.delayed.durations, clock)
