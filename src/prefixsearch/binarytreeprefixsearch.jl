@@ -200,9 +200,7 @@ Random.rand(rng::AbstractRNG, d::Random.SamplerTrivial{BinaryTreePrefixSearch{T}
     choose(d[], rand(rng, Uniform{T}(zero(T), d[].array[1])))
 
 
-Base.haskey(md::BinaryTreePrefixSearch, clock) = false
-
-function Base.haskey(pst::BinaryTreePrefixSearch{T}, clock::Int) where {T}
+function Base.haskey(pst::BinaryTreePrefixSearch{T}, clock::Integer) where {T}
     if 0 < clock ≤ length(pst)
         return getindex(pst, clock) > zero(T)
     else

@@ -85,3 +85,94 @@ end
     keyed_scan = CompetingClocks.KeyedKeepPrefixSearch{String,typeof(prefix_tree)}(prefix_tree)
     scan_gymnasium(keyed_scan)
 end
+
+@safetestset keyedkeep_copy = "KeyedKeepPrefixSearch copy!" begin
+    using CompetingClocks
+
+    prefix_src = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    src = CompetingClocks.KeyedKeepPrefixSearch{String,typeof(prefix_src)}(prefix_src)
+    src["a"] = 1.0
+    src["b"] = 2.0
+    src["c"] = 3.0
+
+    prefix_dst = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    dst = CompetingClocks.KeyedKeepPrefixSearch{String,typeof(prefix_dst)}(prefix_dst)
+    dst["x"] = 0.0
+    dst["y"] = 0.0
+    dst["z"] = 0.0
+
+    copy!(dst, src)
+
+    @test dst["a"] == 1.0
+    @test dst["b"] == 2.0
+    @test dst["c"] == 3.0
+    @test length(dst) == 3
+end
+
+@safetestset keyedkeep_key_type = "KeyedKeepPrefixSearch key_type" begin
+    using CompetingClocks
+    using CompetingClocks: key_type
+
+    prefix = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    kp_string = CompetingClocks.KeyedKeepPrefixSearch{String,typeof(prefix)}(prefix)
+    @test key_type(kp_string) == String
+
+    prefix2 = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    kp_int = CompetingClocks.KeyedKeepPrefixSearch{Int,typeof(prefix2)}(prefix2)
+    @test key_type(kp_int) == Int
+end
+
+@safetestset keyedkeep_prefixenabled = "PrefixEnabled in and eltype" begin
+    using CompetingClocks
+    using CompetingClocks: enabled, isenabled
+
+    prefix = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    kp = CompetingClocks.KeyedKeepPrefixSearch{String,typeof(prefix)}(prefix)
+    kp["a"] = 1.0
+    kp["b"] = 0.0  # disabled (zero)
+    kp["c"] = 3.0
+
+    en = enabled(kp)
+
+    # Test `in` for PrefixEnabled
+    @test "a" in en
+    @test !("b" in en)  # zero value means not enabled
+    @test "c" in en
+    @test !("d" in en)  # not present
+
+    # Test eltype
+    @test eltype(typeof(en)) == String
+end
+
+@safetestset keyedremoval_key_time_type = "KeyedRemovalPrefixSearch key_type and time_type" begin
+    using CompetingClocks
+    using CompetingClocks: key_type, time_type
+
+    prefix = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    kp = CompetingClocks.KeyedRemovalPrefixSearch{String,typeof(prefix)}(prefix)
+
+    @test key_type(kp) == String
+    @test time_type(kp) == Float64
+end
+
+@safetestset keyedremoval_update_existing = "KeyedRemovalPrefixSearch update existing clock" begin
+    using CompetingClocks
+
+    prefix = CompetingClocks.BinaryTreePrefixSearch{Float64}()
+    kp = CompetingClocks.KeyedRemovalPrefixSearch{String,typeof(prefix)}(prefix)
+
+    # Add initial values
+    kp["a"] = 1.0
+    kp["b"] = 2.0
+
+    @test kp["a"] == 1.0
+    @test kp["b"] == 2.0
+
+    # Update existing clock (not delete and re-add, just update)
+    kp["a"] = 5.0
+    kp["b"] = 6.0
+
+    @test kp["a"] == 5.0
+    @test kp["b"] == 6.0
+    @test length(kp) == 2
+end

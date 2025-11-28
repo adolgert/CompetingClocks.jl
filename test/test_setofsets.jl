@@ -195,3 +195,41 @@ end
     @test !("baz" in sos)
     @test length(sos) == 4
 end
+
+@safetestset setofsets_union_two_sos = "SetOfSets union of two SetOfSets" begin
+    using CompetingClocks: SetOfSets
+
+    a = Set([1, 2])
+    b = Set([3, 4])
+    sos1 = SetOfSets([a, b])
+
+    c = Set([5, 6])
+    d = Set([7, 8])
+    sos2 = SetOfSets([c, d])
+
+    # Union of two SetOfSets
+    result = union(sos1, sos2)
+    @test result isa SetOfSets
+    @test Set(collect(result)) == Set(1:8)
+    @test length(result) == 8
+end
+
+@safetestset setofsets_isempty_method = "SetOfSets isempty" begin
+    using CompetingClocks: SetOfSets
+
+    # Non-empty SetOfSets
+    a = Set([1, 2])
+    b = Set([3, 4])
+    sos = SetOfSets([a, b])
+    @test !isempty(sos)
+
+    # Empty SetOfSets (no subsets)
+    empty_sos = SetOfSets(Set{Int}[])
+    @test isempty(empty_sos)
+
+    # SetOfSets with only empty subsets
+    empty_a = Set{Int}()
+    empty_b = Set{Int}()
+    sos_empty_subsets = SetOfSets([empty_a, empty_b])
+    @test isempty(sos_empty_subsets)
+end
