@@ -26,4 +26,4 @@ end
 Then use that likelihood to guide the next round of HMC. Using this simulation-plus-sampler
 setup is much easier than working out the math of non-Exponential distributions.
 
- 1. Billig, E. M., Roy, J. A., Ross, M. E., Dolgert, D. J., & Levy, M. Z. (2015, October). A BAYESIAN MODEL FOR IDENTIFYING AND PREDICTING THE DYNAMICS OF URBAN INSECT INFESTATIONS. In AMERICAN JOURNAL OF TROPICAL MEDICINE AND HYGIENE (Vol. 93, No. 4, pp. 537-537). 8000 WESTPARK DR, STE 130, MCLEAN, VA 22101 USA: AMER SOC TROP MED & HYGIENE.
+ 1. Billig, E. M., Roy, J. A., Ross, M. E., Dolgert, D. J., & Levy, M. Z. (2015, October). "A Bayesian model for identifying and predicting the dynamics of urban insect infestations," in American Journal OF Tropical Medicine and Hygeine (Vol. 93, No. 4, pp. 537-537).

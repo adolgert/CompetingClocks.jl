@@ -1,5 +1,7 @@
 # Importance Sampling for Simulation
 
+Importance sampling is a way to steer a simulation towards simulating the conditions you most care about. The simplest importance sampling is to wait until a simulation gets near a state of interest and then [`CompetingClocks.split!`](@ref) the simulation into multiple copies that can better explore that state. The technique can be more powerful with the use of likelihoods, as described below.
+
 ## The Process
 
 When you apply importance sampling in simulation, the workflow feels like this:
@@ -14,15 +16,9 @@ When you apply importance sampling in simulation, the workflow feels like this:
 
 The main problem is that too large of bias on distributions can lead to mathematical underflow in calculation of the weights. Intuitively, a stochastic simulation can have a lot of individual sampled events, and each event's probability multiplies to get the probability of a path of samples in a trajectory. If those samples are repeatedly biased, they can cause numbers that are too small to represent.
 ```math
-w = \frac{L(\lambda_{\mbox{target}})}{L(\lambda_{\mbox{proposal}})}
-```
-
-```math
- = \left(\frac{\lambda_{\mbox{target}}}{\lambda_{\mbox{proposal}}}\right)^N
-```
-
-```math
-e^{-(\lambda_{\mbox{target}} - \lambda_{\mbox{proposal}})T}
+w = \frac{L(\lambda_{\text{target}})}{L(\lambda_{\text{proposal}})}
+ = \left(\frac{\lambda_{\text{target}}}{\lambda_{\text{proposal}}}\right)^N
+e^{-(\lambda_{\text{target}} - \lambda_{\text{proposal}})T}
 ```
 What you'll see in practice is that the initial simulation, under $p$, works fine, that a small change in a distribution's parameters still works fine, and then the importance-weighted estimates fall off a cliff and show values like $10^{-73}$.
 
@@ -63,13 +59,13 @@ If it stops growing linearly with N, your proposal is too far from the target.
 ### Use the coefficient of variation of weights to see where variance explodes.
 
 ```math
-\mbox{CV}^2 = \frac{\mbox{Var}(w)}{E[w]^2} = \frac{N}{\mbox{ESS}} - 1
+\text{CV}^2 = \frac{\text{Var}(w)}{E[w]^2} = \frac{N}{\text{ESS}} - 1
 ```
 Coefficient of variation is a reparametrization of ESS.
 
 ### Make a weight histogram
 
-Plot log of the weight, $\log_{10}(w)$ or $\log(w/\mbox{mean}(w))$. You want a unimodal, not-too-wide shape. Heavy-tailed distributions indicate you're close to degeneracy.
+Plot log of the weight, $\log_{10}(w)$ or $\log(w/\text{mean}(w))$. You want a unimodal, not-too-wide shape. Heavy-tailed distributions indicate you're close to degeneracy.
 
 ## Proposal Improvement
 
@@ -88,7 +84,7 @@ w_i = \frac{p(x_i)}{\sum_{k=1}^K \alpha_k q_k(x_i)}
 ```
 In log-space, we would use log-sum-exp.
 ```math
-\log w_i = \log p(x_i) - \log\left(\sum_k\alpha_k q_k(x_i)\right) = \log p(x_i) - \mbox{logsumexp}_k(\log \alpha_k+\log q_k(x_i))
+\log w_i = \log p(x_i) - \log\left(\sum_k\alpha_k q_k(x_i)\right) = \log p(x_i) - \text{logsumexp}_k(\log \alpha_k+\log q_k(x_i))
 ```
 
 Let's say we have three proposal distributions from which we sample evenly, so $\alpha=[1/3, 1/3, 1/3]$. We run each simulation where for each enabling of a clock we pass in a vector of four (4) distributions. The first is the proposal distribution we want to use to generate events for this run. The next three are the actual distribution $p$ and the other proposal distributions.
@@ -118,7 +114,7 @@ to reduce variance in your estimate of the rare event.
 One each run, you choose bias parameters $\theta$ to minimize the Kullback-Liebler.
 
 ```math
-\mbox{KL}(p^*||q_\theta)
+\text{KL}(p^*||q_\theta)
 ```
 
 Here $p^*$ is the conditional distribution on the rare event.
@@ -182,7 +178,7 @@ Do the log-space trick. Just like log-sum-exp in machine learning.
 Underflow is a problem. $\exp(-700)$ is small enough to underflow.
 
 ```math
-\frac{e^{\Delta_i}}{\sum_j e^{\Delta_j}} = \frac{e^{\Delta_i}-\mbox{max}(\Delta)}{\sum_j e^{\Delta_j-\mbox{max}(\Delta)}}
+\frac{e^{\Delta_i}}{\sum_j e^{\Delta_j}} = \frac{e^{\Delta_i}-\text{max}(\Delta)}{\sum_j e^{\Delta_j-\text{max}(\Delta)}}
 ```
 This makes the probabilities or expectations identical but improves numerical stability.
 

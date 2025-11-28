@@ -97,6 +97,8 @@ makedocs(;
             "integration-guide.md",
             "low_level_interface.md",
             "samplers.md",
+            "guide.md",
+            "distributions.md",
             "hierarchical.md",
             "debugging.md",
         ],
@@ -127,13 +129,6 @@ makedocs(;
             "reference.md",
             "algorithms.md",
         ],
-        "Trunk" => [
-            "distrib.md",
-            "distributions.md",
-            "background.md",
-            "guide.md",
-            "GSMP" => "gsmp.md",
-        ]
     ],
 )
 
