@@ -44,16 +44,15 @@ end
 
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
-    @test sampler[1] == Dirac(7.9)
+    @test sampler[1].distribution == Dirac(7.9)
 
     @test haskey(sampler, 1)
     @test !haskey(sampler, 1_000)
-    @test !haskey(sampler, "1")
 
     disable!(sampler, 1, 0.0)
 
     @test_throws KeyError sampler[1]
-    @test sampler[2] == Dirac(12.3)
+    @test sampler[2].distribution == Dirac(12.3)
     reset!(sampler)
 end
 
@@ -131,7 +130,7 @@ end
     ks1_test = ExactOneSampleKSTest(samples, dist)
     @test pvalue(ks1_test) < 0.04
     ks2_test = ExactOneSampleKSTest(samples, truncated(dist, later, Inf))
-    @test pvalue(ks2_test; tail = :both) > 0.04
+    @test pvalue(ks2_test; tail=:both) > 0.04
 end
 
 
@@ -156,13 +155,13 @@ end
     @test pvalue(ks1_test) < 0.04
     shifted = [(x - future) for x in samples]
     ks2_test = ExactOneSampleKSTest(shifted, dist)
-    @test pvalue(ks2_test; tail = :both) > 0.04
+    @test pvalue(ks2_test; tail=:both) > 0.04
 end
 
 
 
 @safetestset first_reaction_copy = "FirstReaction copy" begin
-    using CompetingClocks: FirstReaction, enable!, next
+    using CompetingClocks: FirstReaction, enable!, next, copy_clocks!
     using Random: MersenneTwister
     using Distributions: Exponential
 
@@ -174,7 +173,7 @@ end
     enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 2
     @test length(dst) == 1
-    copy!(dst, src)
+    copy_clocks!(dst, src)
     @test length(dst) == 2
     enable!(src, 5, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3

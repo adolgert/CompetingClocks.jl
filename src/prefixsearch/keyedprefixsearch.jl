@@ -12,7 +12,7 @@ re-enables the same set of clocks, this is the faster choice.
 """
 struct KeyedKeepPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
-    index::Dict{T, Int}
+    index::Dict{T,Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     prefix::P
@@ -32,11 +32,12 @@ function Base.copy!(dst::KeyedKeepPrefixSearch{T,P}, src::KeyedKeepPrefixSearch{
     copy!(dst.index, src.index)
     copy!(dst.key, src.key)
     copy!(dst.prefix, src.prefix)
-    dst
+    return dst
 end
 
 
 Base.length(kp::KeyedKeepPrefixSearch) = length(kp.index)
+key_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = T
 time_type(kp::KeyedKeepPrefixSearch{T,P}) where {T,P} = time_type(P)
 
 
@@ -53,10 +54,55 @@ function Base.setindex!(kp::KeyedKeepPrefixSearch, val, clock)
 end
 
 
+Base.getindex(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]]
+
+
 isenabled(kp::KeyedKeepPrefixSearch, clock) = (
-    haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
+    haskey(kp.index, clock) && kp.prefix[kp.index[clock]] > zero(time_type(kp))
 )
 
+"""
+Construct a set that checks which values are zeroed out because this
+prefix sum doesn't mark what has been deleted. That's faster for small
+sets of keys but makes getting the set that's enabled more difficult.
+A hazard rate that is set to zero at enabling will give a funny count
+because it's `enabled!()` by the user but set to never fire.
+"""
+struct PrefixEnabled{K,P,KK} <: AbstractSet{K}
+    prefix::P
+    keys::KK
+end
+
+# Implements the interface to return a set of enabled clock keys.
+function enabled(prefix::KeyedKeepPrefixSearch{T,P}) where {T,P}
+    kk = keys(prefix.index)
+    PrefixEnabled{T,typeof(prefix),typeof(kk)}(prefix, kk)
+end
+
+function Base.iterate(nre::PrefixEnabled)
+    res = iterate(nre.keys)
+    res === nothing && return res
+    while !isenabled(nre.prefix, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+
+function Base.iterate(nre::PrefixEnabled, state)
+    res = iterate(nre.keys, state)
+    res === nothing && return res
+    while !isenabled(nre.prefix, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+Base.length(nre::PrefixEnabled) = count(x -> isenabled(nre.prefix, x), nre.keys)
+Base.in(x, nre::PrefixEnabled) = isenabled(nre.prefix, x)
+Base.eltype(::Type{PrefixEnabled{C}}) where {C} = C
 
 Base.delete!(kp::KeyedKeepPrefixSearch, clock) = kp.prefix[kp.index[clock]] = zero(time_type(kp))
 function Base.sum!(kp::KeyedKeepPrefixSearch)
@@ -72,7 +118,7 @@ end
 
 function Random.rand(
     rng::AbstractRNG, d::Random.SamplerTrivial{KeyedKeepPrefixSearch{T,P}}
-    ) where {T,P}
+) where {T,P}
     total = sum!(d[])
     LocalTime = time_type(P)
     choose(d[], rand(rng, Uniform{LocalTime}(zero(LocalTime), total)))
@@ -87,7 +133,7 @@ a large key space, this will use less memory.
 """
 struct KeyedRemovalPrefixSearch{T,P} <: KeyedPrefixSearch
     # Map from clock name to index in propensity array.
-    index::Dict{T, Int}
+    index::Dict{T,Int}
     # Map from index in propensity array to clock name.
     key::Vector{T}
     free::Set{Int}
@@ -110,10 +156,11 @@ function Base.copy!(dst::KeyedRemovalPrefixSearch{T,P}, src::KeyedRemovalPrefixS
     copy!(dst.key, src.key)
     copy!(dst.free, src.free)
     copy!(dst.prefix, src.prefix)
-    dst
+    return dst
 end
 
 Base.length(kp::KeyedRemovalPrefixSearch) = length(kp.index)
+key_type(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P} = T
 time_type(kp::KeyedRemovalPrefixSearch{T,P}) where {T,P} = time_type(P)
 
 function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
@@ -134,10 +181,8 @@ function Base.setindex!(kp::KeyedRemovalPrefixSearch, val, clock)
 end
 
 
-isenabled(kp::KeyedRemovalPrefixSearch, clock) = (
-    haskey(kp.index, clock) && kp.prefix[clock] > zero(time_type(kp))
-)
-
+isenabled(kp::KeyedRemovalPrefixSearch, clock) = haskey(kp.index, clock)
+enabled(kp::KeyedRemovalPrefixSearch) = keys(kp.index)
 
 function Base.getindex(kp::KeyedRemovalPrefixSearch, clock)
     if haskey(kp.index, clock)
@@ -170,7 +215,7 @@ end
 
 function Random.rand(
     rng::AbstractRNG, d::Random.SamplerTrivial{KeyedRemovalPrefixSearch{T,P}}
-    ) where {T,P}
+) where {T,P}
     total = sum!(d[])
     LocalTime = time_type(P)
     choose(d[], rand(rng, Uniform{LocalTime}(zero(LocalTime), total)))

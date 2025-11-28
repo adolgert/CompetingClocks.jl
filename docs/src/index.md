@@ -3,12 +3,17 @@ CurrentModule = CompetingClocks
 ```
 
 # CompetingClocks
+```@raw html
+<a href="https://codecov.io/gh/adolgert/CompetingClocks.jl">
+  <img src="https://codecov.io/gh/adolgert/CompetingClocks.jl/branch/main/graph/badge.svg" alt="Coverage">
+</a>
+```
+Fast, composable samplers for stochastic discrete-event simulation.
+This package gives your simulation or simulation framework statistical features like common random
+numbers, likelihood tracking, and first-class support for non-Exponential distributions.
 
-CompetingClocks is a Julia library that samples distributions for discrete event systems (DES) in continuous time. It supports Exponential and non-Exponential distributions for events.
-
-## Overview
-
-Many kinds of discrete event simulations need an efficient way to choose the next event in a simulation.
+**This isn't a simulation framework.** It's a component you can use to sample event times for simulation
+or to calculate the likelihood of a sample path for statistical estimation.
 
  * Simulations of chemical reactions.
  * Queueing theory models of networks, production, and computation.
@@ -17,32 +22,41 @@ Many kinds of discrete event simulations need an efficient way to choose the nex
  * Generalized stochastic Petri nets.
  * Generalized semi-Markov Processes.
 
-This library supports these kinds of simulations by optimizing the choice of the next event in the system. In statistical terms, this library is a sampler for generalized semi-Markov processes.
+![CompetingClocks chooses the next transition but the simulation tracks state and changes to state.](assets/CompetingClocksTopLevel.png)
 
-![CompetingClocks chooses the next transition but the simulation tracks state and changes to state.](assets/CompetingClocksTopLevel.svg)
+## Implementation Based on
 
-The background work for this library comes from [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
+ * P. J. Haas, _Stochastic Petri Nets: Modelling, Stability, Simulation._ in Springer Series in Operations Research. New York, NY: Springer-Verlag New York, Inc, 2002. doi: 10.1007/b97265.
+ * D. F. Anderson and T. G. Kurtz, Stochastic Analysis of Biochemical Systems. Springer International Publishing AG Switzerland, 2015.
+ * [Continuous-time, discrete-event simulation from counting processes](https://arxiv.org/abs/1610.03939), by Andrew Dolgert, 2016.
+
+## Version History
+
+ - v0.2.0 (2025-12) - Likelihood calculation, variance reduction.
+ - v0.1.0 (2024-06) - Initial release of samplers.
 
 ## Usage
 
-The library provides you with samplers. Each sampler has the same interface. Here, a distribution is a [Distributions.ContinuousUnivariateDistribution](https://juliastats.org/Distributions.jl/stable/univariate/#Continuous-Distributions), `RNG` is a [random number generator](https://docs.julialang.org/en/v1/stdlib/Random/#Generators-(creation-and-seeding)), the `key` is some identifier (maybe an integer) for the event, and an enabling time is a zero-time for the given distribution.
+The library provides you with samplers. Each sampler has the same interface. Here, a distribution is a [Distributions.ContinuousUnivariateDistribution](https://juliastats.org/Distributions.jl/stable/univariate/#Continuous-Distributions), `RNG` is a [random number generator](https://docs.julialang.org/en/v1/stdlib/Random/#Generators-(creation-and-seeding)), the `key` is some identifier (maybe an integer, tuple, or pair) for the event, and an enabling time is a zero-time for the given distribution.
 
- * [enable!](@ref)`(sampler, key, distribution, enabling time, current time, RNG))` - to start the clock on when an event will fire next.
+ * `enable!(sampler, key, distribution, enabling_time)` - to start the clock on when an event will fire next.
 
- * [disable!](@ref)`(sampler, key, current time)` - to turn off an event so it can't fire.
+ * `disable!(sampler, key)` - to turn off an event so it can't fire.
 
- * [next](@ref)`(sampler, current time, RNG)` - to ask this library who fires next.
+ * `next(sampler)` - to ask this library who could fire next, and it return a (time, key).
 
-Different samplers are specialized for sampling more quickly and accurately for different applications. For instance, some applications have very few events enabled at once, while some have many. Some applications use only exponentially-distributed events, while some have a mix of distribution types. Because continuous-time discrete event systems can fire many events, the literature has focused on reducing the number of CPU instructions required to sample each event, and this library reflects that focus.
+ * `fire!(sampler, key, time)` - choose which event happens at what time.
 
-## Why Use This?
+## When NOT to use Competing Clocks
 
-If I make a quick simulation for myself, I sample distributions the moment an event is enabled and store the firing times in a [priority queue](https://juliacollections.github.io/DataStructures.jl/v0.12/priority-queue.html). When would I switch to this library?
+ * **Pure exponential distributions and chemical systems?** JumpProcesses.jl is a complete framework for this.
+ * **Need ODE coupling?** Again, it's easier to stay within SciML and JumpProcesses.jl. CompetingClocks.jl supports ODEs as Dirac distributions.
+ * **Want high-level frameworks?** Try [Agents.jl](https://juliadynamics.github.io/Agents.jl/stable/) or [ConcurrentSim.jl](https://juliadynamics.github.io/ConcurrentSim.jl/stable/).
 
- * I want to evaluate the effect of changing simulation parameters by comparing multiple runs with [common random numbers](https://en.wikipedia.org/wiki/Variance_reduction#Common_Random_Numbers_(CRN)).
+CompetingClocks.jl is for:
 
- * I'm looking at rare events, so I want to use splitting techniques and [importance sampling](https://en.wikipedia.org/wiki/Importance_sampling).
-
- * Performance matters (which it often doesn't), so I would like to try different samplers on my problem.
-
- * I want to focus on developing and testing my *model* not my *simulation algorithm*; CompetingClocks is designed and tested with care to ensure correctness.
+ * Building a simulation framework with
+   * General distributions (Weibull, Gamma, etc.),
+   * Likelihood calculations or rare events, or
+   * Variance reduction.
+ * Advanced work in reliability models, disease models, queueing models.

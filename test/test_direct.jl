@@ -39,7 +39,7 @@ end
 
     @test length(sampler) == 5
     @test length(keys(sampler)) == 5
-    @test sampler[1] == 1/7.9
+    @test sampler[1] == 1 / 7.9
 
     @test haskey(sampler, 1)
     @test !haskey(sampler, 1_000)
@@ -48,7 +48,7 @@ end
     disable!(sampler, 1, 0.0)
 
     @test_throws KeyError sampler[1]
-    @test sampler[2] == 1/12.3
+    @test sampler[2] == 1 / 12.3
 
 end
 
@@ -86,14 +86,14 @@ end
     curtime = 2.5
     for i in 1:10000
         when, which = next(md, curtime, rng)
-        hilo[(which - 1) ÷ 10 + 1] += 1
+        hilo[(which-1)÷10+1] += 1
     end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
     @test ci[1] < 3 / 5 < ci[2]
 end
 
 
-@safetestset direct_call_prob = "DirectCall probabilities correct" begin
+@safetestset direct_call_prob_correct = "DirectCall probabilities correct" begin
     using CompetingClocks: DirectCall, next, enable!, next
     using Random: MersenneTwister
     using Distributions: Exponential
@@ -106,7 +106,7 @@ end
 
 
 @safetestset direct_call_copy = "DirectCall copy" begin
-    using CompetingClocks: DirectCall, enable!, next
+    using CompetingClocks: DirectCall, enable!, next, copy_clocks!
     using Random: MersenneTwister
     using Distributions: Exponential
 
@@ -118,7 +118,7 @@ end
     enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 2
     @test length(dst) == 1
-    copy!(dst, src)
+    copy_clocks!(dst, src)
     @test length(dst) == 2
     enable!(src, 5, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3
@@ -126,4 +126,164 @@ end
     enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
     @test length(src) == 3
     @test length(dst) == 3
+end
+
+
+@safetestset direct_call_enabled = "DirectCall enabled" begin
+    using CompetingClocks: DirectCall, enable!, next, disable!, enabled, isenabled
+    using Random: MersenneTwister
+    using Distributions: Exponential
+
+    sampler = DirectCall{Int,Float64}()
+    rng = MersenneTwister(90422342)
+    enable!(sampler, 1, Exponential(), 0.0, 0.0, rng)
+    @test enabled(sampler) == Set([1])
+    enable!(sampler, 2, Exponential(), 0.0, 0.0, rng)
+    @test enabled(sampler) == Set([1, 2])
+    enable!(sampler, 3, Exponential(), 0.5, 0.5, rng)
+    disable!(sampler, 2, 1.0)
+    enable!(sampler, 4, Exponential(), 1.0, 1.0, rng)
+    @test 4 in enabled(sampler)
+    @test isenabled(sampler, 3)
+    @test !isenabled(sampler, 2)
+end
+
+
+# This test exists because KeyedRemovealPrefixSearch will shuffle which keys point where
+# and BinaryTreePrefixSearch will cache requests to enable and disable, so they could
+# logically interfere. Here we show that for a simulation where every rate is
+# different and things fire randomly, every clock has the same rate across all the
+# Direct methods.
+@safetestset direct_call_multi_erlang = "DirectCall ErlangLoss comparison" begin
+    using CompetingClocks
+    using CompetingClocks: KeyedRemovalPrefixSearch, KeyedKeepPrefixSearch, BinaryTreePrefixSearch, CumSumPrefixSearch
+    using Random: Xoshiro
+    using Distributions: Exponential
+    using ..NonErlangLoss
+
+    all_nearly_equal(iter) = all(x -> isapprox(x, first(iter), atol=1e-9), iter)
+
+    K = Tuple{Symbol,Int}
+    T = Float64
+    s_rem_tree = DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, BinaryTreePrefixSearch)
+    s_rem_sum = DirectCallExplicit(K, T, KeyedRemovalPrefixSearch, CumSumPrefixSearch)
+    s_keep_tree = DirectCallExplicit(K, T, KeyedKeepPrefixSearch, BinaryTreePrefixSearch)
+    s_keep_sum = DirectCallExplicit(K, T, KeyedKeepPrefixSearch, CumSumPrefixSearch)
+    samplers = [s_keep_tree, s_keep_sum, s_rem_tree, s_rem_sum]
+
+    rng = Xoshiro(1002900)
+    model = BasicErlangLoss()
+    time_now = zero(T)
+    for sinit in samplers
+        enable!(sinit, (:arrival, 0), Exponential(1 / model.λ), time_now, time_now, rng)
+    end
+    for i in 1:100
+        (when, which) = next(s_keep_sum, time_now, rng)
+        for fclock in samplers
+            fire!(fclock, which, when)
+        end
+        time_now = when
+        randint = rand(rng, Int)
+        step!(model, samplers, which, when, rng, randint)
+        clocks = enabled(s_keep_sum)
+        for clock in clocks
+            @test all_nearly_equal(stest[clock] for stest in samplers)
+        end
+    end
+end
+
+
+@safetestset direct_call_clone = "DirectCall clone" begin
+    using CompetingClocks: DirectCall, enable!, clone
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(234567)
+    sampler = DirectCall{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+
+    cloned = clone(sampler)
+    @test length(cloned) == 0  # cloned is empty
+    @test length(sampler) == 2  # original unchanged
+end
+
+
+@safetestset direct_call_jitter = "DirectCall jitter!" begin
+    using CompetingClocks: DirectCall, enable!, jitter!
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(345678)
+    sampler = DirectCall{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # jitter! does nothing for DirectCall (returns nothing)
+    result = jitter!(sampler)
+    @test result === nothing
+end
+
+
+@safetestset direct_call_trajectory = "DirectCall with trajectory (log likelihood)" begin
+    using CompetingClocks: DirectCall, enable!, fire!, next, steploglikelihood, pathloglikelihood
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(456789)
+
+    # Create sampler with trajectory=true to enable log likelihood calculation
+    sampler = DirectCall{Int,Float64}(trajectory=true)
+    @test sampler.calculate_likelihood == true
+
+    # Enable some clocks with known rates
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+
+    # Get next event and fire
+    t1, k1 = next(sampler, 0.0, rng)
+    fire!(sampler, k1, t1)
+
+    # log_likelihood should have been updated
+    @test sampler.log_likelihood != 0.0
+
+    # Test steploglikelihood directly
+    sampler2 = DirectCall{Int,Float64}()
+    enable!(sampler2, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler2, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+
+    # steploglikelihood = log(lambda_i) - total_rate * delta_t
+    ll = steploglikelihood(sampler2, 0.0, 1.0, 1)
+    # rate of clock 1 is 1.0, total rate is 1.0 + 2.0 = 3.0
+    # log(1.0) - 3.0 * 1.0 = 0 - 3.0 = -3.0
+    @test ll ≈ -3.0
+
+    # Test pathloglikelihood
+    sampler3 = DirectCall{Int,Float64}(trajectory=true)
+    enable!(sampler3, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler3, 2, Exponential(0.5), 0.0, 0.0, rng)
+
+    # Fire to accumulate some log likelihood
+    t, k = next(sampler3, 0.0, rng)
+    fire!(sampler3, k, t)
+
+    # pathloglikelihood adds the "no event" contribution from now to endtime
+    pll = pathloglikelihood(sampler3, t + 1.0)
+    @test !isnan(pll)
+end
+
+
+@safetestset direct_call_haskey_wrong_type = "DirectCall haskey with wrong type" begin
+    using CompetingClocks: DirectCall, enable!
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(567890)
+    sampler = DirectCall{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # haskey with wrong type should return false (not throw)
+    @test haskey(sampler, 1) == true
+    @test haskey(sampler, "wrong_type") == false
+    @test haskey(sampler, :symbol) == false
+    @test haskey(sampler, 1.5) == false
 end

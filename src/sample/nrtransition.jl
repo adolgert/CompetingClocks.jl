@@ -1,28 +1,11 @@
-import Base: ==, <, >
-
 # A record of a transition and the time.
 # It's sortable by time. Immutable.
 struct OrderedSample{K,T}
-	key::K
-	time::T
+    key::K
+    time::T
 end
 
-
-function Base.:<(a::OrderedSample, b::OrderedSample)
-	a.time < b.time
-end
-
-
-function Base.isless(a::OrderedSample, b::OrderedSample)
-    return isless(a.time, b.time)
-end
-
-
-function Base.:>(a::OrderedSample, b::OrderedSample)
-    a.time > b.time
-end
-
-
-function ==(a::OrderedSample, b::OrderedSample)
-    a.time == b.time
-end
+Base.:<(a::OrderedSample, b::OrderedSample) = a.time < b.time
+Base.isless(a::OrderedSample, b::OrderedSample) = isless(a.time, b.time)
+Base.:>(a::OrderedSample, b::OrderedSample) = a.time > b.time
+Base.:(==)(a::OrderedSample, b::OrderedSample) = a.time == b.time

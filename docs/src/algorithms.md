@@ -15,4 +15,6 @@ choose
 setindex!
 rand
 set_multiple!
+SetOfSets
+PrefixEnabled
 ```

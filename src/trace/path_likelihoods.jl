@@ -1,0 +1,154 @@
+using Base
+
+struct PathEntry{K,T}
+    clock::K
+    distribution::Vector{UnivariateDistribution}
+    te::T    # The zero-point, in absolute time, for the distribution.
+    when::T  # When the distribution was enabled.
+end
+
+
+"""
+    PathLikelihoods{K,T}
+
+Calculates the likelihood of one path of events and times according to a vector
+of different distributions. This accepts a vector of distributions in each
+`enable!` call. This can be useful for tuning distribution parameters, but its
+main use is for importance sampling with mixtures of distribution parameters in
+order to stabilize importance sampling.
+"""
+mutable struct PathLikelihoods{K,T}
+    enabled::Dict{K,PathEntry{K,T}}
+    loglikelihood::Vector{Float64}
+    curtime::Float64
+    PathLikelihoods{K,T}(cnt) where {K,T} = new(Dict{K,PathEntry{K,T}}(), zeros(Float64, cnt), zero(Float64))
+end
+export PathLikelihoods
+
+
+clone(pl::PathLikelihoods{K,T}) where {K,T} = PathLikelihoods{K,T}(length(pl.loglikelihood))
+
+
+_likelihood_cnt(pl::PathLikelihoods) = length(pl.loglikelihood)
+
+Base.length(pl::PathLikelihoods) = length(pl.enabled)
+enabled(pl::PathLikelihoods) = keys(pl.enabled)
+isenabled(pl::PathLikelihoods, clock) = haskey(pl.enabled, clock)
+
+function copy_clocks!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) where {K,T}
+    @debug "PathLikelihood copy!"
+    copy!(dst.enabled, src.enabled)
+    copy!(dst.loglikelihood, src.loglikelihood)
+    dst.curtime = src.curtime
+    return dst
+end
+
+
+function pathloglikelihood(tw::PathLikelihoods, when)
+    @debug "PathLikelihood pathloglikelihood $when"
+    # When this is called, there will be transitions that have not yet fired, and
+    # they need to be included as though they were just disabled.
+    if when > tw.curtime
+        remaining = zeros(Float64, _likelihood_cnt(tw))
+        for entry in values(tw.enabled)
+            for idx in eachindex(remaining)
+                if when > entry.te
+                    remaining[idx] += logccdf(entry.distribution[idx], when - entry.te)
+                    if entry.when > entry.te
+                        remaining[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
+                    end
+                end
+            end
+        end
+        return tw.loglikelihood .+ remaining
+    else
+        return tw.loglikelihood
+    end
+end
+
+
+function reset!(tw::PathLikelihoods)
+    @debug "PathLikelihood reset!"
+    empty!(tw.enabled)
+    tw.loglikelihood .= zero(Float64)
+    tw.curtime = 0.0
+    nothing
+end
+
+
+function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+    @debug "PathLikelihood enable! $clock $dist $te $when"
+    haskey(ts.enabled, clock) && disable!(ts, clock, when)
+    ts.enabled[clock] = PathEntry{K,T}(clock, UnivariateDistribution[dist], te, when)
+end
+
+
+function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::Vector, te::T, when::T, rng::AbstractRNG) where {K,T}
+    @debug "PathLikelihood enable! $clock $dist $te $when"
+    haskey(ts.enabled, clock) && disable!(ts, clock, when)
+    ts.enabled[clock] = PathEntry{K,T}(clock, copy(dist), te, when)
+end
+
+
+function disable!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
+    @debug "PathLikelihood disable! $clock $now"
+    entry = get(ts.enabled, clock, nothing)
+    if isnothing(entry)
+        error("Cannot disable $clock at time $now because it is not enabled.")
+    end
+    if length(entry.distribution) == 1
+        log_delta = zero(Float64)
+        if now > entry.te  # now > zero-point of the distribution.
+            log_delta += logccdf(entry.distribution[1], now - entry.te)
+            # simulation time for distribution being turned on > zero-point of distribution.
+            if entry.when > entry.te
+                log_delta -= logccdf(entry.distribution[1], entry.when - entry.te)
+            end
+        end
+        ts.loglikelihood .+= log_delta
+    else
+        for idx in eachindex(entry.distribution)
+            if now > entry.te
+                ts.loglikelihood[idx] += logccdf(entry.distribution[idx], now - entry.te)
+                # Adjust for an enabling time that was shifted left.
+                if entry.when > entry.te
+                    ts.loglikelihood[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
+                end
+            end
+        end
+    end
+    delete!(ts.enabled, clock)
+end
+
+
+function fire!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
+    @debug "PathLikelihood fire! $clock $now"
+    entry = get(ts.enabled, clock, nothing)
+    if !isnothing(entry)
+        if length(entry.distribution) == 1
+            log_delta = zero(Float64)
+            if now > entry.te
+                log_delta += logpdf(entry.distribution[1], now - entry.te)
+            end
+            # Adjust for an enabling time that was shifted left.
+            if entry.when > entry.te
+                log_delta -= logccdf(entry.distribution[1], entry.when - entry.te)
+            end
+            ts.loglikelihood .+= log_delta
+        else
+            for idx in eachindex(entry.distribution)
+                if now > entry.te
+                    ts.loglikelihood[idx] += logpdf(entry.distribution[idx], now - entry.te)
+                    # Adjust for an enabling time that was shifted left.
+                    if entry.when > entry.te
+                        ts.loglikelihood[idx] -= logccdf(entry.distribution[idx], entry.when - entry.te)
+                    end
+                end
+            end
+        end
+        delete!(ts.enabled, clock)
+    else
+        error("Cannot fire $clock at time $now because it is not enabled.")
+    end
+    ts.curtime = now
+end

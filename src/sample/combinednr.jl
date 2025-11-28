@@ -1,8 +1,8 @@
 
-using DataStructures: MutableBinaryMinHeap, extract_all!, update!
+using DataStructures: MutableBinaryHeap, update!
 
 export sampling_space
-export CombinedNextReaction
+export CombinedNextReaction, enabled
 
 """
 This function decides whether a particular distribution can be sampled faster
@@ -12,58 +12,58 @@ hazard. The former is used for the Next Reaction method by Gibson and Bruck.
 The latter is used by the Modified Next Reaction method of Anderson.
 We are calling the first a linear space and the second a logarithmic space.
 """
-function sampling_space(x::T) where {T <: UnivariateDistribution}
+function sampling_space(x::T) where {T<:UnivariateDistribution}
     sampling_space(typeof(x))::Union{Type{LinearSampling},Type{LogSampling}}
 end
 abstract type SamplingSpaceType end
 struct LinearSampling <: SamplingSpaceType end
 struct LogSampling <: SamplingSpaceType end
 sampling_space(::Type) = LinearSampling
-sampling_space(::Type{Distributions.Arcsine}) = LinearSampling
-sampling_space(::Type{Distributions.BetaPrime}) = LinearSampling
-sampling_space(::Type{Distributions.Biweight}) = LinearSampling
-sampling_space(::Type{Distributions.Beta}) = LinearSampling
-sampling_space(::Type{Distributions.Cauchy}) = LinearSampling
-sampling_space(::Type{Distributions.Cosine}) = LinearSampling
-sampling_space(::Type{Distributions.Epanechnikov}) = LinearSampling
-sampling_space(::Type{Distributions.Erlang}) = LogSampling
-sampling_space(::Type{Distributions.Exponential}) = LogSampling
-sampling_space(::Type{Distributions.Frechet}) = LinearSampling
-sampling_space(::Type{Distributions.Gamma}) = LogSampling
-sampling_space(::Type{Distributions.GeneralizedPareto}) = LinearSampling
-sampling_space(::Type{Distributions.Gumbel}) = LinearSampling
-sampling_space(::Type{Distributions.InverseGamma}) = LinearSampling
-sampling_space(::Type{Distributions.InverseGaussian}) = LinearSampling
-sampling_space(::Type{Distributions.JohnsonSU}) = LinearSampling
-sampling_space(::Type{Distributions.Kolmogorov}) = LinearSampling
-sampling_space(::Type{Distributions.Kumaraswamy}) = LinearSampling
-sampling_space(::Type{Distributions.Laplace}) = LogSampling
-sampling_space(::Type{Distributions.Levy}) = LinearSampling
-sampling_space(::Type{Distributions.Lindley}) = LinearSampling
-sampling_space(::Type{Distributions.Logistic}) = LinearSampling
-sampling_space(::Type{Distributions.LogitNormal}) = LinearSampling
-sampling_space(::Type{Distributions.LogNormal}) = LinearSampling
-sampling_space(::Type{Distributions.Normal}) = LinearSampling
-sampling_space(::Type{Distributions.NormalCanon}) = LinearSampling
-sampling_space(::Type{Distributions.Pareto}) = LinearSampling
-sampling_space(::Type{Distributions.PGeneralizedGaussian}) = LinearSampling
-sampling_space(::Type{Distributions.Rayleigh}) = LinearSampling
-sampling_space(::Type{Distributions.Rician}) = LinearSampling
-sampling_space(::Type{Distributions.SkewedExponentialPower}) = LinearSampling
-sampling_space(::Type{Distributions.SymTriangularDist}) = LinearSampling
-sampling_space(::Type{Distributions.Triweight}) = LinearSampling
-sampling_space(::Type{Distributions.Uniform}) = LinearSampling
-sampling_space(::Type{Distributions.Weibull}) = LogSampling
+sampling_space(::Type{<:Distributions.Arcsine}) = LinearSampling
+sampling_space(::Type{<:Distributions.BetaPrime}) = LinearSampling
+sampling_space(::Type{<:Distributions.Biweight}) = LinearSampling
+sampling_space(::Type{<:Distributions.Beta}) = LinearSampling
+sampling_space(::Type{<:Distributions.Cauchy}) = LinearSampling
+sampling_space(::Type{<:Distributions.Cosine}) = LinearSampling
+sampling_space(::Type{<:Distributions.Epanechnikov}) = LinearSampling
+sampling_space(::Type{<:Distributions.Erlang}) = LogSampling
+sampling_space(::Type{<:Distributions.Exponential}) = LogSampling
+sampling_space(::Type{<:Distributions.Frechet}) = LinearSampling
+sampling_space(::Type{<:Distributions.Gamma}) = LogSampling
+sampling_space(::Type{<:Distributions.GeneralizedPareto}) = LinearSampling
+sampling_space(::Type{<:Distributions.Gumbel}) = LinearSampling
+sampling_space(::Type{<:Distributions.InverseGamma}) = LinearSampling
+sampling_space(::Type{<:Distributions.InverseGaussian}) = LinearSampling
+sampling_space(::Type{<:Distributions.JohnsonSU}) = LinearSampling
+sampling_space(::Type{<:Distributions.Kolmogorov}) = LinearSampling
+sampling_space(::Type{<:Distributions.Kumaraswamy}) = LinearSampling
+sampling_space(::Type{<:Distributions.Laplace}) = LogSampling
+sampling_space(::Type{<:Distributions.Levy}) = LinearSampling
+sampling_space(::Type{<:Distributions.Lindley}) = LinearSampling
+sampling_space(::Type{<:Distributions.Logistic}) = LinearSampling
+sampling_space(::Type{<:Distributions.LogitNormal}) = LinearSampling
+sampling_space(::Type{<:Distributions.LogNormal}) = LinearSampling
+sampling_space(::Type{<:Distributions.Normal}) = LinearSampling
+sampling_space(::Type{<:Distributions.NormalCanon}) = LinearSampling
+sampling_space(::Type{<:Distributions.Pareto}) = LinearSampling
+sampling_space(::Type{<:Distributions.PGeneralizedGaussian}) = LinearSampling
+sampling_space(::Type{<:Distributions.Rayleigh}) = LinearSampling
+sampling_space(::Type{<:Distributions.Rician}) = LinearSampling
+sampling_space(::Type{<:Distributions.SkewedExponentialPower}) = LinearSampling
+sampling_space(::Type{<:Distributions.SymTriangularDist}) = LinearSampling
+sampling_space(::Type{<:Distributions.Triweight}) = LinearSampling
+sampling_space(::Type{<:Distributions.Uniform}) = LinearSampling
+sampling_space(::Type{<:Distributions.Weibull}) = LogSampling
 
 # The following four support functions are used by the CombinedNextReaction
 # sampler, and their use is decided by the `sampling_space()` above.
 # I had some trouble getting these functions to be type stable, and their lack
 # of type stability hurt performance. Test performance by using
 # tests/time_combinednr.jl.
-function get_survival_zero(::T) where {T <: UnivariateDistribution}
+function get_survival_zero(::T) where {T<:UnivariateDistribution}
     get_survival_zero(sampling_space(T))::Float64
 end
-function get_survival_zero(::Type{T}) where {T <: UnivariateDistribution}
+function get_survival_zero(::Type{T}) where {T<:UnivariateDistribution}
     get_survival_zero(sampling_space(T))::Float64
 end
 get_survival_zero(::Type{LinearSampling}) = 0.0::Float64
@@ -72,13 +72,13 @@ get_survival_zero(::Type{LogSampling}) = -Inf::Float64
 draw_space(::Type{LinearSampling}, rng) = rand(rng, Uniform())
 draw_space(::Type{LogSampling}, rng) = rand(rng, Exponential())
 
-function survival_space(::Type{T}, dist, sample) where {T <: UnivariateDistribution}
+function survival_space(::Type{T}, dist, sample) where {T<:UnivariateDistribution}
     survival_space(sampling_space(T), dist, sample)
 end
 survival_space(::Type{LinearSampling}, dist, sample) = ccdf(dist, sample)::Float64
 survival_space(::Type{LogSampling}, dist, sample) = logccdf(dist, sample)::Float64
 
-function invert_space(::Type{T}, dist, survival) where {T <: UnivariateDistribution}
+function invert_space(::Type{T}, dist, survival) where {T<:UnivariateDistribution}
     invert_space(sampling_space(T), dist, survival)
 end
 invert_space(::Type{LinearSampling}, dist, survival) = cquantile(dist, survival)::Float64
@@ -133,13 +133,13 @@ If you want to test a distribution, look at `tests/nrmetric.jl` to see how
 distributions are timed.
 """
 mutable struct CombinedNextReaction{K,T} <: SSA{K,T}
-    firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
+    firing_queue::MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}
     transition_entry::Dict{K,NRTransition{T}}
 end
 
 
-function CombinedNextReaction{K,T}() where {K,T <: ContinuousTime}
-    heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
+function CombinedNextReaction{K,T}() where {K,T<:ContinuousTime}
+    heap = MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}()
     CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}())
 end
 
@@ -147,15 +147,38 @@ clone(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}()
 export clone
 
 function reset!(nr::CombinedNextReaction)
-    extract_all!(nr.firing_queue)
+    empty!(nr.firing_queue)
     @assert isempty(nr.firing_queue)
     empty!(nr.transition_entry)
     nothing
 end
 
-function Base.copy!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
+function copy_clocks!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
+    return dst
+end
+
+
+function _jitter_space(nr::CombinedNextReaction{K,T}, clock, record, ::Type{S}, when::T,
+        rng::AbstractRNG) where {K,T,S<:SamplingSpaceType}
+    if record.heap_handle > 0
+        tau, shift_survival = sample_shifted(rng, record.distribution, S, record.te, when)
+        sample = OrderedSample{K,T}(clock, tau)
+        update!(nr.firing_queue, record.heap_handle, sample)
+        nr.transition_entry[clock] = NRTransition{T}(
+            record.heap_handle, shift_survival, record.distribution, record.te, when
+        )
+    else
+        record.survival = get_survival_zero(S)
+    end
+end
+
+
+function jitter!(nr::CombinedNextReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
+    for (clock, record) in nr.transition_entry
+        _jitter_space(nr, clock, record, sampling_space(record.distribution), when, rng)
+    end
 end
 
 
@@ -193,7 +216,7 @@ function sample_shifted(
     ::Type{S},
     te::T,
     when::T
-    ) where {S <: SamplingSpaceType, T <: ContinuousTime}
+) where {S<:SamplingSpaceType,T<:ContinuousTime}
     if te < when
         shifted_distribution = truncated(distribution, when - te, typemax(T))
         sample = rand(rng, shifted_distribution)
@@ -211,7 +234,7 @@ end
 
 function sample_by_inversion(
     distribution::UnivariateDistribution, ::Type{S}, te::T, when::T, survival::T
-    ) where {S <: SamplingSpaceType, T <: ContinuousTime}
+) where {S<:SamplingSpaceType,T<:ContinuousTime}
     if te < when
         te + invert_space(S, truncated(distribution, when - te, typemax(T)), survival)
     else   # te > when
@@ -232,18 +255,18 @@ t_e can be before t_0, at t_0, between t_0 and t_n, or at t_n, or after t_n.
 """
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::T
-    ) where {S <: LinearSampling, T <: ContinuousTime}
+) where {S<:LinearSampling,T<:ContinuousTime}
     survive_te_tn = if record.te < tn
-        ccdf(distribution, tn-record.te)::T
+        ccdf(distribution, tn - record.te)::T
     else
         one(T)
     end
     survive_te_t0 = if record.te < record.t0
-        ccdf(distribution, record.t0-record.te)::T
+        ccdf(distribution, record.t0 - record.te)::T
     else
         one(T)
     end
-    record.survival / (survive_te_t0 * survive_te_tn)
+    record.survival * (survive_te_t0 / survive_te_tn)
 end
 
 
@@ -256,18 +279,18 @@ Anderson's method.
 """
 function consume_survival(
     record::NRTransition, distribution::UnivariateDistribution, ::Type{S}, tn::T
-    ) where {S <: LogSampling, T <: ContinuousTime}
+) where {S<:LogSampling,T<:ContinuousTime}
     log_survive_te_tn = if record.te < tn
-        logccdf(distribution, tn-record.te)::T
+        logccdf(distribution, tn - record.te)::T
     else
         zero(T)
     end
     log_survive_te_t0 = if record.te < record.t0
-        logccdf(distribution, record.t0-record.te)::T
+        logccdf(distribution, record.t0 - record.te)::T
     else
         zero(T)
     end
-    record.survival - (log_survive_te_t0 + log_survive_te_tn)
+    record.survival - (log_survive_te_tn - log_survive_te_t0)
 end
 
 
@@ -281,14 +304,14 @@ end
 
 function enable!(
     nr::CombinedNextReaction{K,T}, clock::K, distribution::UnivariateDistribution, ::Type{S},
-    te::T, when::T, rng::AbstractRNG) where {K, T, S <: SamplingSpaceType}
-    
+    te::T, when::T, rng::AbstractRNG) where {K,T,S<:SamplingSpaceType}
+
     # Three cases: a) never been enabled b) currently enabled c) was disabled.
     record = get(
         nr.transition_entry,
         clock,
         NRTransition{T}(0, get_survival_zero(S), Never(), zero(T), zero(T))
-        )
+    )
     heap_handle = record.heap_handle
 
     # if the transition needs to be re-drawn.
@@ -303,8 +326,8 @@ function enable!(
         nr.transition_entry[clock] = NRTransition{T}(
             heap_handle, shift_survival, distribution, te, when
         )
-        
-    # The transition has remaining lifetime.
+
+        # The transition has remaining lifetime.
     else
         # The transition was previously enabled.
         if record.heap_handle > 0
@@ -323,7 +346,7 @@ function enable!(
                 )
             end
 
-        # The transition was previously disabled.
+            # The transition was previously disabled.
         else
             tau = sample_by_inversion(distribution, S, te, when, record.survival)
             heap_handle = push!(nr.firing_queue, OrderedSample{K,T}(clock, tau))
@@ -336,7 +359,10 @@ function enable!(
 end
 
 
-function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <: ContinuousTime}
+fire!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime} = disable!(nr, clock, when)
+
+
+function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime}
     record = nr.transition_entry[clock]
     delete!(nr.firing_queue, record.heap_handle)
     nr.transition_entry[clock] = NRTransition{T}(
@@ -348,6 +374,19 @@ function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T <
     )
     nothing
 end
+
+
+function steploglikelihood(nr::CombinedNextReaction, t0, t, which_fires)
+    # We need to adapt our dictionary into a named tuple for consumption by the
+    # calculator fo the step log-likelihood.
+    return _steploglikelihood(
+        ((clock=k, distribution=v.distribution, te=v.te) for (k, v) in pairs(nr.transition_entry)),
+        t0,
+        t,
+        which_fires
+    )
+end
+
 
 """
     getindex(sampler::CombinedNextReaction{K,T}, clock::K)
@@ -370,6 +409,55 @@ end
 function Base.length(nr::CombinedNextReaction)
     return length(nr.transition_entry)
 end
+
+
+function isenabled(nr::CombinedNextReaction, clock)
+    haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0
+end
+
+
+# A set of all enabled clock keys for a CombinedNextReaction method.
+# We make a custom Set implementation because the information is in the
+# CombinedNextReaction object, but it's spread across a Heap and a Dictionary.
+# This helper class should make it much more efficient to iterate the set.
+struct NextReactionEnabled{C,T,K} <: AbstractSet{C}
+    nr::T
+    keys::K
+end
+
+_has_handle(nre::NextReactionEnabled, key) = nre.nr.transition_entry[key].heap_handle > 0
+
+function Base.iterate(nre::NextReactionEnabled)
+    res = iterate(nre.keys)
+    res === nothing && return res
+    while !_has_handle(nre, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+
+function Base.iterate(nre::NextReactionEnabled, state)
+    res = iterate(nre.keys, state)
+    res === nothing && return res
+    while !_has_handle(nre, res[1])
+        res = iterate(nre.keys, res[2])
+        res === nothing && return res
+    end
+    return res
+end
+
+Base.length(nre::NextReactionEnabled) = length(nre.nr.firing_queue)
+Base.in(x, nre::NextReactionEnabled) = isenabled(nre.nr, x)
+Base.eltype(::Type{NextReactionEnabled{C}}) where {C} = C
+
+
+function enabled(nr::CombinedNextReaction{K,T}) where {K,T}
+    kks = keys(nr.transition_entry)
+    NextReactionEnabled{K,typeof(nr),typeof(kks)}(nr, kks)
+end
+
 
 function Base.haskey(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
     return haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0

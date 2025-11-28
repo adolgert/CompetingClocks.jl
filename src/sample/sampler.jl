@@ -6,7 +6,7 @@ abstract type SamplerChoice{SamplerKey,Key} end
 
 function choose_sampler(
     chooser::SamplerChoice{SamplerKey,Key}, clock::Key, distribution::UnivariateDistribution
-    )::SamplerKey where {SamplerKey,Key}
+)::SamplerKey where {SamplerKey,Key}
     throw(MissingException("No sampler choice given to the MultiSampler"))
 end
 
@@ -74,13 +74,22 @@ end
 
 function MultiSampler{SamplerKey,Key,Time}(
     which_sampler::Chooser
-    ) where {SamplerKey,Key,Time,Chooser <: SamplerChoice{SamplerKey,Key}}
+) where {SamplerKey,Key,Time,Chooser<:SamplerChoice{SamplerKey,Key}}
 
     MultiSampler{SamplerKey,Key,Time,Chooser}(
         Dict{SamplerKey,SSA{Key,Time}}(),
         which_sampler,
         Dict{Key,SamplerKey}()
-        )
+    )
+end
+
+
+function clone(sampler::MultiSampler{SamplerKey,Key,Time}) where {SamplerKey,Key,Time}
+    cloned = MultiSampler{SamplerKey,Key,Time}(sampler.chooser)
+    for (skey, subsampler) in sampler.propagator
+        cloned[skey] = clone(subsampler)
+    end
+    return cloned
 end
 
 
@@ -92,21 +101,27 @@ function reset!(sampler::MultiSampler)
 end
 
 
-function Base.copy!(
+function copy_clocks!(
     dst::MultiSampler{SamplerKey,Key,Time,Chooser},
     src::MultiSampler{SamplerKey,Key,Time,Chooser}
-    ) where {SamplerKey,Key,Time,Chooser}
-    
+) where {SamplerKey,Key,Time,Chooser}
+
     copy!(dst.propagator, src.propagator)
     dst.chooser = src.chooser
     copy!(dst.chosen, src.chosen)
-    dst
+    return dst
 end
 
+function jitter!(sampler::MultiSampler{SamplerKey,Key,Time}, when::Time, rng::AbstractRNG
+) where {SamplerKey,Key,Time}
+    for propagator in values(sampler.propagator)
+        jitter!(propagator, when, rng)
+    end
+end
 
 function Base.setindex!(
     sampler::MultiSampler{SamplerKey,Key,Time}, algorithm::SSA{Key,Time}, sampler_key::SamplerKey
-    ) where {SamplerKey,Key,Time}
+) where {SamplerKey,Key,Time}
     sampler.propagator[sampler_key] = algorithm
 end
 
@@ -115,7 +130,7 @@ function next(
     sampler::MultiSampler{SamplerKey,Key,Time},
     when::Time,
     rng::AbstractRNG
-    ) where {SamplerKey,Key,Time}
+) where {SamplerKey,Key,Time}
 
     least_when::Time = typemax(Time)
     least_transition::Union{Nothing,Key} = nothing
@@ -137,8 +152,7 @@ function enable!(
     te::Time,
     when::Time,
     rng::AbstractRNG
-    ) where {SamplerKey,Key,Time}
-    @debug "Enabling the MultiSampler"
+) where {SamplerKey,Key,Time}
     this_clock_sampler = choose_sampler(sampler.chooser, clock, distribution)
     sampler.chosen[clock] = this_clock_sampler
     propagator = sampler.propagator[this_clock_sampler]
@@ -146,15 +160,20 @@ function enable!(
 end
 
 
+fire!(sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
+) where {SamplerKey,Key,Time} = disable!(sampler, clock, when)
+
+
 function disable!(
     sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
-    ) where {SamplerKey,Key,Time}
+) where {SamplerKey,Key,Time}
     disable!(sampler.propagator[sampler.chosen[clock]], clock, when)
+    delete!(sampler.chosen, clock)
 end
 
 
-function Base.getindex(sampler::MultiSampler, clock)
-    return getindex(sampler.chosen[clock], clock)
+function Base.getindex(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}, clock::Key) where {SamplerKey,Key,Time,Chooser}
+    return getindex(sampler.propagator[sampler.chosen[clock]], clock)
 end
 
 
@@ -168,16 +187,17 @@ function Base.length(sampler::MultiSampler)
 end
 
 function Base.haskey(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}, clock) where {SamplerKey,Key,Time,Chooser}
-    if clock isa Key
-        for propagator in values(sampler.propagator)
-            if haskey(propagator, clock)
-                return true
-            else
-                continue
-            end
+    for propagator in values(sampler.propagator)
+        if haskey(propagator, clock)
+            return true
+        else
+            continue
         end
-        return false
-    else
-        return false
     end
+    return false
+end
+
+function enabled(sampler::MultiSampler{SamplerKey,Key,Time,Chooser}) where {SamplerKey,Key,Time,Chooser}
+    subset = collect(enabled(prop) for prop in values(sampler.propagator))
+    return SetOfSets(subset)
 end

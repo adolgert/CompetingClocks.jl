@@ -2,71 +2,70 @@ using CompetingClocks
 using SafeTestsets
 using Test
 
+# Run the "test_neverdist.jl" tests by calling:
+# ```bash
+# julia --project -e 'using Pkg;Pkg.test(; test_args = ["neverdist"])'`
+# ```
+
 # Not tests. These are helper functions for tests.
 include("vas.jl")
 include("test_utility.jl")
+include("erlang_loss.jl")
 
-@testset "test_commonrandom.jl" begin
-    include("test_commonrandom.jl")
+# All available test files
+all_tests = [
+    "test_package.jl",
+    "test_combinednr.jl",
+    "test_context.jl",
+    "test_direct.jl",
+    "test_firstreaction.jl",
+    "test_firsttofire.jl",
+    "test_hazard.jl",
+    "test_interface.jl",
+    "test_keyedprefixsearch.jl",
+    "test_likelihood.jl",
+    "test_multiple_direct.jl",
+    "test_neverdist.jl",
+    "test_nrtransition.jl",
+    "test_petri.jl",
+    "test_prefixsearch.jl",
+    "test_pssa_cr.jl",
+    "test_rssa.jl",
+    "test_sampler.jl",
+    "test_samplerspec.jl",
+    "test_sampler_builder.jl",
+    "test_setofsets.jl",
+    "test_track.jl",
+    "test_trajectory.jl",
+    "test_vas_integrate.jl",
+    "test_vas.jl",
+    "test_with_common_random.jl",
+    "gauntlet/test_travel.jl",
+]
+
+# Filter tests based on command-line arguments (ARGS)
+# If no arguments provided, run all tests
+# Otherwise, run only tests whose names contain any of the arguments
+selected_tests = if isempty(ARGS)
+    all_tests
+else
+    filtered = filter(test_file -> any(arg -> occursin(arg, test_file), ARGS), all_tests)
+    if isempty(filtered)
+        @warn "No tests matched arguments: $(ARGS). Running all tests."
+        all_tests
+    else
+        filtered
+    end
 end
 
-
-@testset "test_prefixsearch.jl" begin
-    include("test_prefixsearch.jl")
+@info "Running $(length(selected_tests)) of $(length(all_tests)) test file(s)"
+if length(selected_tests) < length(all_tests)
+    @info "Selected tests: $(selected_tests)"
 end
 
-
-@testset "test_keyedprefixsearch.jl" begin
-    include("test_keyedprefixsearch.jl")
-end
-
-@testset "test_track.jl" begin
-    include("test_track.jl")
-end
-
-@testset "test_combinednr.jl" begin
-    include("test_combinednr.jl")
-end
-
-
-@testset "test_firstreaction.jl" begin
-    include("test_firstreaction.jl")
-end
-
-
-@testset "test_nrtransition.jl" begin
-    include("test_nrtransition.jl")
-end
-
-
-@testset "test_direct.jl" begin
-    include("test_direct.jl")
-end
-
-
-@testset "test_firsttofire.jl" begin
-    include("test_firsttofire.jl")
-end
-
-@testset "test_petri.jl" begin
-    include("test_petri.jl")
-end
-
-@testset "test_sampler.jl" begin
-    include("test_sampler.jl")
-end
-
-
-@testset "test_multiple_direct.jl" begin
-    include("test_multiple_direct.jl")
-end
-
-
-@testset "test_vas.jl" begin
-    include("test_vas.jl")
-end
-
-
-@testset "test_vas_integrate.jl" begin
-    include("test_vas_integrate.jl")
+# Run selected tests
+for test_file in selected_tests
+    @testset "$test_file" begin
+        include(test_file)
+    end
 end

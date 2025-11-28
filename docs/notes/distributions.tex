@@ -135,15 +135,15 @@ Julia has one function to retrieve all parameters of a distribution and a few fu
 	Julia Function & Equation & Statistics name \\ \hline
 	\texttt{ccdf} & $S(x) = e^{-\int^x\lambda(s)ds}$ & Survival \\
 	\texttt{cdf} & $F(x) = 1 - S(x) = 1-e^{-\int^x\lambda(s)ds}$ & Cumulative distribution function \\
-	\texttt{pdf} & $f(x) = \lambda(x)e^{-\int^x\lambda(s)ds}$ & Probability distribution function \\
-	\texttt{logpdf} & $\ln\:f(x)$ & Log-likelihood \\
+	\texttt{pdf} & $f(x) = \lambda(x)e^{-\int^x\lambda(s)ds}$ & Probability density function \\
+	\texttt{logpdf} & $\ln\:f(x)$ & Log probability density \\
 	\texttt{logcdf} & $\ln\:F(x)$ & \\
 	\texttt{logdiffcdf} & $\ln\left(F(x_2)-F(x_1)\right)$ & \\
 	\texttt{logccdf} & $-\int^x\lambda(s)ds$ & Integrated hazard (negated) \\
 	\texttt{quantile} & $y = F^{-1}(x)$ & Inverse cumulative distribution function \\
 	\texttt{cquantile} & $y = F^{-1}(1-x)$ so $x = S(y)$ & Inverse Survival \\
 	\texttt{invlogcdf} & $x = \ln\:F(y)$ so $e^x = F(y)$ & \\
-	\texttt{invlogccdf} & $x = -\int_0^y\lambda(s)ds$ & Inverse integrated hazard \\ \hline
+	\texttt{invlogccdf} & $x = -\int_0^y\lambda(s)ds$ & Inverse negative integrated hazard \\ \hline
 \end{tabular}
 \caption{This translates between Julia functions and hazard-based notation. We can use this to find
 the shortest path to our calculation in code.\label{julia-translation}}
@@ -153,13 +153,13 @@ Later we will use two pairs of functions from \texttt{Distributions.jl} to imple
 
 \texttt{invlogccdf(d::UnivariateDistribution, x::Real)} can be translated into
 \begin{equation}
-e^x = G(y) = e^{\int_0^y\lambda(s)ds}.
+e^x = G(y) = e^{-\int_0^y\lambda(s)ds}.
 \end{equation}
 That means this function is the inverse of the integrated hazard.
 \begin{equation}
 x = \Lambda(y)
 \end{equation}
-In this package, the integrated hazard is called \texttt{logccdf}.
+In this package, the integrated hazard is the negative of \texttt{logccdf}.
 
 
 \section{Next Reaction for Non-Markov Processes}\label{sec:nextreaction}
@@ -643,5 +643,59 @@ My favorite housing spread example.
 As long as the sampler can sample the distribution using the given methods, that distribution can be determined by any equation, including an ODE. In one version, the distribution is a delta function, and these completely work. You have to re-enable the distribution each time the ODE changes its prediction. In another version, there is still a continuous distribution, but it's determined by the ODE.
 
 Show that a delta-function can be included in CompetingClocks.
+
+\section{Testing Samplers}
+
+\subsection{Doob-Meyer}
+
+Doob-Meyer is a conceptually simple way to test the times from a sampler.
+For every draw from a sampler, take the time of the draw and use the currently-enabled
+distributions to calculate the cumulant. That is, had you sampled the time
+by drawing a value $U ~ [0, 1]$ and using inversion, what would the $U$ have been?
+
+Once you have the transformed values, a Kolmogorov-Smirnov test will compare the
+draws with a Uniform distribution and give you a p-value.
+
+You can do this for holding times, $P[T|K]$ for clock $K$, or waiting times, $P[T]$.
+
+\subsection{Mark Calibration}
+
+The mark is the clock chosen for a particular sampling time, so it's $P[K|T]$.
+Given a time, this is a multinomial choice. We evaluate the correctness of this
+choice using a Brier score. The simpler Brier score is a yes-no choice, so we use
+a multi-class Brier score.
+
+The multi-class Brier score is an average of successes. For one draw $j$ from $K$
+classes, the Brier score
+\begin{equation}
+	B = \frac{1}{2K}\sum_{k=1}^K (p_k - 1_{k=j})^2
+\end{equation}
+The $1/2$ in the equation is because a worst score is assigning a 1 where it should
+be a 0 and assigning a 0 where it should be a 1, which gives 2.
+A lower Brier score is better.
+
+We have a wonky version of this because over the course of a simulation the number
+of classes changes. One way to handle that is to not normalize by $K$.
+If we label each step of the simulation by $i$, then it's a sum.
+\begin{equation}
+	B = \frac{1}{2N}\sum_{i=1}^N\sum_{k=1}^K (p_{ik} - 1_{ik=ij})^2
+\end{equation}
+I'm having trouble with notation, but the point is that you put a 1 on the right
+when the probability matches the chosen clock.
+
+How do we know when the Brier score is good? There are several approaches, but
+one nice approach is to take the known multinomial probability for clocks
+at time $t$ and sample from it to get a parametric null. We know that the probability
+of choosing clock $k$ at time $t$ is the ratio of hazards, $\lambda_k(t)/\sum_j\lambda_j(t)$.
+Draw from this $B=1999$ times and calculate the Brier score for each draw. Keep a running
+tally of all 1999 Brier scores as you simulate. At the end, calculate a one-sided
+p-value.
+\begin{equation}
+	p_{\mbox{bad}} = \frac{1 + \#\{b: B^{(b)}\ge B_{\mbox{obs}}\}}{B + 1}
+\end{equation}
+That is, how often is a Brier score for a correct set of draws greater than
+the measured Brier score? You want this number to be low.
+For our purposes, we would use $1-p_{\mbox{bad}}$ so that a low value is worse,
+in line with what we would get from Doob-Meyer and other p-values.
 
 \end{document}

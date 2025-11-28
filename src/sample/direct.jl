@@ -1,7 +1,7 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next
+export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit, clone
 
 
 """
@@ -33,21 +33,50 @@ sampler_noremove = DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
 ```
 
 """
-struct DirectCall{K,T,P} <: SSA{K,T}
+mutable struct DirectCall{K,T,P} <: SSA{K,T}
     prefix_tree::P
+    now::T
+    log_likelihood::Float64
+    calculate_likelihood::Bool
 end
 
 
-function DirectCall{K,T}() where {K,T<:ContinuousTime}
+function DirectCall{K,T}(; trajectory=false) where {K,T<:ContinuousTime}
     prefix_tree = BinaryTreePrefixSearch{T}()
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
-    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
 end
 
 
-reset!(dc::DirectCall) = (empty!(dc.prefix_tree); nothing)
+function DirectCallExplicit(
+    ::Type{K}, ::Type{T}, ::Type{Keep}, ::Type{Prefix};
+    trajectory=false) where {K,T,Keep,Prefix}
 
-Base.copy!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P} = copy!(dst.prefix_tree, src.prefix_tree)
+    prefix_tree = Prefix{T}()
+    keyed_prefix_tree = Keep{K,typeof(prefix_tree)}(prefix_tree)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
+end
+
+
+function clone(dc::DirectCall{K,T,P}) where {K,T,P}
+    # Create new DirectCall with same settings but empty state
+    # Use the default constructor to properly initialize the prefix tree
+    DirectCall{K,T}(trajectory=dc.calculate_likelihood)
+end
+
+
+# Nothing to do to ensure a fresh draw.
+jitter!(dc::DirectCall{K,T,P}) where {K,T,P} = nothing
+
+
+function reset!(dc::DirectCall{K,T,P}) where {K,T,P}
+    empty!(dc.prefix_tree)
+    dc.now = zero(T)
+    dc.log_likelihood = zero(Float64)
+    nothing
+end
+
+copy_clocks!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P} = copy!(dst.prefix_tree, src.prefix_tree)
 
 
 """
@@ -64,7 +93,7 @@ If a particular clock had one rate before an event and it has another rate
 after the event, call `enable!` to update the rate.
 """
 function enable!(dc::DirectCall{K,T,P}, clock::K, distribution::Exponential,
-        te::T, when::T, rng::AbstractRNG) where {K,T,P}
+    te::T, when::T, rng::AbstractRNG) where {K,T,P}
     dc.prefix_tree[clock] = rate(distribution)
 end
 
@@ -85,6 +114,13 @@ function disable!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
     delete!(dc.prefix_tree, clock)
 end
 
+function fire!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
+    if dc.calculate_likelihood
+        dc.log_likelihood += steploglikelihood(dc, dc.now, when, clock)
+    end
+    disable!(dc, clock, when)
+    dc.now = when
+end
 
 """
     next(dc::DirectCall, when::TimeType, rng::AbstractRNG)
@@ -116,12 +152,17 @@ function Base.getindex(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
 end
 
 function Base.keys(dc::DirectCall)
-    return collect(keys(dc.prefix_tree.index))
+    return keys(dc.prefix_tree.index)
 end
 
 function Base.length(dc::DirectCall)
     return length(dc.prefix_tree)
 end
+
+# Implements the interface to return a set of enabled clock keys.
+enabled(dc::DirectCall{K,T,P}) where {K,T,P} = enabled(dc.prefix_tree)
+
+isenabled(dc::DirectCall{K,T,P}, clock::K) where {K,T,P} = isenabled(dc.prefix_tree, clock)
 
 
 function steploglikelihood(dc::DirectCall, now, when, which)
@@ -131,6 +172,16 @@ function steploglikelihood(dc::DirectCall, now, when, which)
     return log(λ) - total * Δt
 end
 
+function pathloglikelihood(dc::DirectCall, endtime)
+    last_part = if endtime > dc.now
+        total = sum!(dc.prefix_tree)
+        Δt = endtime - dc.now
+        -total * Δt
+    else
+        zero(Float64)
+    end
+    return dc.log_likelihood + last_part
+end
 
 function Base.haskey(dc::DirectCall{K,T,P}, clock::K) where {K,T,P}
     return isenabled(dc.prefix_tree, clock)

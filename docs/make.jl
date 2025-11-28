@@ -1,9 +1,15 @@
 using CompetingClocks
 using Documenter
 using Literate
+using Random
+using Distributions
 
 
 rebuild_literate = "--fresh" in ARGS
+make_pdf = "--pdf" in ARGS
+# `make_pdf` may require latex and font support.
+# sudo apt install latexmk texlive-luatex texlive-fonts-extra fonts-lmodern
+# sudo luaotfload-tool --update
 
 # Literate puts images into png files in the same directory as the source
 # but we would like them in the assets subdirectory instead, so here we
@@ -15,16 +21,17 @@ end
 
 example_base = joinpath(dirname(@__FILE__), "src")
 adliterate = [
-        ("simple_board.jl", "mainloop"),
-        ("distributions.jl", "distributions"), 
-        ("constant_birth.jl", "constant_birth"),
-        ("sir.jl", "sir"),
-        ("commonrandom.jl", "commonrandom"),
-        ("reliability.jl", "reliability"),
-        ("memory.jl", "memory"),
-        ("gsmp.jl", "gsmp"),
-        ("hierarchical.jl", "hierarchical")
-    ]
+    ("simple_board.jl", "mainloop"),
+    ("distributions.jl", "distributions"),
+    ("constant_birth.jl", "constant_birth"),
+    ("sir.jl", "sir"),
+    ("commonrandom.jl", "commonrandom"),
+    ("reliability.jl", "reliability"),
+    ("memory.jl", "memory"),
+    ("gsmp.jl", "gsmp"),
+    ("hierarchical.jl", "hierarchical"),
+    ("gene_expression.jl", "gene_expression")
+]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
 
@@ -47,7 +54,7 @@ for (source, target) in adliterate
             name=target,
             postprocess=postprocess_markdown,
             execute=true
-            )
+        )
         ischunk = Regex("$(target)-[0-9]+.(png|svg|pdf)")
         chunks = [fn for fn in readdir(example_base) if match(ischunk, fn) !== nothing]
         for chunk in chunks
@@ -59,51 +66,75 @@ for (source, target) in adliterate
     end
 end
 
-makedocs(;
-    modules=[CompetingClocks],
-    authors="Andrew Dolgert <adolgert@uw.edu>",
-    sitename="CompetingClocks.jl Documentation",
-    format=Documenter.HTML(;
+if make_pdf
+    format = Documenter.LaTeX()
+else
+    format = Documenter.HTML(;
         prettyurls=get(ENV, "CI", nothing) == "true",
         edit_link="main",
         size_threshold_warn=2^17,
         size_threshold=2^18,
         canonical="https://adolgert.github.io/CompetingClocks.jl",
         assets=String[],
-    ),
+    )
+end
+
+makedocs(;
+    modules=[CompetingClocks],
+    authors="Andrew Dolgert <adolgert@uw.edu>",
+    sitename="CompetingClocks.jl Documentation",
+    checkdocs=:none,  # Don't require all internal methods to be documented
+    format=format,
     pages=[
         "Home" => "index.md",
-        "Guide" => [
-            "guide.md",
+        "Getting Started" => [
+            "install.md",
+            "quickstart.md",
             "mainloop.md",
-            "distributions.md"
+            "choosing_sampler.md",
         ],
-        "Manual" => [
-            "distrib.md",
-            "background.md",
-            "GSMP" => "gsmp.md",
+        "User Guide" => [
+            "integration-guide.md",
+            "low_level_interface.md",
             "samplers.md",
+            "guide.md",
+            "distributions.md",
             "hierarchical.md",
-            "memory.md",
-            "commonrandom.md",
-            "debugging.md"
+            "debugging.md",
         ],
         "Examples" => [
-            "Birth-death Process" => "constant_birth.md",
+            "Reliability" => "reliability.md",
             "SIR Model" => "sir.md",
-            "Reliability" => "reliability.md"
+            "Birth-death Process" => "constant_birth.md",
+            "memory.md",
+            "Gene Expression" => "gene_expression.md",
         ],
-        "Reference" => [
-            "interface.md",
+        "Statistical Methods" => [
+            "commonrandom.md",
+            "importance_skills.md",
+            "hamiltonianmontecarlo.md",
+            "Gen.jl Integration" => [
+                "gen/overview.md",
+                "gen/distribution.md",
+                "gen/generative_function.md",
+                "gen/observation_likelihood.md",
+                "gen/importance_mixture.md",
+                "gen/hmc_paths.md",
+            ],
+            "gen/turing_dist.md",
+            "gen/survival_snippet.md",
+        ],
+        "API Reference" => [
+            "contextinterface.md",
             "reference.md",
-            "algorithms.md"
-        ]
+            "algorithms.md",
+        ],
     ],
 )
 
 deploydocs(;
-    target = "build",
-    repo = "github.com/adolgert/CompetingClocks.jl.git",
+    target="build",
+    repo="github.com/adolgert/CompetingClocks.jl.git",
     devbranch="main",
-    branch = "gh-pages"
+    branch="gh-pages"
 )
