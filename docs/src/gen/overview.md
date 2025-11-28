@@ -1,13 +1,11 @@
 # Gen.jl and CompetingClocks.jl
 
-This is my new package to sample discrete event samplers. I want to use it with the Julia Gen.jl package. I know there are ways to do statistical methods that use likelihood calculations, and I want to do those calculations using the CompetingClocks.jl package. Please give me a first overview of the ways my package can interact with Gen.jl.
-
-From Gen’s point of view, there are two main “hooks” your package can plug into:
+From [Gen's](https://www.gen.dev/) point of view, there are two main “hooks” CompetingClocks.jl can plug into:
 
 1. probability distributions (`Distribution{T}` with `random`/`logpdf`), and
 2. generative functions (things that implement the Generative Function Interface and produce traces with scores). ([Gen][1])
 
-CompetingClocks already provides exactly the operations those need: forward simulation of event paths, and step‑ or path‑wise log‑likelihoods.
+CompetingClocks already the operations Gen needs: forward simulation of event paths, and step‑ or path‑wise log‑likelihoods.
 
 Below is an overview of the main integration modes.
 
@@ -63,7 +61,6 @@ If you want finer control over the trace (addressable choices per event, increme
 
 ### Core idea
 
-Your integration guide already frames CompetingClocks as “event timing and scheduling” inside a larger simulation loop.
 Gen’s generative function should:
 
 * take simulation parameters and possibly a time horizon as arguments,
@@ -121,7 +118,7 @@ The clean way to plug this into Gen is still via a custom distribution or genera
 
 ### b) Importance sampling and mixture proposals
 
-Your importance‑sampling chapter already treats path log‑likelihoods under multiple distributions, using `likelihood_cnt` and `PathLikelihoods` to compute weights (and mixture proposals via `logsumexp`).
+We have already seen [importance sampling](../gene_expression.md) with CompetingClocks.
 
 Within Gen:
 
@@ -135,8 +132,6 @@ Within Gen:
 This lets you reuse your variance‑reduction machinery (common random numbers, mixtures, control variates) inside Gen’s programmable inference.
 
 ### c) HMC/gradient‑based parameter inference
-
-Your HMC chapter shows using an event list and `pathloglikelihood` as the log‑density for HMC over event times. 
 
 Two ways this interacts with Gen:
 
@@ -152,25 +147,6 @@ Two ways this interacts with Gen:
 
 ---
 
-## 4. Addressing and key types
-
-Your integration guide already calls out that clock keys can be
-
-* tuples like `(:infect, infectious, susceptible)`,
-* integers, or
-* `:i => 37`, “a Pair for use with Gen.jl.” 
-
-That last choice is a natural way to share an addressing scheme:
-
-* use the same `Pair` or tuple as both
-
-  * the CompetingClocks clock key, and
-  * the Gen address for the corresponding random choice.
-
-Then trace choice maps from Gen and your own logs of event keys line up one‑for‑one.
-
----
-
 ## Summary
 
 At a high level, the main interaction patterns are:
@@ -181,7 +157,9 @@ At a high level, the main interaction patterns are:
 
 All three rely on the same core feature set you already built: configurable samplers/contexts, step‑ and path‑wise log‑likelihoods, watchers, and importance‑sampling tools.
 
-[1]: https://www.gen.dev/docs/stable/ref/modeling/distributions/ "Probability Distributions · Gen.jl"
-[2]: https://www.gen.dev/docs/stable/how_to/custom_gen_fns/ "Adding New Generative Functions · Gen.jl"
-[3]: https://www.gen.dev/docs/stable/ref/core/gfi/ "Generative Function Interface · Gen.jl"
-[4]: https://www.gen.dev/docs/dev/how_to/custom_distributions/ "Adding New Distributions · Gen.jl"
+## References
+
+ 1. https://www.gen.dev/docs/stable/ref/modeling/distributions/ "Probability Distributions · Gen.jl"
+ 2. https://www.gen.dev/docs/stable/how_to/custom_gen_fns/ "Adding New Generative Functions · Gen.jl"
+ 3. https://www.gen.dev/docs/stable/ref/core/gfi/ "Generative Function Interface · Gen.jl"
+ 4. https://www.gen.dev/docs/dev/how_to/custom_distributions/ "Adding New Distributions · Gen.jl"
