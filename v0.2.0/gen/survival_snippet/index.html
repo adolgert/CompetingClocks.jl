@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Integration with Survival.jl · CompetingClocks.jl Documentation</title><meta name="title" content="Integration with Survival.jl · CompetingClocks.jl Documentation"/><meta property="og:title" content="Integration with Survival.jl · CompetingClocks.jl Documentation"/><meta property="twitter:title" content="Integration with Survival.jl · CompetingClocks.jl Documentation"/><meta name="description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="twitter:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/survival_snippet/"/><meta property="twitter:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/survival_snippet/"/><link rel="canonical" href="https://adolgert.github.io/CompetingClocks.jl/gen/survival_snippet/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">CompetingClocks.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting Started</span><ul><li><a class="tocitem" href="../../install/">Installation</a></li><li><a class="tocitem" href="../../quickstart/">Quickstart</a></li><li><a class="tocitem" href="../../mainloop/">Sample Main Loop</a></li><li><a class="tocitem" href="../../choosing_sampler/">Choosing a Sampler</a></li></ul></li><li><span class="tocitem">User Guide</span><ul><li><a class="tocitem" href="../../integration-guide/">Integration Guide</a></li><li><a class="tocitem" href="../../low_level_interface/">Low-level Sampler Interface</a></li><li><a class="tocitem" href="../../samplers/">Understanding Samplers</a></li><li><a class="tocitem" href="../../delayed/">Delayed Clocks</a></li><li><a class="tocitem" href="../../guide/">Competing Clocks</a></li><li><a class="tocitem" href="../../distributions/">Non-exponential Simulation</a></li><li><a class="tocitem" href="../../hierarchical/">Hierarchical Samplers</a></li><li><a class="tocitem" href="../../debugging/">Debugging a Simulation that Uses CompetingClocks</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../reliability/">Reliability</a></li><li><a class="tocitem" href="../../sir/">SIR Model</a></li><li><a class="tocitem" href="../../constant_birth/">Birth-death Process</a></li><li><a class="tocitem" href="../../memory/">Transitions with Memory</a></li><li><a class="tocitem" href="../../gene_expression/">Gene Expression</a></li></ul></li><li><span class="tocitem">Statistical Methods</span><ul><li><a class="tocitem" href="../../commonrandom/">Common Random Numbers</a></li><li><a class="tocitem" href="../../importance_skills/">Importance Sampling for Simulation</a></li><li><a class="tocitem" href="../../hamiltonianmontecarlo/">Hamiltonian Monte Carlo</a></li><li><input class="collapse-toggle" id="menuitem-5-4" type="checkbox"/><label class="tocitem" for="menuitem-5-4"><span class="docs-label">Gen.jl Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../overview/">Gen.jl and CompetingClocks.jl</a></li><li><a class="tocitem" href="../distribution/">CompetingClocks as a Gen Distribution</a></li><li><a class="tocitem" href="../generative_function/">CompetingClocks as a Gen Generative Function</a></li><li><a class="tocitem" href="../observation_likelihood/">Observation Likelihood for Event Data</a></li><li><a class="tocitem" href="../importance_mixture/">Importance Sampling with Mixture Proposals</a></li><li><a class="tocitem" href="../hmc_paths/">HMC over Event Paths with Gen.jl</a></li></ul></li><li><a class="tocitem" href="../turing_dist/">Bayesian Inference with Turing.jl</a></li><li class="is-active"><a class="tocitem" href>Integration with Survival.jl</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../contextinterface/">Context Interface</a></li><li><a class="tocitem" href="../../reference/">Samplers</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Statistical Methods</a></li><li class="is-active"><a href>Integration with Survival.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Integration with Survival.jl</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl/blob/main/docs/src/gen/survival_snippet.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Integration-with-Survival.jl"><a class="docs-heading-anchor" href="#Integration-with-Survival.jl">Integration with Survival.jl</a><a id="Integration-with-Survival.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Integration-with-Survival.jl" title="Permalink"></a></h1><p>Fitting a survival distribution and using it as a GSMP clock.</p><p>This example shows how to:</p><ol><li>Generate some noisy event times with random right‐censoring.</li><li>Fit a nonparametric Kaplan–Meier survival curve using <code>Survival.jl</code>.</li><li>Fit a parametric Weibull distribution to that curve.</li><li>Wrap the fitted Weibull as a <code>UnivariateDistribution</code> and use it as a clock distribution in <code>CompetingClocks.jl</code>.</li></ol><pre><code class="language-julia hljs">using Random
+using Distributions
+using Survival          # Kaplan–Meier and EventTime
+using LsqFit            # nonlinear least squares for parametric fit
+using CompetingClocks   # GSMP sampler
+
+Random.seed!(2024)
+
+# ------------------------------------------------------------
+# 1. Synthetic &quot;messy&quot; event times with right censoring
+# ------------------------------------------------------------
+
+n = 200
+true_dist = Weibull(1.7, 4.0)             # ground-truth failure-time distribution
+
+t_event  = rand(true_dist, n)             # actual failure times
+t_censor = rand(Uniform(0.0, 8.0), n)     # censoring times
+
+time   = min.(t_event, t_censor)          # observed follow-up time
+status = t_event .&lt;= t_censor             # true = failure observed, false = censored
+
+# Optionally store as EventTime values (useful elsewhere in Survival.jl)
+event_times = EventTime.(time, status)
+
+# ------------------------------------------------------------
+# 2. Nonparametric Kaplan–Meier survival estimate
+# ------------------------------------------------------------
+
+km = fit(KaplanMeier, time, status)
+
+t_km = km.events.time     # unique event/censor times
+S_km = km.survival        # Kaplan–Meier Ŝ(t)
+
+# ------------------------------------------------------------
+# 3. Parametric Weibull fit to the Kaplan–Meier curve
+#    S_model(t; α, θ) = P(T &gt; t) = ccdf(Weibull(α, θ), t)
+# ------------------------------------------------------------
+
+function km_model(t, p)
+    d = Weibull(p[1], p[2])              # p[1] = α (shape), p[2] = θ (scale)
+    return [ccdf(d, ti) for ti in t]     # model survival at each time ti
+end
+
+p0 = [1.0, 3.0]                          # initial guess for (α, θ)
+fit_result = curve_fit(km_model, t_km, S_km, p0)
+
+α̂, θ̂ = fit_result.param                # fitted Weibull parameters
+failure_time_dist = Weibull(α̂, θ̂)      # this is a ContinuousUnivariateDistribution
+
+# ------------------------------------------------------------
+# 4. Use the fitted distribution as a CompetingClocks clock
+# ------------------------------------------------------------
+
+const ClockKey = Symbol
+
+builder = SamplerBuilder(ClockKey, Float64)
+rng = Xoshiro(1234)
+sampler = SamplingContext(builder, rng)
+
+# Enable a GSMP clock whose waiting time is given by the fitted Weibull
+enable!(sampler, :failure, failure_time_dist)
+
+# Sample the next event time from this calibrated clock
+when, which = next(sampler)
+@show when which</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../turing_dist/">« Bayesian Inference with Turing.jl</a><a class="docs-footer-nextpage" href="../../contextinterface/">Context Interface »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 28 November 2025 21:11">Friday 28 November 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

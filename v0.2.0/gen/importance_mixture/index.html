@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Importance Sampling with Mixture Proposals · CompetingClocks.jl Documentation</title><meta name="title" content="Importance Sampling with Mixture Proposals · CompetingClocks.jl Documentation"/><meta property="og:title" content="Importance Sampling with Mixture Proposals · CompetingClocks.jl Documentation"/><meta property="twitter:title" content="Importance Sampling with Mixture Proposals · CompetingClocks.jl Documentation"/><meta name="description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="twitter:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/importance_mixture/"/><meta property="twitter:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/importance_mixture/"/><link rel="canonical" href="https://adolgert.github.io/CompetingClocks.jl/gen/importance_mixture/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">CompetingClocks.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting Started</span><ul><li><a class="tocitem" href="../../install/">Installation</a></li><li><a class="tocitem" href="../../quickstart/">Quickstart</a></li><li><a class="tocitem" href="../../mainloop/">Sample Main Loop</a></li><li><a class="tocitem" href="../../choosing_sampler/">Choosing a Sampler</a></li></ul></li><li><span class="tocitem">User Guide</span><ul><li><a class="tocitem" href="../../integration-guide/">Integration Guide</a></li><li><a class="tocitem" href="../../low_level_interface/">Low-level Sampler Interface</a></li><li><a class="tocitem" href="../../samplers/">Understanding Samplers</a></li><li><a class="tocitem" href="../../delayed/">Delayed Clocks</a></li><li><a class="tocitem" href="../../guide/">Competing Clocks</a></li><li><a class="tocitem" href="../../distributions/">Non-exponential Simulation</a></li><li><a class="tocitem" href="../../hierarchical/">Hierarchical Samplers</a></li><li><a class="tocitem" href="../../debugging/">Debugging a Simulation that Uses CompetingClocks</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../reliability/">Reliability</a></li><li><a class="tocitem" href="../../sir/">SIR Model</a></li><li><a class="tocitem" href="../../constant_birth/">Birth-death Process</a></li><li><a class="tocitem" href="../../memory/">Transitions with Memory</a></li><li><a class="tocitem" href="../../gene_expression/">Gene Expression</a></li></ul></li><li><span class="tocitem">Statistical Methods</span><ul><li><a class="tocitem" href="../../commonrandom/">Common Random Numbers</a></li><li><a class="tocitem" href="../../importance_skills/">Importance Sampling for Simulation</a></li><li><a class="tocitem" href="../../hamiltonianmontecarlo/">Hamiltonian Monte Carlo</a></li><li><input class="collapse-toggle" id="menuitem-5-4" type="checkbox" checked/><label class="tocitem" for="menuitem-5-4"><span class="docs-label">Gen.jl Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../overview/">Gen.jl and CompetingClocks.jl</a></li><li><a class="tocitem" href="../distribution/">CompetingClocks as a Gen Distribution</a></li><li><a class="tocitem" href="../generative_function/">CompetingClocks as a Gen Generative Function</a></li><li><a class="tocitem" href="../observation_likelihood/">Observation Likelihood for Event Data</a></li><li class="is-active"><a class="tocitem" href>Importance Sampling with Mixture Proposals</a><ul class="internal"><li><a class="tocitem" href="#Path-Space-Importance-Sampling"><span>Path-Space Importance Sampling</span></a></li><li><a class="tocitem" href="#Mixture-Proposals"><span>Mixture Proposals</span></a></li><li><a class="tocitem" href="#Example:-Poisson-Process-with-Mixture-Proposals"><span>Example: Poisson Process with Mixture Proposals</span></a></li><li><a class="tocitem" href="#Integration-with-Gen.jl"><span>Integration with Gen.jl</span></a></li><li><a class="tocitem" href="#Variance-Reduction"><span>Variance Reduction</span></a></li><li><a class="tocitem" href="#Generalizing-to-Other-Models"><span>Generalizing to Other Models</span></a></li></ul></li><li><a class="tocitem" href="../hmc_paths/">HMC over Event Paths with Gen.jl</a></li></ul></li><li><a class="tocitem" href="../turing_dist/">Bayesian Inference with Turing.jl</a></li><li><a class="tocitem" href="../survival_snippet/">Integration with Survival.jl</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../contextinterface/">Context Interface</a></li><li><a class="tocitem" href="../../reference/">Samplers</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Statistical Methods</a></li><li><a class="is-disabled">Gen.jl Integration</a></li><li class="is-active"><a href>Importance Sampling with Mixture Proposals</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Importance Sampling with Mixture Proposals</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl/blob/main/docs/src/gen/importance_mixture.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Importance-Sampling-with-Mixture-Proposals"><a class="docs-heading-anchor" href="#Importance-Sampling-with-Mixture-Proposals">Importance Sampling with Mixture Proposals</a><a id="Importance-Sampling-with-Mixture-Proposals-1"></a><a class="docs-heading-anchor-permalink" href="#Importance-Sampling-with-Mixture-Proposals" title="Permalink"></a></h1><p>CompetingClocks can compute path log-likelihoods under multiple distributions simultaneously, enabling importance sampling with mixture proposals for continuous-time stochastic processes. This page describes how to use the <code>likelihood_cnt</code> feature and integrate it with Gen.jl for Bayesian inference.</p><h2 id="Path-Space-Importance-Sampling"><a class="docs-heading-anchor" href="#Path-Space-Importance-Sampling">Path-Space Importance Sampling</a><a id="Path-Space-Importance-Sampling-1"></a><a class="docs-heading-anchor-permalink" href="#Path-Space-Importance-Sampling" title="Permalink"></a></h2><p>Let <span>$X$</span> be an event path generated by a continuous-time stochastic system (SIR, gene expression, reliability, etc.). In CompetingClocks, a path is a sequence of (clock key, firing time) pairs:</p><p class="math-container">\[x = \bigl\{ (k_1, t_1), (k_2, t_2), \ldots, (k_n, t_n) \bigr\}.\]</p><p>Define:</p><ul><li><strong>Target path law</strong> <span>$p_\theta(x)$</span>: the GSMP dynamics you want to characterize (parameterized by <span>$\theta$</span>)</li><li><strong>Proposal path law</strong> <span>$q_\phi(x)$</span>: biased dynamics that make rare events more frequent</li></ul><p>Standard path-space importance sampling:</p><ol><li>Draw <span>$x \sim q_\phi$</span></li><li>Compute the importance weight:<p class="math-container">\[w(x) = \frac{p_\theta(x)}{q_\phi(x)}, \quad \log w(x) = \log p_\theta(x) - \log q_\phi(x)\]</p></li><li>Estimate expectations under <span>$p_\theta$</span> via weighted averages <span>$\sum_i w_i f(x_i) / \sum_i w_i$</span></li></ol><p>CompetingClocks supports this directly:</p><ul><li>Create a sampler with <code>path_likelihood=true</code> and <code>likelihood_cnt=K</code></li><li>For each <code>enable!</code> call, pass a vector of <span>$K$</span> distributions for that clock</li><li>The sampler simulates using <strong>one</strong> distribution (selected via <code>sample_from_distribution!</code>) but accumulates log-likelihoods for the realized path under <strong>all</strong> <span>$K$</span> distributions</li><li>Call <code>pathloglikelihood(sampler, end_time)</code> to retrieve the <span>$K$</span> log path-densities</li></ul><h2 id="Mixture-Proposals"><a class="docs-heading-anchor" href="#Mixture-Proposals">Mixture Proposals</a><a id="Mixture-Proposals-1"></a><a class="docs-heading-anchor-permalink" href="#Mixture-Proposals" title="Permalink"></a></h2><p>Introduce <span>$M$</span> proposals <span>$q_1, \ldots, q_M$</span> and form a mixture:</p><p class="math-container">\[q_{\text{mix}}(x) = \sum_{m=1}^M \alpha_m q_m(x), \quad \alpha_m \ge 0, \quad \sum_m \alpha_m = 1\]</p><p>To sample <span>$x \sim q_{\text{mix}}$</span>:</p><ol><li>Draw component index <span>$J \sim \text{Categorical}(\alpha)$</span></li><li>Draw <span>$x \sim q_J$</span></li></ol><p>The mixture importance weight is:</p><p class="math-container">\[\log w(x) = \log p_\theta(x) - \log q_{\text{mix}}(x) = \log p_\theta(x) - \log\Bigl( \sum_{m=1}^M \alpha_m e^{\log q_m(x)} \Bigr)\]</p><p>Compute the denominator numerically via <code>logsumexp</code>:</p><p class="math-container">\[\log q_{\text{mix}}(x) = \text{logsumexp}_m\bigl(\log \alpha_m + \log q_m(x)\bigr)\]</p><p><strong>CompetingClocks implementation:</strong></p><ul><li>Set <code>likelihood_cnt = 1 + M</code> (target plus <span>$M$</span> proposals)</li><li>For each clock, pass a distribution vector where index 1 is the target <span>$p_\theta$</span> and indices 2 through <span>$M+1$</span> are the proposals</li><li>Call <code>sample_from_distribution!(sampler, 1 + j)</code> to sample from proposal <span>$j$</span></li><li>After simulation, <code>pathloglikelihood</code> returns <span>$1 + M$</span> log-likelihoods</li></ul><h2 id="Example:-Poisson-Process-with-Mixture-Proposals"><a class="docs-heading-anchor" href="#Example:-Poisson-Process-with-Mixture-Proposals">Example: Poisson Process with Mixture Proposals</a><a id="Example:-Poisson-Process-with-Mixture-Proposals-1"></a><a class="docs-heading-anchor-permalink" href="#Example:-Poisson-Process-with-Mixture-Proposals" title="Permalink"></a></h2><p>Consider a homogeneous Poisson process on <span>$[0, T]$</span> with rate <span>$\lambda$</span>. We define:</p><ul><li><strong>Target</strong>: rate <span>$\lambda$</span></li><li><strong>Proposals</strong>: rates <span>$\lambda \cdot m_1, \ldots, \lambda \cdot m_M$</span> where each <span>$m_i$</span> is a multiplicative bias</li><li><strong>Mixture weights</strong>: uniform <span>$\alpha = (1/M, \ldots, 1/M)$</span></li></ul><p>The following function simulates a path under the mixture proposal and returns both the event count and the log importance weight:</p><pre><code class="language-julia hljs">using Random
+using Statistics: mean, var
+using Distributions: Exponential, Categorical, UnivariateDistribution, Gamma, Poisson, logpdf
+using CompetingClocks
+using StatsFuns: logsumexp
+
+const ClockKey = Int
+
+&quot;&quot;&quot;
+    simulate_poisson_path_with_mixture(λ_target, multipliers, α, T_end, rng)
+
+Simulate a Poisson process path up to time `T_end` using a mixture of biased
+rates. Returns `(count, log_weight)` where:
+- `count`: number of events by time `T_end`
+- `log_weight`: log p(path | λ_target) - log q_mix(path)
+&quot;&quot;&quot;
+function simulate_poisson_path_with_mixture(
+    λ_target::Float64,
+    multipliers::Vector{Float64},
+    α::Vector{Float64},
+    T_end::Float64,
+    rng::AbstractRNG
+)
+    M = length(multipliers)
+    @assert length(α) == M
+    @assert isapprox(sum(α), 1.0)
+    K = 1 + M  # target + M proposals
+
+    # Create sampler with K path likelihoods
+    sampler = SamplingContext(ClockKey, Float64, rng;
+        method=FirstToFireMethod(),
+        path_likelihood=true,
+        likelihood_cnt=K
+    )
+
+    # Select which proposal to sample from
+    j = rand(rng, Categorical(α))
+    sample_from_distribution!(sampler, 1 + j)
+
+    # Distribution vector: [target, proposal_1, ..., proposal_M]
+    dists = Vector{UnivariateDistribution}(undef, K)
+    dists[1] = Exponential(1.0 / λ_target)
+    for m in 1:M
+        dists[1 + m] = Exponential(1.0 / (λ_target * multipliers[m]))
+    end
+
+    enable!(sampler, 1, dists)
+
+    count = 0
+    when, which = next(sampler)
+    while !isnothing(which) &amp;&amp; when &lt;= T_end
+        fire!(sampler, which, when)
+        count += 1
+        enable!(sampler, 1, dists)
+        when, which = next(sampler)
+    end
+
+    # Extract log-likelihoods
+    logliks = pathloglikelihood(sampler, T_end)
+    log_p = logliks[1]
+    log_qs = logliks[2:end]
+
+    # Mixture weight via logsumexp
+    log_q_mix = logsumexp(log.(α) .+ collect(log_qs))
+    log_weight = log_p - log_q_mix
+
+    return count, log_weight
+end</code></pre><h3 id="Verifying-Correctness"><a class="docs-heading-anchor" href="#Verifying-Correctness">Verifying Correctness</a><a id="Verifying-Correctness-1"></a><a class="docs-heading-anchor-permalink" href="#Verifying-Correctness" title="Permalink"></a></h3><p>The weighted sample mean should match the true expectation <span>$E[N_T] = \lambda T$</span>:</p><pre><code class="language-julia hljs">λ_target = 1.5
+T_end = 10.0
+multipliers = [0.5, 1.0, 2.0]
+α = fill(1.0 / length(multipliers), length(multipliers))
+
+n_samples = 1000
+counts = zeros(Int, n_samples)
+log_weights = zeros(Float64, n_samples)
+
+rng = Xoshiro(42)
+for i in 1:n_samples
+    counts[i], log_weights[i] = simulate_poisson_path_with_mixture(
+        λ_target, multipliers, α, T_end, rng
+    )
+end
+
+# Normalize weights
+max_lw = maximum(log_weights)
+weights = exp.(log_weights .- max_lw)
+weights ./= sum(weights)
+
+weighted_mean = sum(weights .* counts)  # ≈ 15.0
+true_mean = λ_target * T_end            # = 15.0</code></pre><p>The unweighted mean will differ from the true mean (due to the biased proposals), but the importance-weighted mean converges to the correct value.</p><h2 id="Integration-with-Gen.jl"><a class="docs-heading-anchor" href="#Integration-with-Gen.jl">Integration with Gen.jl</a><a id="Integration-with-Gen.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Integration-with-Gen.jl" title="Permalink"></a></h2><p>Gen.jl provides a probabilistic programming framework where you can combine CompetingClocks simulations with parameter inference. The key insight: treat the CompetingClocks simulation as a black box that returns a summary and an importance weight, then incorporate that weight into Gen&#39;s trace score.</p><h3 id="Model-Structure"><a class="docs-heading-anchor" href="#Model-Structure">Model Structure</a><a id="Model-Structure-1"></a><a class="docs-heading-anchor-permalink" href="#Model-Structure" title="Permalink"></a></h3><p>Consider a model with:</p><ul><li>Parameter <span>$\theta$</span> with prior <span>$p(\theta)$</span></li><li>Latent path <span>$X$</span> with law <span>$p_\theta(x)$</span></li><li>Observation <span>$y$</span> with likelihood <span>$p(y \mid x, \theta)$</span></li></ul><p>Rather than representing each event as a Gen choice, let CompetingClocks handle the path simulation. For each trace:</p><ol><li>Sample <span>$\theta$</span> from the prior (Gen choice)</li><li>Simulate <span>$x$</span> using the mixture proposal via CompetingClocks</li><li>Compute <span>$\log w(x) = \log p_\theta(x) - \log q_{\text{mix}}(x)$</span></li><li>Add the weight to Gen&#39;s score so inference sees the correct target density</li></ol><h3 id="Implementation"><a class="docs-heading-anchor" href="#Implementation">Implementation</a><a id="Implementation-1"></a><a class="docs-heading-anchor-permalink" href="#Implementation" title="Permalink"></a></h3><pre><code class="language-julia hljs">using Gen
+
+@gen function poisson_inference_model(
+    T_end::Float64,
+    multipliers::Vector{Float64},
+    α::Vector{Float64},
+    rng::AbstractRNG
+)
+    # Prior on target rate
+    λ ~ gamma(2.0, 1.0)
+
+    # Simulate path with mixture proposal
+    count, log_w = simulate_poisson_path_with_mixture(λ, multipliers, α, T_end, rng)
+
+    return (count=count, log_weight=log_w, λ=λ)
+end</code></pre><h3 id="Inference-Loop"><a class="docs-heading-anchor" href="#Inference-Loop">Inference Loop</a><a id="Inference-Loop-1"></a><a class="docs-heading-anchor-permalink" href="#Inference-Loop" title="Permalink"></a></h3><p>Since the path importance weight must be incorporated into the particle weights, implement a manual importance sampling loop:</p><pre><code class="language-julia hljs"># Generate synthetic observation
+true_λ = 1.5
+obs_count = rand(Xoshiro(999), Poisson(true_λ * T_end))
+
+# Importance sampling over λ
+n_particles = 1000
+rng = Xoshiro(42)
+
+λ_samples = zeros(Float64, n_particles)
+total_log_weights = zeros(Float64, n_particles)
+
+for i in 1:n_particles
+    # Sample from prior
+    λ = rand(rng, Gamma(2.0, 1.0))
+    λ_samples[i] = λ
+
+    # Simulate with mixture proposal
+    sim_count, log_w_path = simulate_poisson_path_with_mixture(
+        λ, multipliers, α, T_end, rng
+    )
+
+    # Observation likelihood
+    log_obs = logpdf(Poisson(max(sim_count, 1)), obs_count)
+
+    # Total weight: path correction + observation
+    total_log_weights[i] = log_w_path + log_obs
+end
+
+# Normalize and compute posterior statistics
+max_lw = maximum(total_log_weights)
+weights = exp.(total_log_weights .- max_lw)
+weights ./= sum(weights)
+
+posterior_mean_λ = sum(weights .* λ_samples)
+ess = 1.0 / sum(weights.^2)  # Effective sample size</code></pre><p>This gives <strong>two layers</strong> of importance sampling:</p><ol><li><strong>Inner layer</strong> (CompetingClocks): corrects from <span>$q_{\text{mix}}$</span> to <span>$p_\lambda$</span></li><li><strong>Outer layer</strong> (Gen/manual): corrects from prior <span>$p(\lambda)$</span> to posterior <span>$p(\lambda \mid y)$</span></li></ol><h2 id="Variance-Reduction"><a class="docs-heading-anchor" href="#Variance-Reduction">Variance Reduction</a><a id="Variance-Reduction-1"></a><a class="docs-heading-anchor-permalink" href="#Variance-Reduction" title="Permalink"></a></h2><p>Mixture proposals can substantially improve effective sample size compared to a single proposal. The benefit comes from adaptive coverage: when one proposal generates unlikely paths under the target, others may assign higher probability.</p><p>Compare effective sample sizes:</p><table><tr><th style="text-align: right">Proposal Type</th><th style="text-align: right">ESS (out of 1000)</th></tr><tr><td style="text-align: right">Mixture (m = [0.5, 1.0, 2.0])</td><td style="text-align: right">~430</td></tr><tr><td style="text-align: right">Single (m = 1.5)</td><td style="text-align: right">~95</td></tr></table><p>The mixture achieves roughly 4× higher ESS by hedging across multiple rate biases.</p><h2 id="Generalizing-to-Other-Models"><a class="docs-heading-anchor" href="#Generalizing-to-Other-Models">Generalizing to Other Models</a><a id="Generalizing-to-Other-Models-1"></a><a class="docs-heading-anchor-permalink" href="#Generalizing-to-Other-Models" title="Permalink"></a></h2><p>To adapt this pattern to your CompetingClocks model:</p><ol><li><p><strong>Identify target parameters</strong> <span>$\theta$</span> that define <span>$p_\theta$</span> — these become Gen random choices or inference targets</p></li><li><p><strong>For each clock</strong>, construct a distribution vector <code>[p_dist, q1_dist, ..., qM_dist]</code> and call the vectorized <code>enable!(sampler, key, dists)</code></p></li><li><p><strong>Select the sampling distribution</strong> with <code>sample_from_distribution!(sampler, index)</code> before the simulation loop</p></li><li><p><strong>After simulation</strong>, call <code>pathloglikelihood(sampler, end_time)</code> and compute the mixture weight via <code>logsumexp</code></p></li><li><p><strong>Wrap in a helper</strong> that returns <code>(path_summary, log_weight)</code></p></li><li><p><strong>In Gen or your inference code</strong>:</p><ul><li>Call the helper</li><li>Incorporate <code>log_weight</code> into particle weights or Gen factors</li><li>Add observation likelihoods</li><li>Use any inference algorithm (importance sampling, SMC, MCMC)</li></ul></li></ol><p>This separation keeps variance-reduction logic (multiple proposals, mixture weights, common random numbers) in CompetingClocks while exposing a clean interface to probabilistic programming frameworks.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../observation_likelihood/">« Observation Likelihood for Event Data</a><a class="docs-footer-nextpage" href="../hmc_paths/">HMC over Event Paths with Gen.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 28 November 2025 21:11">Friday 28 November 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Bayesian Inference with Turing.jl · CompetingClocks.jl Documentation</title><meta name="title" content="Bayesian Inference with Turing.jl · CompetingClocks.jl Documentation"/><meta property="og:title" content="Bayesian Inference with Turing.jl · CompetingClocks.jl Documentation"/><meta property="twitter:title" content="Bayesian Inference with Turing.jl · CompetingClocks.jl Documentation"/><meta name="description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="twitter:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/turing_dist/"/><meta property="twitter:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/turing_dist/"/><link rel="canonical" href="https://adolgert.github.io/CompetingClocks.jl/gen/turing_dist/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">CompetingClocks.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting Started</span><ul><li><a class="tocitem" href="../../install/">Installation</a></li><li><a class="tocitem" href="../../quickstart/">Quickstart</a></li><li><a class="tocitem" href="../../mainloop/">Sample Main Loop</a></li><li><a class="tocitem" href="../../choosing_sampler/">Choosing a Sampler</a></li></ul></li><li><span class="tocitem">User Guide</span><ul><li><a class="tocitem" href="../../integration-guide/">Integration Guide</a></li><li><a class="tocitem" href="../../low_level_interface/">Low-level Sampler Interface</a></li><li><a class="tocitem" href="../../samplers/">Understanding Samplers</a></li><li><a class="tocitem" href="../../delayed/">Delayed Clocks</a></li><li><a class="tocitem" href="../../guide/">Competing Clocks</a></li><li><a class="tocitem" href="../../distributions/">Non-exponential Simulation</a></li><li><a class="tocitem" href="../../hierarchical/">Hierarchical Samplers</a></li><li><a class="tocitem" href="../../debugging/">Debugging a Simulation that Uses CompetingClocks</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../reliability/">Reliability</a></li><li><a class="tocitem" href="../../sir/">SIR Model</a></li><li><a class="tocitem" href="../../constant_birth/">Birth-death Process</a></li><li><a class="tocitem" href="../../memory/">Transitions with Memory</a></li><li><a class="tocitem" href="../../gene_expression/">Gene Expression</a></li></ul></li><li><span class="tocitem">Statistical Methods</span><ul><li><a class="tocitem" href="../../commonrandom/">Common Random Numbers</a></li><li><a class="tocitem" href="../../importance_skills/">Importance Sampling for Simulation</a></li><li><a class="tocitem" href="../../hamiltonianmontecarlo/">Hamiltonian Monte Carlo</a></li><li><input class="collapse-toggle" id="menuitem-5-4" type="checkbox"/><label class="tocitem" for="menuitem-5-4"><span class="docs-label">Gen.jl Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../overview/">Gen.jl and CompetingClocks.jl</a></li><li><a class="tocitem" href="../distribution/">CompetingClocks as a Gen Distribution</a></li><li><a class="tocitem" href="../generative_function/">CompetingClocks as a Gen Generative Function</a></li><li><a class="tocitem" href="../observation_likelihood/">Observation Likelihood for Event Data</a></li><li><a class="tocitem" href="../importance_mixture/">Importance Sampling with Mixture Proposals</a></li><li><a class="tocitem" href="../hmc_paths/">HMC over Event Paths with Gen.jl</a></li></ul></li><li class="is-active"><a class="tocitem" href>Bayesian Inference with Turing.jl</a><ul class="internal"><li><a class="tocitem" href="#Statistical-Framework"><span>Statistical Framework</span></a></li><li><a class="tocitem" href="#Integration-Pattern"><span>Integration Pattern</span></a></li><li><a class="tocitem" href="#Complete-Example"><span>Complete Example</span></a></li><li><a class="tocitem" href="#Alternative:-@addlogprob!"><span>Alternative: <code>@addlogprob!</code></span></a></li><li><a class="tocitem" href="#Notes"><span>Notes</span></a></li></ul></li><li><a class="tocitem" href="../survival_snippet/">Integration with Survival.jl</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../contextinterface/">Context Interface</a></li><li><a class="tocitem" href="../../reference/">Samplers</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Statistical Methods</a></li><li class="is-active"><a href>Bayesian Inference with Turing.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Bayesian Inference with Turing.jl</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl/blob/main/docs/src/gen/turing_dist.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Bayesian-Inference-with-Turing.jl"><a class="docs-heading-anchor" href="#Bayesian-Inference-with-Turing.jl">Bayesian Inference with Turing.jl</a><a id="Bayesian-Inference-with-Turing.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Bayesian-Inference-with-Turing.jl" title="Permalink"></a></h1><p>This page demonstrates how to perform Bayesian inference on the parameters of a continuous-time stochastic process using CompetingClocks.jl and Turing.jl.</p><h2 id="Statistical-Framework"><a class="docs-heading-anchor" href="#Statistical-Framework">Statistical Framework</a><a id="Statistical-Framework-1"></a><a class="docs-heading-anchor-permalink" href="#Statistical-Framework" title="Permalink"></a></h2><h3 id="The-Model"><a class="docs-heading-anchor" href="#The-Model">The Model</a><a id="The-Model-1"></a><a class="docs-heading-anchor-permalink" href="#The-Model" title="Permalink"></a></h3><p>Consider a continuous-time birth-death process where, at time <span>$t$</span> with population <span>$N(t)$</span>:</p><ul><li><strong>Births</strong> occur at rate <span>$\beta N(t)$</span>, i.e., waiting times are <span>$\text{Exponential}(1/(\beta N))$</span></li><li><strong>Deaths</strong> follow independent <span>$\text{Gamma}(k, \theta)$</span> lifetimes for each individual</li></ul><p>This is a generalized semi-Markov process (GSMP) because death times are non-exponential.</p><h3 id="The-Inference-Problem"><a class="docs-heading-anchor" href="#The-Inference-Problem">The Inference Problem</a><a id="The-Inference-Problem-1"></a><a class="docs-heading-anchor-permalink" href="#The-Inference-Problem" title="Permalink"></a></h3><p>Given a fully observed event path on <span>$[0, T_{\text{end}}]$</span>:</p><p class="math-container">\[\mathcal{X} = \{(e_i, t_i)\}_{i=1}^m\]</p><p>where <span>$e_i \in \{(\text{birth}, \cdot), (\text{death}, \text{id})\}$</span> and <span>$t_1 &lt; t_2 &lt; \cdots &lt; t_m$</span>, we want the posterior:</p><p class="math-container">\[p(\beta, k, \theta \mid \mathcal{X}) \propto p(\mathcal{X} \mid \beta, k, \theta) \, p(\beta, k, \theta)\]</p><h3 id="Path-Likelihood"><a class="docs-heading-anchor" href="#Path-Likelihood">Path Likelihood</a><a id="Path-Likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Path-Likelihood" title="Permalink"></a></h3><p>The path likelihood for a GSMP is:</p><p class="math-container">\[p(\mathcal{X} \mid \theta) = \prod_{i=1}^{m} h_{e_i}(t_i) \cdot \prod_{j \in \text{enabled}} S_j(t_i^- \to t_i) \cdot \prod_{j \in \text{enabled at } t_m} S_j(t_m \to T_{\text{end}})\]</p><p>where <span>$h_j(t)$</span> is the hazard of clock <span>$j$</span> and <span>$S_j(a \to b)$</span> is the survival probability over <span>$[a,b]$</span>.</p><p>CompetingClocks computes this via <code>pathloglikelihood(sampler, T_end)</code> when the sampler is constructed with <code>path_likelihood=true</code>.</p><h2 id="Integration-Pattern"><a class="docs-heading-anchor" href="#Integration-Pattern">Integration Pattern</a><a id="Integration-Pattern-1"></a><a class="docs-heading-anchor-permalink" href="#Integration-Pattern" title="Permalink"></a></h2><p>Turing requires a <code>logpdf</code> function for likelihood terms. We wrap the CompetingClocks path likelihood in a custom <code>Distributions.jl</code> type:</p><pre><code class="language-julia hljs">struct BirthDeathPathDist &lt;: ContinuousMultivariateDistribution
+    β::Float64
+    shape::Float64
+    scale::Float64
+    N0::Int
+end</code></pre><p>The <code>logpdf</code> method:</p><ol><li>Creates a <code>SamplingContext</code> with <code>path_likelihood=true</code></li><li>Initializes the model state and clocks</li><li>Replays each observed event via <code>fire!</code> and state updates</li><li>Returns <code>pathloglikelihood(sampler, T_end)</code></li></ol><p>From Turing&#39;s perspective, the observed path is a single draw from this distribution:</p><pre><code class="language-julia hljs">path ~ BirthDeathPathDist(β, shape, scale, N0)</code></pre><h2 id="Complete-Example"><a class="docs-heading-anchor" href="#Complete-Example">Complete Example</a><a id="Complete-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Complete-Example" title="Permalink"></a></h2><p>The full working example is available at <a href="https://github.com/adolgert/CompetingClocks.jl/blob/main/examples/turing_dist.jl"><code>examples/turing_dist.jl</code></a>. Key components are shown below.</p><h3 id="Model-State-and-Events"><a class="docs-heading-anchor" href="#Model-State-and-Events">Model State and Events</a><a id="Model-State-and-Events-1"></a><a class="docs-heading-anchor-permalink" href="#Model-State-and-Events" title="Permalink"></a></h3><pre><code class="language-julia hljs">using Random, Distributions, Turing, CompetingClocks
+
+const ClockKey = Tuple{Symbol,Int}
+
+struct BDParams
+    β::Float64       # per-individual birth rate
+    shape::Float64   # Gamma shape for lifetime
+    scale::Float64   # Gamma scale for lifetime
+end
+
+mutable struct BDState
+    population::Set{Int}
+    next_id::Int
+end
+
+BDState(N0::Int) = BDState(Set(1:N0), N0 + 1)</code></pre><h3 id="Clock-Management"><a class="docs-heading-anchor" href="#Clock-Management">Clock Management</a><a id="Clock-Management-1"></a><a class="docs-heading-anchor-permalink" href="#Clock-Management" title="Permalink"></a></h3><pre><code class="language-julia hljs">function initialize!(state::BDState, sampler, params::BDParams)
+    N = length(state.population)
+    N == 0 &amp;&amp; return
+    enable!(sampler, (:birth, 0), Exponential(1 / (params.β * N)))
+    for id in state.population
+        enable!(sampler, (:death, id), Gamma(params.shape, params.scale))
+    end
+end
+
+function handle_event!(state::BDState, sampler, evt::ClockKey, t::Float64, params::BDParams)
+    kind, idx = evt
+    if kind === :birth
+        new_id = state.next_id
+        state.next_id += 1
+        push!(state.population, new_id)
+        enable!(sampler, (:death, new_id), Gamma(params.shape, params.scale))
+    elseif kind === :death
+        delete!(state.population, idx)
+    end
+
+    if !isempty(state.population)
+        enable!(sampler, (:birth, 0), Exponential(1 / (params.β * length(state.population))))
+    else
+        disable!(sampler, (:birth, 0))
+    end
+end</code></pre><h3 id="Path-Representation"><a class="docs-heading-anchor" href="#Path-Representation">Path Representation</a><a id="Path-Representation-1"></a><a class="docs-heading-anchor-permalink" href="#Path-Representation" title="Permalink"></a></h3><pre><code class="language-julia hljs">struct BDPath
+    events::Vector{ClockKey}
+    times::Vector{Float64}
+    T_end::Float64
+end
+
+Base.length(p::BDPath) = length(p.events)
+Base.isnan(p::BDPath) = any(isnan, p.times) || isnan(p.T_end)  # Required by Turing</code></pre><h3 id="Simulation"><a class="docs-heading-anchor" href="#Simulation">Simulation</a><a id="Simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Simulation" title="Permalink"></a></h3><pre><code class="language-julia hljs">function simulate_path(params::BDParams; N0::Int=10, T_end::Float64=10.0, rng=Random.Xoshiro(42))
+    state = BDState(N0)
+    sampler = SamplingContext(ClockKey, Float64, rng)
+    initialize!(state, sampler, params)
+
+    events, times = ClockKey[], Float64[]
+    while true
+        when, which = next(sampler)
+        (isnothing(which) || when &gt; T_end) &amp;&amp; break
+        push!(events, which); push!(times, when)
+        fire!(sampler, which, when)
+        handle_event!(state, sampler, which, when, params)
+    end
+    BDPath(events, times, T_end)
+end</code></pre><h3 id="Custom-Distribution-for-Turing"><a class="docs-heading-anchor" href="#Custom-Distribution-for-Turing">Custom Distribution for Turing</a><a id="Custom-Distribution-for-Turing-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-Distribution-for-Turing" title="Permalink"></a></h3><pre><code class="language-julia hljs">struct BirthDeathPathDist &lt;: Distributions.ContinuousMultivariateDistribution
+    β::Float64
+    shape::Float64
+    scale::Float64
+    N0::Int
+end
+
+Distributions.length(d::BirthDeathPathDist) = 1
+
+function Distributions.logpdf(d::BirthDeathPathDist, path::BDPath)
+    params = BDParams(d.β, d.shape, d.scale)
+    rng = Random.Xoshiro(0)  # RNG unused since we only replay
+    sampler = SamplingContext(ClockKey, Float64, rng; path_likelihood=true)
+
+    state = BDState(d.N0)
+    initialize!(state, sampler, params)
+
+    for (evt, t) in zip(path.events, path.times)
+        fire!(sampler, evt, t)
+        handle_event!(state, sampler, evt, t, params)
+    end
+
+    ll = pathloglikelihood(sampler, path.T_end)
+    return ll isa AbstractVector ? ll[1] : ll
+end
+
+# Required by Turing for likelihood accumulation
+Distributions.loglikelihood(d::BirthDeathPathDist, path::BDPath) = Distributions.logpdf(d, path)</code></pre><h3 id="Turing-Model"><a class="docs-heading-anchor" href="#Turing-Model">Turing Model</a><a id="Turing-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Turing-Model" title="Permalink"></a></h3><pre><code class="language-julia hljs">@model function birthdeath_model(path::BDPath, N0::Int)
+    β     ~ LogNormal(log(0.3), 0.5)
+    shape ~ LogNormal(log(2.0), 0.5)
+    scale ~ LogNormal(log(0.5), 0.5)
+    path  ~ BirthDeathPathDist(β, shape, scale, N0)
+end</code></pre><h3 id="Running-Inference"><a class="docs-heading-anchor" href="#Running-Inference">Running Inference</a><a id="Running-Inference-1"></a><a class="docs-heading-anchor-permalink" href="#Running-Inference" title="Permalink"></a></h3><pre><code class="language-julia hljs"># True parameters: ensure birth rate &lt; death rate for finite simulation
+# With Gamma(2, 0.5), mean lifetime = 1.0, so death rate ≈ 1.0
+# Birth rate β = 0.3 &lt; 1.0 gives declining population
+true_params = BDParams(0.3, 2.0, 0.5)
+observed_path = simulate_path(true_params; N0=20, T_end=10.0, rng=Random.Xoshiro(1234))
+
+model = birthdeath_model(observed_path, 20)
+chain = sample(model, MH(), 500; rng=Random.Xoshiro(2024))</code></pre><p><strong>Example output:</strong></p><pre><code class="nohighlight hljs">Parameter recovery:
+  β: true=0.300, estimated=0.263 ± 0.095
+  shape: true=2.000, estimated=2.073 ± 0.428
+  scale: true=0.500, estimated=0.545 ± 0.162</code></pre><h2 id="Alternative:-@addlogprob!"><a class="docs-heading-anchor" href="#Alternative:-@addlogprob!">Alternative: <code>@addlogprob!</code></a><a id="Alternative:-@addlogprob!-1"></a><a class="docs-heading-anchor-permalink" href="#Alternative:-@addlogprob!" title="Permalink"></a></h2><p>Instead of defining a custom distribution, you can add the log-likelihood directly:</p><pre><code class="language-julia hljs">@model function birthdeath_model_addlogprob(path::BDPath, N0::Int)
+    β     ~ LogNormal(log(0.3), 0.5)
+    shape ~ LogNormal(log(2.0), 0.5)
+    scale ~ LogNormal(log(0.5), 0.5)
+
+    params = BDParams(β, shape, scale)
+    sampler = SamplingContext(ClockKey, Float64, Random.Xoshiro(0); path_likelihood=true)
+    state = BDState(N0)
+    initialize!(state, sampler, params)
+
+    for (evt, t) in zip(path.events, path.times)
+        fire!(sampler, evt, t)
+        handle_event!(state, sampler, evt, t, params)
+    end
+
+    Turing.@addlogprob! pathloglikelihood(sampler, path.T_end)
+end</code></pre><h2 id="Notes"><a class="docs-heading-anchor" href="#Notes">Notes</a><a id="Notes-1"></a><a class="docs-heading-anchor-permalink" href="#Notes" title="Permalink"></a></h2><p><strong>Parameter stability:</strong> For birth-death processes, ensure <code>β &lt; 1/(shape × scale)</code> to avoid population explosion during simulation. Here, with <code>β=0.3</code> and <code>Gamma(2, 0.5)</code> (mean lifetime 1.0), the death rate exceeds the birth rate.</p><p><strong>Sampler choice:</strong> The Metropolis-Hastings sampler (<code>MH()</code>) works well for this likelihood. Gradient-based samplers like <code>NUTS</code> require differentiable likelihoods, which may not be straightforward for path-based models.</p><p><strong>Multiple distributions:</strong> CompetingClocks supports computing likelihoods under multiple parameter settings simultaneously via <code>likelihood_cnt &gt; 1</code> in the <code>SamplingContext</code>, useful for importance sampling schemes.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../hmc_paths/">« HMC over Event Paths with Gen.jl</a><a class="docs-footer-nextpage" href="../survival_snippet/">Integration with Survival.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 28 November 2025 21:11">Friday 28 November 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
