@@ -22,6 +22,7 @@ all_tests = [
     "test_petri.jl",
     "test_prefixsearch.jl",
     "test_pssa_cr.jl",
+    "test_rssa.jl",
     "test_sampler.jl",
     "test_samplerspec.jl",
     "test_sampler_builder.jl",
