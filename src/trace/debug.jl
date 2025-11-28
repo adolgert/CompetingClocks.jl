@@ -56,3 +56,9 @@ function disable!(ts::DebugWatcher{K,T}, clock::K, when::T) where {K,T}
     ts.log && @debug "disable! $(clock) $(when)"
     push!(ts.disabled, DisablingEntry(clock, when))
 end
+
+
+function fire!(ts::DebugWatcher{K,T}, clock::K, when::T) where {K,T}
+    ts.log && @debug "fire! $(clock) $(when)"
+    push!(ts.disabled, DisablingEntry(clock, when))
+end
