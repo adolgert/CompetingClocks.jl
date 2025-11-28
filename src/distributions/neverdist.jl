@@ -4,6 +4,11 @@ import Distributions: params, partype, mean, median, mode, var, skewness, kurtos
 import Distributions: pdf, logpdf, cdf, ccdf, quantile, mgf, cf
 import Base: rand
 
+"""
+    Never{T}()
+
+This distribution represents a point mass at infinity.
+"""
 struct Never{T<:Real} <: ContinuousUnivariateDistribution
     Never{T}() where {T<:Real} = new{T}()
 end
@@ -23,10 +28,10 @@ logpdf(d::Never{T}, x::Real) where {T<:Real} = -Inf
 cdf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 ccdf(d::Never{T}, x::Real) where {T<:Real} = one(x)
 quantile(d::Never{T}, q::Real) where {T<:Real} = typemax(T)
-mgf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
+mgf(d::Never{T}, x::Real) where {T<:Real} = x <= 0 ? zero(x) : Inf
 cf(d::Never{T}, x::Real) where {T<:Real} = zero(x)
 rand(rng::Random.AbstractRNG, d::Never{T}) where {T} = typemax(T)
 
-function Random.rand!(rng::Random.AbstractRNG, d::Never{T}, arr::AbstractArray) where {T}
+function Random.rand!(rng::Random.AbstractRNG, d::Never{T}, arr::AbstractArray{<:Real}) where {T}
     arr .= typemax(T)
 end

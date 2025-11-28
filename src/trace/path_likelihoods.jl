@@ -79,7 +79,7 @@ end
 function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
     @debug "PathLikelihood enable! $clock $dist $te $when"
     haskey(ts.enabled, clock) && disable!(ts, clock, when)
-    ts.enabled[clock] = PathEntry{K,T}(clock, UnivariateDistribution[copy(dist)], te, when)
+    ts.enabled[clock] = PathEntry{K,T}(clock, UnivariateDistribution[dist], te, when)
 end
 
 

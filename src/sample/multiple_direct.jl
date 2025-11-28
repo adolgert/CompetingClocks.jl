@@ -45,7 +45,7 @@ end
 
 
 function clone(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
-    MultipleDirect{SamplerKey,K,Time}(md.chooser, md.calculate_likelihood)
+    MultipleDirect{SamplerKey,K,Time}(md.chooser, trajectory=md.calculate_likelihood)
 end
 
 jitter!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time, rng::AbstractRNG)  where {SamplerKey,K,Time,Chooser} = nothing
@@ -100,15 +100,15 @@ end
 
 
 function steploglikelihood(md::MultipleDirect, now, when, which)
-    total = sum(sum!(subdirect), md.scan)
+    total = sum(sum!(scan) for scan in md.scan)
     Δt = when - now
-    λ = md.scan[md.chosen[clock]][which]
+    λ = md.scan[md.chosen[which]][which]
     return log(λ) - total * Δt
 end
 
 function pathloglikelihood(md::MultipleDirect, when)
     last_part = if when > md.now
-        total = sum(sum!(subdirect), md.scan)
+        total = sum(sum!(scan) for scan in md.scan)
         Δt = when - md.now
         -total * Δt
     else

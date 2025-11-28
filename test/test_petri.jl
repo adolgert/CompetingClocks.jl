@@ -50,3 +50,20 @@ end
     @test haskey(tw, 3)
     @test !haskey(tw, 4)
 end
+
+
+@safetestset track_Petri_clone = "Petri clone" begin
+    using Distributions: Exponential
+    using CompetingClocks: Petri, enable!, clone
+    using Random: Xoshiro
+
+    rng = Xoshiro(234567)
+    sampler = Petri{Int,Float64}(2.5)  # custom time_duration
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+
+    cloned = clone(sampler)
+    @test length(cloned) == 0  # cloned is empty
+    @test cloned.time_duration == 2.5  # time_duration is preserved
+    @test length(sampler) == 2  # original unchanged
+end

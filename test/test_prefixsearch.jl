@@ -44,6 +44,58 @@ end
     end
 end
 
+@safetestset cumsumprefix_copy = "cumsum prefix copy!" begin
+    using CompetingClocks: CumSumPrefixSearch
+
+    src = CumSumPrefixSearch{Float64}()
+    for v in [1.0, 2.0, 3.0]
+        push!(src, v)
+    end
+    sum!(src)  # populate cumulant
+
+    dst = CumSumPrefixSearch{Float64}()
+    for v in [0.0, 0.0, 0.0]
+        push!(dst, v)
+    end
+
+    copy!(dst, src)
+
+    @test dst.array == src.array
+    @test dst.cumulant == src.cumulant
+    @test dst.dirty == src.dirty
+    @test length(dst) == length(src)
+end
+
+@safetestset cumsumprefix_time_type = "cumsum prefix time_type instance" begin
+    using CompetingClocks: CumSumPrefixSearch, time_type
+
+    ps_float = CumSumPrefixSearch{Float64}()
+    @test time_type(ps_float) == Float64
+
+    ps_float32 = CumSumPrefixSearch{Float32}()
+    @test time_type(ps_float32) == Float32
+end
+
+@safetestset cumsumprefix_isenabled = "cumsum prefix isenabled" begin
+    using CompetingClocks: CumSumPrefixSearch, isenabled
+
+    ps = CumSumPrefixSearch{Float64}()
+    push!(ps, 1.0)
+    push!(ps, 0.0)  # zero value
+    push!(ps, 3.0)
+
+    # Enabled clocks (positive value)
+    @test isenabled(ps, 1) == true
+    @test isenabled(ps, 3) == true
+
+    # Disabled clock (zero value)
+    @test isenabled(ps, 2) == false
+
+    # Out of bounds
+    @test isenabled(ps, 0) == false
+    @test isenabled(ps, 4) == false
+    @test isenabled(ps, -1) == false
+end
 
 @safetestset prefixsearch_structure = "test structure" begin
     using CompetingClocks: _btps_sizes
@@ -248,4 +300,77 @@ end
     # After emptying, the allocaiton returns to 32.
     @test length(btps1) == 0
     @test allocated(btps1) == Int(2^ceil(log2(cnt-1)))
+end
+
+@safetestset prefixsearch_time_type = "time_type instance method" begin
+    using CompetingClocks: BinaryTreePrefixSearch, time_type
+
+    btps_float = BinaryTreePrefixSearch{Float64}(4)
+    @test time_type(btps_float) == Float64
+
+    btps_int = BinaryTreePrefixSearch{Int64}(4)
+    @test time_type(btps_int) == Int64
+end
+
+@safetestset prefixsearch_choose_error = "choose errors on invalid value" begin
+    using CompetingClocks: BinaryTreePrefixSearch, choose, sum!
+
+    btps = BinaryTreePrefixSearch{Float64}(4)
+    push!(btps, 1.0)
+    push!(btps, 2.0)
+    push!(btps, 3.0)
+
+    total = sum!(btps)
+    @test total == 6.0
+
+    # Value equal to total should error
+    @test_throws ErrorException choose(btps, 6.0)
+
+    # Value greater than total should error
+    @test_throws ErrorException choose(btps, 7.0)
+end
+
+@safetestset prefixsearch_haskey = "haskey methods" begin
+    using CompetingClocks: BinaryTreePrefixSearch
+
+    btps = BinaryTreePrefixSearch{Float64}(4)
+    push!(btps, 1.0)
+    push!(btps, 0.0)  # zero value
+    push!(btps, 3.0)
+
+    # haskey with Int clock - positive value exists
+    @test haskey(btps, 1) == true
+    @test haskey(btps, 3) == true
+
+    # haskey with Int clock - zero value does not count as "has"
+    @test haskey(btps, 2) == false
+
+    # haskey with Int clock - out of bounds
+    @test haskey(btps, 0) == false
+    @test haskey(btps, 4) == false
+    @test haskey(btps, -1) == false
+
+    # haskey works with any Integer type
+    @test haskey(btps, Int32(1)) == true
+    @test haskey(btps, UInt(3)) == true
+end
+
+@safetestset prefixsearch_rand_sampler = "rand with SamplerTrivial" begin
+    using Random
+    using CompetingClocks: BinaryTreePrefixSearch
+
+    btps = BinaryTreePrefixSearch{Float64}(4)
+    push!(btps, 1.0)
+    push!(btps, 2.0)
+    push!(btps, 3.0)
+    push!(btps, 4.0)
+
+    rng = Xoshiro(12345)
+
+    # Sample multiple times and verify results are valid
+    for _ in 1:100
+        idx, remainder = rand(rng, btps)
+        @test 1 <= idx <= 4
+        @test remainder >= 0.0
+    end
 end

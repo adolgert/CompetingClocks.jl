@@ -133,3 +133,156 @@ end
     @test which ∈ enabled_set
     reset!(highest)
 end
+
+
+@safetestset multisampler_clone = "MultiSampler clone" begin
+    using Random: Xoshiro
+    using CompetingClocks: FirstToFire, MultiSampler, enable!, clone
+    using ..MultiSamplerHelp: ByDistribution
+    using Distributions: Exponential
+
+    rng = Xoshiro(234567)
+    sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    sampler[1] = FirstToFire{Int64,Float64}()
+    sampler[2] = FirstToFire{Int64,Float64}()
+
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+
+    cloned = clone(sampler)
+    @test length(cloned.propagator) == 2  # same structure
+    @test haskey(cloned.propagator, 1)
+    @test haskey(cloned.propagator, 2)
+    @test length(cloned) == 0  # cloned subsamplers are empty
+    @test length(sampler) == 2  # original unchanged
+end
+
+
+@safetestset multisampler_copy_clocks = "MultiSampler copy_clocks!" begin
+    using Random: Xoshiro
+    using CompetingClocks: FirstToFire, MultiSampler, enable!, copy_clocks!
+    using ..MultiSamplerHelp: ByDistribution
+    using Distributions: Exponential
+
+    rng = Xoshiro(345678)
+
+    src = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    src[1] = FirstToFire{Int64,Float64}()
+    src[2] = FirstToFire{Int64,Float64}()
+    enable!(src, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(src, 2, Exponential(2.0), 0.0, 0.0, rng)
+
+    dst = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    dst[1] = FirstToFire{Int64,Float64}()
+    dst[2] = FirstToFire{Int64,Float64}()
+
+    @test length(src) == 2
+    @test length(dst) == 0
+
+    copy_clocks!(dst, src)
+    # After copy, dst should have same state
+    @test length(dst.chosen) == 2
+end
+
+
+@safetestset multisampler_jitter = "MultiSampler jitter!" begin
+    using Random: Xoshiro
+    using CompetingClocks: FirstToFire, MultiSampler, enable!, next
+    using CompetingClocks: jitter!
+    using ..MultiSamplerHelp: ByDistribution
+    using Distributions: Exponential
+
+    rng = Xoshiro(456789)
+    sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    sampler[1] = FirstToFire{Int64,Float64}()
+    sampler[2] = FirstToFire{Int64,Float64}()
+
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+
+    # Get initial next event
+    t1, k1 = next(sampler, 0.0, rng)
+
+    # Jitter should resample - times may change
+    jitter!(sampler, 0.5, rng)
+
+    t2, k2 = next(sampler, 0.5, rng)
+    @test t2 >= 0.5
+end
+
+
+@safetestset multisampler_fire = "MultiSampler fire!" begin
+    using Random: Xoshiro
+    using CompetingClocks: FirstToFire, MultiSampler, enable!, next, fire!
+    using ..MultiSamplerHelp: ByDistribution
+    using Distributions: Exponential
+
+    rng = Xoshiro(567890)
+    sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    sampler[1] = FirstToFire{Int64,Float64}()
+    sampler[2] = FirstToFire{Int64,Float64}()
+
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    @test length(sampler) == 2
+
+    when, which = next(sampler, 0.0, rng)
+    fire!(sampler, which, when)
+    @test length(sampler) == 1
+end
+
+
+@safetestset multisampler_getindex = "MultiSampler getindex" begin
+    using Random: Xoshiro
+    using CompetingClocks: FirstToFire, MultiSampler, enable!
+    using ..MultiSamplerHelp: ByDistribution
+    using Distributions: Exponential
+
+    rng = Xoshiro(678901)
+    sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    sampler[1] = FirstToFire{Int64,Float64}()
+
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # getindex returns the stored firing time from FirstToFire
+    firing_time = sampler[1]
+    @test firing_time > 0.0
+    @test firing_time < Inf
+end
+
+
+@safetestset multisampler_length = "MultiSampler length" begin
+    using Random: Xoshiro
+    using CompetingClocks: FirstToFire, MultiSampler, enable!
+    using ..MultiSamplerHelp: ByDistribution
+    using Distributions: Exponential, Gamma
+
+    rng = Xoshiro(789012)
+    sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    sampler[1] = FirstToFire{Int64,Float64}()
+    sampler[2] = FirstToFire{Int64,Float64}()
+
+    @test length(sampler) == 0
+
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    @test length(sampler) == 1
+
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    @test length(sampler) == 2
+
+    # Gamma goes to sampler[2]
+    enable!(sampler, 3, Gamma(1.0, 1.0), 0.0, 0.0, rng)
+    @test length(sampler) == 3
+end
+
+
+@safetestset multisampler_choose_fallback = "MultiSampler choose_sampler fallback" begin
+    using CompetingClocks: SamplerChoice, choose_sampler
+    using Distributions: Exponential
+
+    # A chooser that doesn't implement choose_sampler
+    struct NoImplementation <: SamplerChoice{Symbol,Int64} end
+
+    chooser = NoImplementation()
+    @test_throws MissingException choose_sampler(chooser, 1, Exponential(1.0))
+end
