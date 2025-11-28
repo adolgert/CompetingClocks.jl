@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>HMC over Event Paths with Gen.jl · CompetingClocks.jl Documentation</title><meta name="title" content="HMC over Event Paths with Gen.jl · CompetingClocks.jl Documentation"/><meta property="og:title" content="HMC over Event Paths with Gen.jl · CompetingClocks.jl Documentation"/><meta property="twitter:title" content="HMC over Event Paths with Gen.jl · CompetingClocks.jl Documentation"/><meta name="description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="twitter:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/hmc_paths/"/><meta property="twitter:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/hmc_paths/"/><link rel="canonical" href="https://adolgert.github.io/CompetingClocks.jl/gen/hmc_paths/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">CompetingClocks.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting Started</span><ul><li><a class="tocitem" href="../../install/">Installation</a></li><li><a class="tocitem" href="../../quickstart/">Quickstart</a></li><li><a class="tocitem" href="../../mainloop/">Sample Main Loop</a></li><li><a class="tocitem" href="../../choosing_sampler/">Choosing a Sampler</a></li></ul></li><li><span class="tocitem">User Guide</span><ul><li><a class="tocitem" href="../../integration-guide/">Integration Guide</a></li><li><a class="tocitem" href="../../low_level_interface/">Low-level Sampler Interface</a></li><li><a class="tocitem" href="../../samplers/">Understanding Samplers</a></li><li><a class="tocitem" href="../../guide/">Competing Clocks</a></li><li><a class="tocitem" href="../../distributions/">Non-exponential Simulation</a></li><li><a class="tocitem" href="../../hierarchical/">Hierarchical Samplers</a></li><li><a class="tocitem" href="../../debugging/">Debugging a Simulation that Uses CompetingClocks</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../reliability/">Reliability</a></li><li><a class="tocitem" href="../../sir/">SIR Model</a></li><li><a class="tocitem" href="../../constant_birth/">Birth-death Process</a></li><li><a class="tocitem" href="../../memory/">Transitions with Memory</a></li><li><a class="tocitem" href="../../gene_expression/">Gene Expression</a></li></ul></li><li><span class="tocitem">Statistical Methods</span><ul><li><a class="tocitem" href="../../commonrandom/">Common Random Numbers</a></li><li><a class="tocitem" href="../../importance_skills/">Importance Sampling for Simulation</a></li><li><a class="tocitem" href="../../hamiltonianmontecarlo/">Hamiltonian Monte Carlo</a></li><li><input class="collapse-toggle" id="menuitem-5-4" type="checkbox" checked/><label class="tocitem" for="menuitem-5-4"><span class="docs-label">Gen.jl Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../overview/">Gen.jl and CompetingClocks.jl</a></li><li><a class="tocitem" href="../distribution/">CompetingClocks as a Gen Distribution</a></li><li><a class="tocitem" href="../generative_function/">CompetingClocks as a Gen Generative Function</a></li><li><a class="tocitem" href="../observation_likelihood/">Observation Likelihood for Event Data</a></li><li><a class="tocitem" href="../importance_mixture/">Importance Sampling with Mixture Proposals</a></li><li class="is-active"><a class="tocitem" href>HMC over Event Paths with Gen.jl</a><ul class="internal"><li><a class="tocitem" href="#Statistical-Setup"><span>Statistical Setup</span></a></li><li><a class="tocitem" href="#Example-Model:-Two-Step-Reaction-A-B-C"><span>Example Model: Two-Step Reaction A → B → C</span></a></li><li><a class="tocitem" href="#Dependencies"><span>Dependencies</span></a></li><li><a class="tocitem" href="#Model-Definitions"><span>Model Definitions</span></a></li><li><a class="tocitem" href="#Event-Handling"><span>Event Handling</span></a></li><li><a class="tocitem" href="#Path-Log-Likelihood"><span>Path Log-Likelihood</span></a></li><li><a class="tocitem" href="#Unconstrained-Parameterization"><span>Unconstrained Parameterization</span></a></li><li><a class="tocitem" href="#Log-Posterior"><span>Log Posterior</span></a></li><li><a class="tocitem" href="#HMC-Implementation"><span>HMC Implementation</span></a></li><li><a class="tocitem" href="#Running-HMC"><span>Running HMC</span></a></li><li><a class="tocitem" href="#Gen.jl-Integration"><span>Gen.jl Integration</span></a></li><li><a class="tocitem" href="#Summary"><span>Summary</span></a></li><li><a class="tocitem" href="#Full-Example"><span>Full Example</span></a></li></ul></li></ul></li><li><a class="tocitem" href="../turing_dist/">Bayesian Inference with Turing.jl</a></li><li><a class="tocitem" href="../survival_snippet/">Integration with Survival.jl</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../contextinterface/">Context Interface</a></li><li><a class="tocitem" href="../../reference/">Samplers</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Statistical Methods</a></li><li><a class="is-disabled">Gen.jl Integration</a></li><li class="is-active"><a href>HMC over Event Paths with Gen.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>HMC over Event Paths with Gen.jl</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl/blob/main/docs/src/gen/hmc_paths.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="HMC-over-Event-Paths-with-Gen.jl"><a class="docs-heading-anchor" href="#HMC-over-Event-Paths-with-Gen.jl">HMC over Event Paths with Gen.jl</a><a id="HMC-over-Event-Paths-with-Gen.jl-1"></a><a class="docs-heading-anchor-permalink" href="#HMC-over-Event-Paths-with-Gen.jl" title="Permalink"></a></h1><p>This guide shows how to perform Hamiltonian Monte Carlo (HMC) inference over event times in a continuous-time discrete-event system (CTDES), integrating CompetingClocks with <a href="https://www.gen.dev/">Gen.jl</a> and <a href="https://github.com/JuliaDiff/ForwardDiff.jl">ForwardDiff.jl</a>.</p><h2 id="Statistical-Setup"><a class="docs-heading-anchor" href="#Statistical-Setup">Statistical Setup</a><a id="Statistical-Setup-1"></a><a class="docs-heading-anchor-permalink" href="#Statistical-Setup" title="Permalink"></a></h2><p>Consider a CTDES with clock keys <span>$k \in \mathcal{K}$</span> where each enabled clock has a waiting-time distribution <span>$F_k(\cdot; \theta)$</span>. A trajectory is a sequence of events:</p><p class="math-container">\[\text{path} = \big((k_1, t_1), (k_2, t_2), \ldots, (k_M, t_M)\big), \quad 0 &lt; t_1 &lt; \cdots &lt; t_M \le T\]</p><p>Given observed data <span>$y$</span> derived from the path (e.g., a noisy completion time), the posterior over event times and parameters is:</p><p class="math-container">\[\log p(\theta, \text{path} \mid y) = \log p_\theta(\text{path}) + \log p(y \mid \text{path}, \theta) + \log p(\theta) + C\]</p><p>HMC treats the event times as a continuous vector <span>$q$</span>, introduces momenta <span>$p$</span>, and simulates Hamiltonian dynamics using gradients <span>$\nabla_q \log p(\theta, \text{path} \mid y)$</span>.</p><p>Two integration strategies with Gen.jl:</p><ol><li><strong>External HMC over event times</strong>: Gen handles discrete structure and priors; a separate HMC kernel updates event times.</li><li><strong>Gen-native gradients</strong>: Wrap the path log-likelihood as a custom Gen distribution with <code>logpdf_grad</code>.</li></ol><p>This guide demonstrates approach (1).</p><h2 id="Example-Model:-Two-Step-Reaction-A-B-C"><a class="docs-heading-anchor" href="#Example-Model:-Two-Step-Reaction-A-B-C">Example Model: Two-Step Reaction A → B → C</a><a id="Example-Model:-Two-Step-Reaction-A-B-C-1"></a><a class="docs-heading-anchor-permalink" href="#Example-Model:-Two-Step-Reaction-A-B-C" title="Permalink"></a></h2><p>A minimal chain reaction:</p><ul><li>At <span>$t=0$</span>, the system is in state <code>:A</code></li><li>Event <code>:ab</code> fires once with <span>$\text{Weibull}(k_{ab}, \lambda_{ab})$</span> waiting time</li><li>After <code>:ab</code> fires, event <code>:bc</code> is enabled with <span>$\text{Weibull}(k_{bc}, \lambda_{bc})$</span> waiting time</li><li>We observe a noisy completion time <span>$y \sim \mathcal{N}(t_2, \sigma_{\text{obs}}^2)$</span></li></ul><p>The goal is posterior inference over <span>$(t_1, t_2)$</span> given <span>$y$</span>.</p><h2 id="Dependencies"><a class="docs-heading-anchor" href="#Dependencies">Dependencies</a><a id="Dependencies-1"></a><a class="docs-heading-anchor-permalink" href="#Dependencies" title="Permalink"></a></h2><pre><code class="language-julia hljs">using Random
+using Distributions
+using CompetingClocks
+using ForwardDiff
+using LinearAlgebra
+using Gen</code></pre><h2 id="Model-Definitions"><a class="docs-heading-anchor" href="#Model-Definitions">Model Definitions</a><a id="Model-Definitions-1"></a><a class="docs-heading-anchor-permalink" href="#Model-Definitions" title="Permalink"></a></h2><pre><code class="language-julia hljs"># Clock key for the two-step reaction
+struct ABClock
+    kind::Symbol  # :ab or :bc
+end
+
+# Weibull parameters for both transitions
+struct ABParams{T}
+    k_ab::T
+    lambda_ab::T
+    k_bc::T
+    lambda_bc::T
+end
+
+# Model state
+mutable struct ABModel{T}
+    t::T
+    state::Symbol
+    params::ABParams{T}
+end</code></pre><h2 id="Event-Handling"><a class="docs-heading-anchor" href="#Event-Handling">Event Handling</a><a id="Event-Handling-1"></a><a class="docs-heading-anchor-permalink" href="#Event-Handling" title="Permalink"></a></h2><pre><code class="language-julia hljs">function initialize_ab!(model::ABModel{T}, sampler) where {T}
+    model.t = zero(T)
+    model.state = :A
+    p = model.params
+    enable!(sampler, ABClock(:ab), Weibull(p.k_ab, p.lambda_ab))
+    return nothing
+end
+
+function handle_ab_event!(model::ABModel{T}, sampler, which::ABClock, when::T) where {T}
+    model.t = when
+    p = model.params
+
+    if which.kind == :ab
+        model.state = :B
+        enable!(sampler, ABClock(:bc), Weibull(p.k_bc, p.lambda_bc))
+    elseif which.kind == :bc
+        model.state = :C
+    else
+        error(&quot;Unknown clock kind $(which.kind)&quot;)
+    end
+end</code></pre><h2 id="Path-Log-Likelihood"><a class="docs-heading-anchor" href="#Path-Log-Likelihood">Path Log-Likelihood</a><a id="Path-Log-Likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Path-Log-Likelihood" title="Permalink"></a></h2><p>For this simple model, the path log-likelihood has a closed form:</p><p class="math-container">\[\log p(t_1, t_2 \mid \theta) = \log f_{ab}(t_1) + \log f_{bc}(t_2 - t_1)\]</p><p>where <span>$f_{ab}$</span> and <span>$f_{bc}$</span> are the Weibull densities.</p><pre><code class="language-julia hljs">function log_path_ab(events::AbstractVector, params::ABParams)
+    @assert length(events) == 2
+    t1 = events[1].time
+    t2 = events[2].time
+
+    dist_ab = Weibull(params.k_ab, params.lambda_ab)
+    dist_bc = Weibull(params.k_bc, params.lambda_bc)
+
+    # Use Distributions.logpdf to avoid ambiguity with Gen.logpdf
+    return Distributions.logpdf(dist_ab, t1) + Distributions.logpdf(dist_bc, t2 - t1)
+end</code></pre><p>For validation, CompetingClocks can compute the same quantity via replay:</p><pre><code class="language-julia hljs">function log_path_ab_cclock(events::AbstractVector, params::ABParams{Float64})
+    rng = Xoshiro(0)
+    sampler = SamplingContext(ABClock, Float64, rng; path_likelihood=true)
+
+    model = ABModel(0.0, :A, params)
+    initialize_ab!(model, sampler)
+
+    for e in events
+        fire!(sampler, e.evt, Float64(e.time))
+        handle_ab_event!(model, sampler, e.evt, Float64(e.time))
+    end
+
+    return pathloglikelihood(sampler, Float64(events[end].time))
+end</code></pre><div class="admonition is-info" id="AD-Compatibility-15d35e6452690896"><header class="admonition-header">AD Compatibility<a class="admonition-anchor" href="#AD-Compatibility-15d35e6452690896" title="Permalink"></a></header><div class="admonition-body"><p>The <code>TrajectoryWatcher</code> inside <code>SamplingContext</code> currently stores <code>loglikelihood::Float64</code>, which prevents direct use with ForwardDiff dual numbers. For HMC, compute the path log-likelihood manually as shown in <code>log_path_ab</code>.</p></div></div><h2 id="Unconstrained-Parameterization"><a class="docs-heading-anchor" href="#Unconstrained-Parameterization">Unconstrained Parameterization</a><a id="Unconstrained-Parameterization-1"></a><a class="docs-heading-anchor-permalink" href="#Unconstrained-Parameterization" title="Permalink"></a></h2><p>To maintain ordered, positive event times during HMC, map unconstrained <span>$u \in \mathbb{R}^2$</span> to times:</p><p class="math-container">\[t_1 = e^{u_1}, \quad t_2 = t_1 + e^{u_2}\]</p><p>with log-Jacobian <span>$\log |J| = u_1 + u_2$</span>.</p><pre><code class="language-julia hljs">function times_from_u(u::AbstractVector)
+    @assert length(u) == 2
+    t1 = exp(u[1])
+    dt = exp(u[2])
+    t2 = t1 + dt
+    logjac = u[1] + u[2]
+    return (t1, t2, logjac)
+end</code></pre><h2 id="Log-Posterior"><a class="docs-heading-anchor" href="#Log-Posterior">Log Posterior</a><a id="Log-Posterior-1"></a><a class="docs-heading-anchor-permalink" href="#Log-Posterior" title="Permalink"></a></h2><pre><code class="language-julia hljs">function logpost_u(u::AbstractVector, params::ABParams, y_obs::Float64, sigma_obs::Float64)
+    t1, t2, logjac = times_from_u(u)
+
+    events = [
+        (evt=ABClock(:ab), time=t1),
+        (evt=ABClock(:bc), time=t2)
+    ]
+
+    lp_path = log_path_ab(events, params)
+    lp_obs = Distributions.logpdf(Normal(t2, sigma_obs), y_obs)
+
+    return lp_path + lp_obs + logjac
+end
+
+# Callable wrapper for ForwardDiff
+struct PosteriorWrapper
+    params::ABParams{Float64}
+    y_obs::Float64
+    sigma_obs::Float64
+end
+
+(pw::PosteriorWrapper)(u) = logpost_u(u, pw.params, pw.y_obs, pw.sigma_obs)</code></pre><h2 id="HMC-Implementation"><a class="docs-heading-anchor" href="#HMC-Implementation">HMC Implementation</a><a id="HMC-Implementation-1"></a><a class="docs-heading-anchor-permalink" href="#HMC-Implementation" title="Permalink"></a></h2><p>A basic leapfrog integrator with Metropolis accept/reject:</p><pre><code class="language-julia hljs">function hmc_step(u_current::Vector{Float64}, logpost; epsilon::Float64=0.02, L::Int=10)
+    q = copy(u_current)
+    p = randn(length(q))
+    current_p = copy(p)
+
+    grad_logpost(x) = ForwardDiff.gradient(logpost, x)
+
+    # Leapfrog integration
+    grad = grad_logpost(q)
+    p .+= (epsilon / 2.0) .* grad
+
+    for l in 1:L
+        q .+= epsilon .* p
+        grad = grad_logpost(q)
+        if l != L
+            p .+= epsilon .* grad
+        end
+    end
+
+    p .+= (epsilon / 2.0) .* grad
+    p .= -p
+
+    # Metropolis accept/reject
+    H(q, p) = -logpost(q) + 0.5 * dot(p, p)
+    current_H = H(u_current, current_p)
+    proposed_H = H(q, p)
+
+    if log(rand()) &lt; current_H - proposed_H
+        return q, true
+    else
+        return u_current, false
+    end
+end</code></pre><h2 id="Running-HMC"><a class="docs-heading-anchor" href="#Running-HMC">Running HMC</a><a id="Running-HMC-1"></a><a class="docs-heading-anchor-permalink" href="#Running-HMC" title="Permalink"></a></h2><pre><code class="language-julia hljs">function demo_hmc()
+    true_params = ABParams(1.5, 3.0, 2.0, 1.5)
+
+    # Generate synthetic data
+    rng = MersenneTwister(42)
+    t1_true = rand(rng, Weibull(true_params.k_ab, true_params.lambda_ab))
+    t2_true = t1_true + rand(rng, Weibull(true_params.k_bc, true_params.lambda_bc))
+    sigma_obs = 0.1
+    y_obs = rand(rng, Normal(t2_true, sigma_obs))
+
+    pw = PosteriorWrapper(true_params, y_obs, sigma_obs)
+    u = [log(0.5 * y_obs), log(0.5 * y_obs)]
+
+    samples = Vector{Vector{Float64}}()
+    acc = 0
+    n_iter = 500
+
+    for iter in 1:n_iter
+        u, accepted = hmc_step(u, pw; epsilon=0.01, L=20)
+        acc += accepted ? 1 : 0
+        push!(samples, copy(u))
+    end
+
+    # Posterior summary
+    burn_in = 100
+    t1_samples = [times_from_u(s)[1] for s in samples[burn_in+1:end]]
+    t2_samples = [times_from_u(s)[2] for s in samples[burn_in+1:end]]
+
+    println(&quot;Acceptance rate: $(acc / n_iter)&quot;)
+    println(&quot;Posterior mean t1: $(mean(t1_samples)) (true: $t1_true)&quot;)
+    println(&quot;Posterior mean t2: $(mean(t2_samples)) (true: $t2_true)&quot;)
+
+    return samples
+end</code></pre><h2 id="Gen.jl-Integration"><a class="docs-heading-anchor" href="#Gen.jl-Integration">Gen.jl Integration</a><a id="Gen.jl-Integration-1"></a><a class="docs-heading-anchor-permalink" href="#Gen.jl-Integration" title="Permalink"></a></h2><p>To infer model parameters <span>$\theta$</span> while marginalizing over event times, use HMC as an inner loop within Gen&#39;s inference framework.</p><h3 id="Factor-Distribution"><a class="docs-heading-anchor" href="#Factor-Distribution">Factor Distribution</a><a id="Factor-Distribution-1"></a><a class="docs-heading-anchor-permalink" href="#Factor-Distribution" title="Permalink"></a></h3><p>Gen.jl doesn&#39;t export a <code>factor</code> function for adding log-weights. Define a custom distribution:</p><pre><code class="language-julia hljs">struct FactorDist &lt;: Gen.Distribution{Nothing} end
+const factor_dist = FactorDist()
+
+Gen.random(::FactorDist, logweight::Float64) = nothing
+Gen.logpdf(::FactorDist, ::Nothing, logweight::Float64) = logweight
+Gen.is_discrete(::FactorDist) = true
+Gen.has_output_grad(::FactorDist) = false
+Gen.has_argument_grads(::FactorDist) = (false,)</code></pre><h3 id="Approximate-Marginal-Likelihood"><a class="docs-heading-anchor" href="#Approximate-Marginal-Likelihood">Approximate Marginal Likelihood</a><a id="Approximate-Marginal-Likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Approximate-Marginal-Likelihood" title="Permalink"></a></h3><p>Use a short HMC run to approximate <span>$\log p(y \mid \theta)$</span>:</p><pre><code class="language-julia hljs">function loglik_given_params(params::ABParams, y_obs::Float64, sigma_obs::Float64)
+    pw = PosteriorWrapper(params, y_obs, sigma_obs)
+    u = [log(0.5 * y_obs), log(0.5 * y_obs)]
+
+    for _ in 1:50
+        u, _ = hmc_step(u, pw; epsilon=0.01, L=10)
+    end
+
+    return pw(u)
+end</code></pre><h3 id="Gen-Model"><a class="docs-heading-anchor" href="#Gen-Model">Gen Model</a><a id="Gen-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Gen-Model" title="Permalink"></a></h3><pre><code class="language-julia hljs">@gen function ab_params_model()
+    delta_k_ab = @trace(normal(0.0, 0.1), :delta_k_ab)
+    delta_lambda_ab = @trace(normal(0.0, 0.1), :delta_lambda_ab)
+    delta_k_bc = @trace(normal(0.0, 0.1), :delta_k_bc)
+    delta_lambda_bc = @trace(normal(0.0, 0.1), :delta_lambda_bc)
+
+    base = ABParams(1.5, 3.0, 2.0, 1.5)
+    return ABParams(
+        base.k_ab + delta_k_ab,
+        base.lambda_ab + delta_lambda_ab,
+        base.k_bc + delta_k_bc,
+        base.lambda_bc + delta_lambda_bc
+    )
+end
+
+@gen function joint_model(y_obs::Float64, sigma_obs::Float64)
+    params = @trace(ab_params_model(), :params)
+    lp_y = loglik_given_params(params, y_obs, sigma_obs)
+    @trace(factor_dist(lp_y), :factor)
+    return params
+end</code></pre><h3 id="MCMC-over-Parameters"><a class="docs-heading-anchor" href="#MCMC-over-Parameters">MCMC over Parameters</a><a id="MCMC-over-Parameters-1"></a><a class="docs-heading-anchor-permalink" href="#MCMC-over-Parameters" title="Permalink"></a></h3><pre><code class="language-julia hljs">function run_gen_with_hmc(y_obs, sigma_obs)
+    tr, _ = generate(joint_model, (y_obs, sigma_obs))
+
+    @gen function proposal_kernel(tr)
+        {:params =&gt; :delta_k_ab} ~ normal(tr[:params =&gt; :delta_k_ab], 0.05)
+        {:params =&gt; :delta_lambda_ab} ~ normal(tr[:params =&gt; :delta_lambda_ab], 0.05)
+        {:params =&gt; :delta_k_bc} ~ normal(tr[:params =&gt; :delta_k_bc], 0.05)
+        {:params =&gt; :delta_lambda_bc} ~ normal(tr[:params =&gt; :delta_lambda_bc], 0.05)
+        return nothing
+    end
+
+    n_steps = 100
+    for i in 1:n_steps
+        tr, _ = Gen.mh(tr, proposal_kernel, ())
+    end
+
+    return tr
+end</code></pre><h2 id="Summary"><a class="docs-heading-anchor" href="#Summary">Summary</a><a id="Summary-1"></a><a class="docs-heading-anchor-permalink" href="#Summary" title="Permalink"></a></h2><p>This approach combines:</p><ul><li><strong>CompetingClocks</strong> for defining the CTDES and computing path log-likelihoods</li><li><strong>ForwardDiff</strong> for gradients through the log-posterior</li><li><strong>HMC</strong> for efficient sampling of continuous event times</li><li><strong>Gen.jl</strong> for probabilistic programming over parameters</li></ul><p>The key constraint is that path log-likelihood computation must be AD-compatible. For simple models, compute it analytically. For complex models, consider modifying CompetingClocks&#39; <code>TrajectoryWatcher</code> to support generic numeric types.</p><h2 id="Full-Example"><a class="docs-heading-anchor" href="#Full-Example">Full Example</a><a id="Full-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Full-Example" title="Permalink"></a></h2><p>See <a href="https://github.com/adolgert/CompetingClocks.jl/blob/main/examples/gen_hmc.jl"><code>examples/gen_hmc.jl</code></a> for a complete, runnable version.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../importance_mixture/">« Importance Sampling with Mixture Proposals</a><a class="docs-footer-nextpage" href="../turing_dist/">Bayesian Inference with Turing.jl »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 28 November 2025 16:17">Friday 28 November 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

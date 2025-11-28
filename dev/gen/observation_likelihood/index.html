@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Observation Likelihood for Event Data · CompetingClocks.jl Documentation</title><meta name="title" content="Observation Likelihood for Event Data · CompetingClocks.jl Documentation"/><meta property="og:title" content="Observation Likelihood for Event Data · CompetingClocks.jl Documentation"/><meta property="twitter:title" content="Observation Likelihood for Event Data · CompetingClocks.jl Documentation"/><meta name="description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="twitter:description" content="Documentation for CompetingClocks.jl Documentation."/><meta property="og:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/observation_likelihood/"/><meta property="twitter:url" content="https://adolgert.github.io/CompetingClocks.jl/gen/observation_likelihood/"/><link rel="canonical" href="https://adolgert.github.io/CompetingClocks.jl/gen/observation_likelihood/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">CompetingClocks.jl Documentation</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Getting Started</span><ul><li><a class="tocitem" href="../../install/">Installation</a></li><li><a class="tocitem" href="../../quickstart/">Quickstart</a></li><li><a class="tocitem" href="../../mainloop/">Sample Main Loop</a></li><li><a class="tocitem" href="../../choosing_sampler/">Choosing a Sampler</a></li></ul></li><li><span class="tocitem">User Guide</span><ul><li><a class="tocitem" href="../../integration-guide/">Integration Guide</a></li><li><a class="tocitem" href="../../low_level_interface/">Low-level Sampler Interface</a></li><li><a class="tocitem" href="../../samplers/">Understanding Samplers</a></li><li><a class="tocitem" href="../../guide/">Competing Clocks</a></li><li><a class="tocitem" href="../../distributions/">Non-exponential Simulation</a></li><li><a class="tocitem" href="../../hierarchical/">Hierarchical Samplers</a></li><li><a class="tocitem" href="../../debugging/">Debugging a Simulation that Uses CompetingClocks</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../../reliability/">Reliability</a></li><li><a class="tocitem" href="../../sir/">SIR Model</a></li><li><a class="tocitem" href="../../constant_birth/">Birth-death Process</a></li><li><a class="tocitem" href="../../memory/">Transitions with Memory</a></li><li><a class="tocitem" href="../../gene_expression/">Gene Expression</a></li></ul></li><li><span class="tocitem">Statistical Methods</span><ul><li><a class="tocitem" href="../../commonrandom/">Common Random Numbers</a></li><li><a class="tocitem" href="../../importance_skills/">Importance Sampling for Simulation</a></li><li><a class="tocitem" href="../../hamiltonianmontecarlo/">Hamiltonian Monte Carlo</a></li><li><input class="collapse-toggle" id="menuitem-5-4" type="checkbox" checked/><label class="tocitem" for="menuitem-5-4"><span class="docs-label">Gen.jl Integration</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../overview/">Gen.jl and CompetingClocks.jl</a></li><li><a class="tocitem" href="../distribution/">CompetingClocks as a Gen Distribution</a></li><li><a class="tocitem" href="../generative_function/">CompetingClocks as a Gen Generative Function</a></li><li class="is-active"><a class="tocitem" href>Observation Likelihood for Event Data</a><ul class="internal"><li><a class="tocitem" href="#Statistical-Background"><span>Statistical Background</span></a></li><li><a class="tocitem" href="#CompetingClocks-Approach"><span>CompetingClocks Approach</span></a></li><li><a class="tocitem" href="#Example:-Single-Machine-Reliability"><span>Example: Single-Machine Reliability</span></a></li><li><a class="tocitem" href="#Integration-with-Gen.jl"><span>Integration with Gen.jl</span></a></li><li><a class="tocitem" href="#Key-Points"><span>Key Points</span></a></li><li><a class="tocitem" href="#See-Also"><span>See Also</span></a></li></ul></li><li><a class="tocitem" href="../importance_mixture/">Importance Sampling with Mixture Proposals</a></li><li><a class="tocitem" href="../hmc_paths/">HMC over Event Paths with Gen.jl</a></li></ul></li><li><a class="tocitem" href="../turing_dist/">Bayesian Inference with Turing.jl</a></li><li><a class="tocitem" href="../survival_snippet/">Integration with Survival.jl</a></li></ul></li><li><span class="tocitem">API Reference</span><ul><li><a class="tocitem" href="../../contextinterface/">Context Interface</a></li><li><a class="tocitem" href="../../reference/">Samplers</a></li><li><a class="tocitem" href="../../algorithms/">Algorithms</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Statistical Methods</a></li><li><a class="is-disabled">Gen.jl Integration</a></li><li class="is-active"><a href>Observation Likelihood for Event Data</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Observation Likelihood for Event Data</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/adolgert/CompetingClocks.jl/blob/main/docs/src/gen/observation_likelihood.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Observation-Likelihood-for-Event-Data"><a class="docs-heading-anchor" href="#Observation-Likelihood-for-Event-Data">Observation Likelihood for Event Data</a><a id="Observation-Likelihood-for-Event-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Observation-Likelihood-for-Event-Data" title="Permalink"></a></h1><p>This page describes how to compute the likelihood of observed event sequences using <code>pathloglikelihood</code>, and how to integrate this with probabilistic programming frameworks like <a href="https://www.gen.dev/">Gen.jl</a> for Bayesian inference.</p><h2 id="Statistical-Background"><a class="docs-heading-anchor" href="#Statistical-Background">Statistical Background</a><a id="Statistical-Background-1"></a><a class="docs-heading-anchor-permalink" href="#Statistical-Background" title="Permalink"></a></h2><p>Consider a continuous-time system where multiple events (clocks) compete to fire:</p><ul><li>At time <span>$t$</span>, a set of clocks <span>$\mathcal{E}_t$</span> is enabled.</li><li>Each enabled clock <span>$e$</span> has hazard <span>$\lambda_e(t \mid \mathcal{H}_t, \theta)$</span>, where <span>$\mathcal{H}_t$</span> is the history up to time <span>$t$</span> and <span>$\theta$</span> are parameters.</li><li>When a clock fires, the system state changes and enabled clocks are updated.</li></ul><p>Given an observed event path over <span>$[0, T]$</span>,</p><p class="math-container">\[\mathcal{D} = \{(t_1, e_1), \ldots, (t_n, e_n)\}, \quad 0 &lt; t_1 &lt; \cdots &lt; t_n \le T,\]</p><p>the log-likelihood has the standard competing risks form:</p><p class="math-container">\[\log p(\mathcal{D}\mid\theta) =
+\sum_{i=1}^{n} \log \lambda_{e_i}(t_i \mid \mathcal{H}_{t_i^-}, \theta)
+- \int_0^T \Lambda(t \mid \mathcal{H}_t, \theta)\,dt\]</p><p>where <span>$\Lambda(t) = \sum_{e \in \mathcal{E}_t} \lambda_e(t)$</span> is the total hazard.</p><p>The first term scores each observed event; the second term accounts for the probability that no other events occurred. For non-exponential distributions (Weibull, Gamma, etc.) this integral requires tracking cumulative hazards from each clock&#39;s enabling time.</p><h2 id="CompetingClocks-Approach"><a class="docs-heading-anchor" href="#CompetingClocks-Approach">CompetingClocks Approach</a><a id="CompetingClocks-Approach-1"></a><a class="docs-heading-anchor-permalink" href="#CompetingClocks-Approach" title="Permalink"></a></h2><p>CompetingClocks maintains these integrals internally. To compute the likelihood:</p><ol><li>Create a <code>SamplingContext</code> with <code>path_likelihood=true</code></li><li><strong>Replay</strong> the observed events: call <code>enable!</code> and <code>fire!</code> in sequence</li><li>Call <code>pathloglikelihood(sampler, end_time)</code> to get <span>$\log p(\mathcal{D}\mid\theta)$</span></li></ol><p>This avoids manual hazard calculus entirely.</p><h2 id="Example:-Single-Machine-Reliability"><a class="docs-heading-anchor" href="#Example:-Single-Machine-Reliability">Example: Single-Machine Reliability</a><a id="Example:-Single-Machine-Reliability-1"></a><a class="docs-heading-anchor-permalink" href="#Example:-Single-Machine-Reliability" title="Permalink"></a></h2><p>A machine alternates between working (<code>:up</code>) and failed (<code>:down</code>):</p><ul><li>Time to failure follows <span>$\text{Weibull}(k, \eta)$</span></li><li>Time to repair follows <span>$\text{Exponential}(\mu)$</span></li></ul><p>We observe failure/repair events and want to infer <span>$\theta = (k, \eta, \mu)$</span>.</p><h3 id="Data-Representation"><a class="docs-heading-anchor" href="#Data-Representation">Data Representation</a><a id="Data-Representation-1"></a><a class="docs-heading-anchor-permalink" href="#Data-Representation" title="Permalink"></a></h3><pre><code class="language-julia hljs">using Random
+using Distributions
+using CompetingClocks
+
+const RelEvent = NamedTuple{(:key, :time), Tuple{Symbol, Float64}}
+
+observed_events = RelEvent[
+    (key = :fail,   time = 1.2),
+    (key = :repair, time = 2.0),
+    (key = :fail,   time = 4.5),
+    (key = :repair, time = 5.1),
+]
+obs_end_time = 8.0</code></pre><h3 id="Model-State"><a class="docs-heading-anchor" href="#Model-State">Model State</a><a id="Model-State-1"></a><a class="docs-heading-anchor-permalink" href="#Model-State" title="Permalink"></a></h3><pre><code class="language-julia hljs">struct ReliabilityParams
+    k_fail::Float64     # Weibull shape
+    η_fail::Float64     # Weibull scale
+    μ_repair::Float64   # Exponential mean (1/rate)
+end
+
+mutable struct ReliabilityModel
+    up::Bool
+    θ::ReliabilityParams
+end
+
+init_model(θ::ReliabilityParams) = ReliabilityModel(true, θ)</code></pre><h3 id="Clock-Management"><a class="docs-heading-anchor" href="#Clock-Management">Clock Management</a><a id="Clock-Management-1"></a><a class="docs-heading-anchor-permalink" href="#Clock-Management" title="Permalink"></a></h3><pre><code class="language-julia hljs">function enable_current_clock!(model::ReliabilityModel, sampler)
+    if model.up
+        enable!(sampler, :fail, Weibull(model.θ.k_fail, model.θ.η_fail))
+    else
+        enable!(sampler, :repair, Exponential(model.θ.μ_repair))
+    end
+end
+
+function step_reliability!(model::ReliabilityModel, sampler, key::Symbol, when::Float64)
+    fire!(sampler, key, when)
+    model.up = (key == :repair)
+    enable_current_clock!(model, sampler)
+end</code></pre><h3 id="Computing-the-Log-Likelihood"><a class="docs-heading-anchor" href="#Computing-the-Log-Likelihood">Computing the Log-Likelihood</a><a id="Computing-the-Log-Likelihood-1"></a><a class="docs-heading-anchor-permalink" href="#Computing-the-Log-Likelihood" title="Permalink"></a></h3><pre><code class="language-julia hljs">function reliability_loglikelihood(θ::ReliabilityParams,
+                                   events::Vector{RelEvent},
+                                   end_time::Float64)
+    sampler = SamplingContext(Symbol, Float64, Xoshiro(1);
+                              path_likelihood = true)
+    model = init_model(θ)
+    enable_current_clock!(model, sampler)
+
+    for evt in events
+        step_reliability!(model, sampler, evt.key, evt.time)
+    end
+
+    return pathloglikelihood(sampler, end_time)
+end</code></pre><p>Test it:</p><pre><code class="language-julia hljs">θ_true = ReliabilityParams(1.5, 2.0, 1.0)
+ll = reliability_loglikelihood(θ_true, observed_events, obs_end_time)
+# ll ≈ -5.73</code></pre><h2 id="Integration-with-Gen.jl"><a class="docs-heading-anchor" href="#Integration-with-Gen.jl">Integration with Gen.jl</a><a id="Integration-with-Gen.jl-1"></a><a class="docs-heading-anchor-permalink" href="#Integration-with-Gen.jl" title="Permalink"></a></h2><p>Gen.jl provides probabilistic programming with MCMC inference. To use CompetingClocks likelihoods in Gen, create a custom distribution that contributes the log-likelihood as a &quot;factor&quot; in the trace.</p><h3 id="Likelihood-Factor-Distribution"><a class="docs-heading-anchor" href="#Likelihood-Factor-Distribution">Likelihood Factor Distribution</a><a id="Likelihood-Factor-Distribution-1"></a><a class="docs-heading-anchor-permalink" href="#Likelihood-Factor-Distribution" title="Permalink"></a></h3><p>Since Gen&#39;s <code>@factor</code> macro may not be available in all versions, we define a custom distribution that adds an arbitrary log-probability to the trace:</p><pre><code class="language-julia hljs">using Gen
+using Statistics: mean, std
+
+struct LikelihoodFactor &lt;: Gen.Distribution{Nothing} end
+const likelihood_factor = LikelihoodFactor()
+
+Gen.random(::LikelihoodFactor, logpdf_val::Float64) = nothing
+Gen.logpdf(::LikelihoodFactor, ::Nothing, logpdf_val::Float64) = logpdf_val
+Gen.is_discrete(::LikelihoodFactor) = true
+Gen.has_output_grad(::LikelihoodFactor) = false
+Gen.has_argument_grads(::LikelihoodFactor) = (false,)</code></pre><h3 id="Gen-Model"><a class="docs-heading-anchor" href="#Gen-Model">Gen Model</a><a id="Gen-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Gen-Model" title="Permalink"></a></h3><pre><code class="language-julia hljs">@gen function reliability_model(events::Vector{RelEvent}, end_time::Float64)
+    # Priors on log-parameters (positive support)
+    log_k ~ normal(0.0, 0.5)
+    log_η ~ normal(0.0, 1.0)
+    log_μ ~ normal(0.0, 1.0)
+
+    θ = ReliabilityParams(exp(log_k), exp(log_η), exp(log_μ))
+
+    # Add CompetingClocks likelihood to the trace
+    loglike = reliability_loglikelihood(θ, events, end_time)
+    {:likelihood} ~ likelihood_factor(loglike)
+
+    return θ
+end</code></pre><h3 id="Inference"><a class="docs-heading-anchor" href="#Inference">Inference</a><a id="Inference-1"></a><a class="docs-heading-anchor-permalink" href="#Inference" title="Permalink"></a></h3><p>Generate an initial trace:</p><pre><code class="language-julia hljs">(trace, _) = generate(reliability_model, (observed_events, obs_end_time))
+println(&quot;Initial params: &quot;, get_retval(trace))
+println(&quot;Log-joint: &quot;, get_score(trace))</code></pre><p>Run Metropolis-Hastings with Gaussian drift proposals:</p><pre><code class="language-julia hljs">addrs = [:log_k, :log_η, :log_μ]
+
+function run_mh(initial_trace, n_iters; drift_std=0.1)
+    samples = Vector{ReliabilityParams}(undef, n_iters)
+    current_trace = initial_trace
+    accepted = 0
+
+    for i in 1:n_iters
+        addr = addrs[(i - 1) % 3 + 1]
+        current_val = current_trace[addr]
+        proposed_val = current_val + randn() * drift_std
+        constraints = choicemap((addr, proposed_val))
+
+        new_trace, weight, _, _ = update(
+            current_trace, get_args(current_trace),
+            (NoChange(), NoChange()), constraints
+        )
+
+        if log(rand()) &lt; weight
+            current_trace = new_trace
+            accepted += 1
+        end
+        samples[i] = get_retval(current_trace)
+    end
+
+    return samples, accepted / n_iters
+end
+
+samples, acc_rate = run_mh(trace, 1000)
+println(&quot;Acceptance rate: $acc_rate&quot;)
+
+# Posterior summary (after burn-in)
+post = samples[501:end]
+println(&quot;k: mean=$(mean(s.k_fail for s in post))&quot;)
+println(&quot;η: mean=$(mean(s.η_fail for s in post))&quot;)
+println(&quot;μ: mean=$(mean(s.μ_repair for s in post))&quot;)</code></pre><h2 id="Key-Points"><a class="docs-heading-anchor" href="#Key-Points">Key Points</a><a id="Key-Points-1"></a><a class="docs-heading-anchor-permalink" href="#Key-Points" title="Permalink"></a></h2><ul><li><p><code>pathloglikelihood</code> computes the full path likelihood including the probability of no events in any remaining observation window.</p></li><li><p>The &quot;replay&quot; pattern works for any model structure: simply call <code>enable!</code> and <code>fire!</code> to mirror what would happen during forward simulation.</p></li><li><p>The likelihood function is pure Julia and can be used outside Gen for maximum likelihood estimation, importance sampling, or other inference methods.</p></li><li><p>For models with many parameters or complex posteriors, consider gradient-based methods or more sophisticated MCMC schemes.</p></li></ul><h2 id="See-Also"><a class="docs-heading-anchor" href="#See-Also">See Also</a><a id="See-Also-1"></a><a class="docs-heading-anchor-permalink" href="#See-Also" title="Permalink"></a></h2><ul><li><a href="https://www.gen.dev/docs/">Gen.jl Documentation</a></li><li><a href="https://www.gen.dev/docs/stable/how_to/custom_distributions/">Adding Custom Distributions to Gen</a></li><li><a href="https://github.com/adolgert/CompetingClocks.jl/blob/main/examples/gen_observation.jl"><code>examples/gen_observation.jl</code></a> — Complete working example</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../generative_function/">« CompetingClocks as a Gen Generative Function</a><a class="docs-footer-nextpage" href="../importance_mixture/">Importance Sampling with Mixture Proposals »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Friday 28 November 2025 16:17">Friday 28 November 2025</span>. Using Julia version 1.12.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
