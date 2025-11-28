@@ -59,7 +59,9 @@ end
 
 
 function clone(dc::DirectCall{K,T,P}) where {K,T,P}
-    DirectCall{K,T,P}(P(), zero(T), zero(Float64), dc.calculate_likelihood)
+    # Create new DirectCall with same settings but empty state
+    # Use the default constructor to properly initialize the prefix tree
+    DirectCall{K,T}(trajectory=dc.calculate_likelihood)
 end
 
 
@@ -173,7 +175,7 @@ end
 function pathloglikelihood(dc::DirectCall, endtime)
     last_part = if endtime > dc.now
         total = sum!(dc.prefix_tree)
-        Δt = endtime - md.now
+        Δt = endtime - dc.now
         -total * Δt
     else
         zero(Float64)

@@ -191,3 +191,99 @@ end
         end
     end
 end
+
+
+@safetestset direct_call_clone = "DirectCall clone" begin
+    using CompetingClocks: DirectCall, enable!, clone
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(234567)
+    sampler = DirectCall{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+
+    cloned = clone(sampler)
+    @test length(cloned) == 0  # cloned is empty
+    @test length(sampler) == 2  # original unchanged
+end
+
+
+@safetestset direct_call_jitter = "DirectCall jitter!" begin
+    using CompetingClocks: DirectCall, enable!, jitter!
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(345678)
+    sampler = DirectCall{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # jitter! does nothing for DirectCall (returns nothing)
+    result = jitter!(sampler)
+    @test result === nothing
+end
+
+
+@safetestset direct_call_trajectory = "DirectCall with trajectory (log likelihood)" begin
+    using CompetingClocks: DirectCall, enable!, fire!, next, steploglikelihood, pathloglikelihood
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(456789)
+
+    # Create sampler with trajectory=true to enable log likelihood calculation
+    sampler = DirectCall{Int,Float64}(trajectory=true)
+    @test sampler.calculate_likelihood == true
+
+    # Enable some clocks with known rates
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+
+    # Get next event and fire
+    t1, k1 = next(sampler, 0.0, rng)
+    fire!(sampler, k1, t1)
+
+    # log_likelihood should have been updated
+    @test sampler.log_likelihood != 0.0
+
+    # Test steploglikelihood directly
+    sampler2 = DirectCall{Int,Float64}()
+    enable!(sampler2, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler2, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+
+    # steploglikelihood = log(lambda_i) - total_rate * delta_t
+    ll = steploglikelihood(sampler2, 0.0, 1.0, 1)
+    # rate of clock 1 is 1.0, total rate is 1.0 + 2.0 = 3.0
+    # log(1.0) - 3.0 * 1.0 = 0 - 3.0 = -3.0
+    @test ll ≈ -3.0
+
+    # Test pathloglikelihood
+    sampler3 = DirectCall{Int,Float64}(trajectory=true)
+    enable!(sampler3, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler3, 2, Exponential(0.5), 0.0, 0.0, rng)
+
+    # Fire to accumulate some log likelihood
+    t, k = next(sampler3, 0.0, rng)
+    fire!(sampler3, k, t)
+
+    # pathloglikelihood adds the "no event" contribution from now to endtime
+    pll = pathloglikelihood(sampler3, t + 1.0)
+    @test !isnan(pll)
+end
+
+
+@safetestset direct_call_haskey_wrong_type = "DirectCall haskey with wrong type" begin
+    using CompetingClocks: DirectCall, enable!
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(567890)
+    sampler = DirectCall{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    # haskey with wrong type should return false (not throw)
+    @test haskey(sampler, 1) == true
+    @test haskey(sampler, "wrong_type") == false
+    @test haskey(sampler, :symbol) == false
+    @test haskey(sampler, 1.5) == false
+end
