@@ -2,9 +2,6 @@ using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 import Base: getindex, keys, length, keytype, haskey
 
-export SSA, enable!, disable!, next, copy_clocks!,
-    getindex, keys, length, keytype, reset!
-
 """
     SSA{KeyType,TimeType}
 

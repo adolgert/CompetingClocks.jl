@@ -23,7 +23,6 @@ mutable struct PathLikelihoods{K,T}
     curtime::Float64
     PathLikelihoods{K,T}(cnt) where {K,T} = new(Dict{K,PathEntry{K,T}}(), zeros(Float64, cnt), zero(Float64))
 end
-export PathLikelihoods
 
 
 clone(pl::PathLikelihoods{K,T}) where {K,T} = PathLikelihoods{K,T}(length(pl.loglikelihood))

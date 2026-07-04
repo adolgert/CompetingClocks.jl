@@ -58,8 +58,6 @@
 # A. Slepoy, A. P. Thompson, S. J. Plimpton, "A constant-time kinetic Monte Carlo algorithm...", J. Chem. Phys. 128, 205101 (2008).
 #
 
-export PSSACR
-
 """
     PSSACR{KeyType,TimeType}(; ngroups::Int=64)
 

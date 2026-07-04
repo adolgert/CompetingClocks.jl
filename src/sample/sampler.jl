@@ -1,7 +1,4 @@
 
-export MultiSampler
-
-
 abstract type SamplerChoice{SamplerKey,Key} end
 
 function choose_sampler(
@@ -9,9 +6,6 @@ function choose_sampler(
 )::SamplerKey where {SamplerKey,Key}
     throw(MissingException("No sampler choice given to the MultiSampler"))
 end
-
-export SamplerChoice
-export choose_sampler
 
 """
     MultiSampler{SamplerKey,Key,Time}(which_sampler::Chooser) <: SSA{Key,Time}

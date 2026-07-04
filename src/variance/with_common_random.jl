@@ -1,5 +1,3 @@
-export CommonRandom, misses, misscount, reset_crn!
-
 """
 Continuation/Functional Pattern
 

@@ -3,8 +3,6 @@ using Random: rand, AbstractRNG
 
 using Logging
 
-export FirstReaction
-
 """
     FirstReaction{KeyType,TimeType}()
 

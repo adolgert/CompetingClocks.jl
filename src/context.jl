@@ -1,7 +1,3 @@
-export SamplingContext, enable!, fire!, isenabled, freeze_crn!
-export sample_from_distribution!, enabled_history, disabled_history
-export next_delayed, timetype
-
 mutable struct SamplingContext{K,T,Sampler<:SSA,RNG,Like,CRN,Dbg,DS}
     sampler::Sampler # The actual sampler (may use internal key type)
     rng::RNG

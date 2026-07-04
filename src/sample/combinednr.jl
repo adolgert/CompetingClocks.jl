@@ -1,9 +1,6 @@
 
 using DataStructures: MutableBinaryHeap, update!
 
-export sampling_space
-export CombinedNextReaction, enabled
-
 """
 This function decides whether a particular distribution can be sampled faster
 and more accurately using its cumulative distribution function or using
@@ -144,7 +141,6 @@ function CombinedNextReaction{K,T}() where {K,T<:ContinuousTime}
 end
 
 clone(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}()
-export clone
 
 function reset!(nr::CombinedNextReaction)
     empty!(nr.firing_queue)

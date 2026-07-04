@@ -1,5 +1,3 @@
-export Delayed, DelayedState
-
 using Distributions: UnivariateDistribution
 
 """

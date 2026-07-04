@@ -13,7 +13,6 @@ mutable struct TrajectoryWatcher{K,T} <: EnabledWatcher{K,T}
     curtime::T
     TrajectoryWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), zero(Float64), zero(T))
 end
-export TrajectoryWatcher
 
 
 clone(tw::TrajectoryWatcher{K,T}) where {K,T} = TrajectoryWatcher{K,T}()

@@ -1,7 +1,5 @@
 using DataStructures: MutableBinaryMinHeap, extract_all!, update!
 
-export FirstToFire
-
 # Helper struct for FirstToFire to be able to resample.
 struct FTFEntry{T,D}
     handle::Int

@@ -1,6 +1,3 @@
-export MultipleDirect
-
-
 """
     MultipleDirect{SamplerKey,K,Time,Chooser} <: SSA{K,Time}
 
