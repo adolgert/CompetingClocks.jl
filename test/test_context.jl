@@ -290,3 +290,46 @@ end
     ctx2 = SamplingContext(builder2, rng)
     @test_throws ErrorException reset_crn!(ctx2)
 end
+
+
+@safetestset context_likelihood_capability_probe = "SamplingContext likelihood capability probes" begin
+    using CompetingClocks: SamplingContext, SamplerBuilder, DirectMethod, FirstToFireMethod
+    using CompetingClocks: enable!, next, steploglikelihood, pathloglikelihood
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    # (1) A context built with path_likelihood=true still returns pathloglikelihood
+    #     (existing behavior, via the likelihood watcher).
+    rng = Xoshiro(20240704)
+    builder_path = SamplerBuilder(Int64, Float64; path_likelihood=true)
+    ctx_path = SamplingContext(builder_path, rng)
+    enable!(ctx_path, 1, Exponential(1.0))
+    next(ctx_path)
+    @test pathloglikelihood(ctx_path, 1.0) isa Real
+
+    # (2) A context whose sampler lacks the capability (FirstToFire supports
+    #     neither step nor path likelihood) and has no likelihood watcher throws
+    #     the informative "doesn't support" error.
+    builder_ff = SamplerBuilder(Int64, Float64; method=FirstToFireMethod())
+    ctx_ff = SamplingContext(builder_ff, rng)
+    @test ctx_ff.likelihood === nothing
+    enable!(ctx_ff, 1, Exponential(1.0))
+    next(ctx_ff)
+    @test_throws ErrorException pathloglikelihood(ctx_ff, 1.0)
+    @test_throws ErrorException steploglikelihood(ctx_ff, 1.0, 1)
+
+    # (3) Regression: errors from within the sampler's likelihood code must
+    #     propagate, NOT be swallowed into the misleading "doesn't support"
+    #     message. A bare DirectCall-backed context (trait true, no watcher)
+    #     querying a nonexistent clock key raises a KeyError.
+    builder_dc = SamplerBuilder(Int64, Float64; method=DirectMethod())
+    ctx_dc = SamplingContext(builder_dc, rng)
+    @test ctx_dc.likelihood === nothing
+    enable!(ctx_dc, 1, Exponential(1.0))
+    next(ctx_dc)
+    # A valid key returns a real value (trait routes directly to the sampler).
+    @test steploglikelihood(ctx_dc, 1.0, 1) isa Real
+    @test pathloglikelihood(ctx_dc, 1.0) isa Real
+    # A nonexistent key surfaces the real underlying error, not the misleading one.
+    @test_throws KeyError steploglikelihood(ctx_dc, 1.0, 999999)
+end

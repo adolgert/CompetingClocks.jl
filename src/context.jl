@@ -628,13 +628,11 @@ For delayed contexts, `which` should be the internal key (e.g. `(clock, phase)`)
 function steploglikelihood(ctx::SamplingContext, when, which)
     if ctx.likelihood !== nothing
         return steploglikelihood(ctx.likelihood, ctx.time, when, which)
+    elseif has_steploglikelihood(typeof(ctx.sampler))
+        return steploglikelihood(ctx.sampler, ctx.time, when, which)
     else
-        try
-            return steploglikelihood(ctx.sampler, ctx.time, when, which)
-        catch
-            error("The sampler doesn't support steploglikelihood " *
-                  "unless you request it in the builder.")
-        end
+        error("The sampler doesn't support steploglikelihood " *
+              "unless you request it in the builder.")
     end
 end
 
@@ -650,13 +648,11 @@ function pathloglikelihood(ctx::SamplingContext, endtime)
     if ctx.likelihood !== nothing
         @debug "Using likelihood object for trajectory"
         return pathloglikelihood(ctx.likelihood, endtime) .+ log_split
+    elseif has_pathloglikelihood(typeof(ctx.sampler))
+        return pathloglikelihood(ctx.sampler, endtime) .+ log_split
     else
-        try
-            return pathloglikelihood(ctx.sampler, endtime) .+ log_split
-        catch MethodError
-            error("The sampler doesn't support pathloglikelihood " *
-                  "unless you request it in the builder.")
-        end
+        error("The sampler doesn't support pathloglikelihood " *
+              "unless you request it in the builder.")
     end
 end
 

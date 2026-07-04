@@ -28,15 +28,15 @@ struct NextReactionMethod <: SamplerSpec end
 """
     DirectMethod()
     DirectMethod(memory::Symbol, search::Symbol)
-    DirectMethod(:keep, :scan)
+    DirectMethod(:keep, :array)
     DirectMethod(:keep, :tree)
-    DirectMethod(:remove, :scan)
+    DirectMethod(:remove, :array)
     DirectMethod(:remove, :tree)
 
 Use this to specify any Direct method for Exponential distributions. Defaults
 to `memory=:remove` so it limits memory growth over time but `memory=:keep`
 will be faster if the space of clock keys is limited. Defaults to
-`search=:tree` for best performance for many enabled clocks but `search=:scan`
+`search=:tree` for best performance for many enabled clocks but `search=:array`
 is faster for small numbers of clocks. The different kinds of methods, like
 "Optimized Direct Methods" amount to using different computer science techniques
 for scanning sums of hazard rates, and that's what the `search` algorithm lets

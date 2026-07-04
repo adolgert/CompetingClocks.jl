@@ -111,6 +111,38 @@ end
 end
 
 
+@safetestset pssacr_copy_cached = "PSSACR copy_clocks! with cached_next" begin
+    using CompetingClocks: PSSACR, enable!, next, copy_clocks!
+    using Random: MersenneTwister
+    using Distributions: Exponential
+
+    rng = MersenneTwister(90422342)
+    src = PSSACR{Int,Float64}(ngroups=16)
+    dst = PSSACR{Int,Float64}(ngroups=16)
+
+    enable!(src, 1, Exponential(1.7), 0.0, 0.0, rng)
+    enable!(src, 2, Exponential(4.5), 0.0, 0.0, rng)
+    enable!(src, 3, Exponential(2.0), 0.0, 0.0, rng)
+
+    # Populate cached_next so copy_clocks! must copy the OrderedSample.
+    when, which = next(src, 0.5, rng)
+    @test src.cached_next !== nothing
+
+    # Regression: previously this threw because copy_clocks! accessed a
+    # nonexistent `:clock` field on OrderedSample (fields are `key`/`time`).
+    @test_nowarn copy_clocks!(dst, src)
+
+    @test length(dst) == 3
+    @test dst.cached_next !== nothing
+    @test dst.cached_next.key == src.cached_next.key
+    @test dst.cached_next.time == src.cached_next.time
+    # The cached next event is reproduced verbatim by the copy.
+    dwhen, dwhich = next(dst, 0.5, rng)
+    @test dwhich == which
+    @test dwhen == when
+end
+
+
 @safetestset pssacr_assign_group = "PSSACR assign_group!" begin
     using CompetingClocks: PSSACR, enable!, assign_group!
     using Random: Xoshiro

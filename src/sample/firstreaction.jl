@@ -3,7 +3,7 @@ using Random: rand, AbstractRNG
 
 using Logging
 
-export FirstReaction, ChatReaction
+export FirstReaction
 
 """
     FirstReaction{KeyType,TimeType}()

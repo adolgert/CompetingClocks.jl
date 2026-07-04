@@ -4,7 +4,7 @@ module MultipleKeyedHelp
 using CompetingClocks
 using Distributions: Exponential, UnivariateDistribution
 
-struct ByName <: SamplerChoice{String,Symbol} end
+struct ByName <: SamplerChoice{Symbol,String} end
 export ByName
 
 function CompetingClocks.choose_sampler(
@@ -254,4 +254,54 @@ end
     # Test pathloglikelihood
     path_ll = pathloglikelihood(md, 0.2)
     @test isfinite(path_ll)
+end
+
+
+@safetestset multiple_direct_canonical_order = "MultipleDirect canonical SamplerChoice order" begin
+    using Distributions: Exponential
+    using Random: Xoshiro
+    using CompetingClocks
+    using ..MultipleKeyedHelp
+
+    # ByName is declared as SamplerChoice{Symbol,String}, i.e. the canonical
+    # SamplerChoice{SamplerKey,Key} order used by MultiSampler, where the
+    # SamplerKey (Symbol) is deliberately NOT an Int. This exercises that
+    # MultipleDirect's constructor accepts a canonically-ordered chooser and
+    # that its internal `chosen`/`scanmap` field types stay self-consistent.
+    rng = Xoshiro(112358)
+    SamplerKey = Symbol   # non-Int sampler identifier
+    K = String            # clock key
+    Time = Float64
+
+    md = MultipleDirect{SamplerKey,K,Time}(ByName())
+    prefix_tree = CompetingClocks.BinaryTreePrefixSearch{Time}()
+    slow_keyed = CompetingClocks.KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
+    md[:slow] = slow_keyed
+    fast_scan = CompetingClocks.CumSumPrefixSearch{Time}()
+    fast_keyed = CompetingClocks.KeyedKeepPrefixSearch{K,typeof(fast_scan)}(fast_scan)
+    md[:fast] = fast_keyed
+
+    # scanmap is keyed by the non-Int SamplerKey (Symbol) and maps to Int index.
+    @test md.scanmap isa Dict{Symbol,Int}
+    @test md.scanmap[:slow] isa Int
+    @test md.scanmap[:fast] isa Int
+
+    enable!(md, "moveslow", Exponential(0.35), 0.0, 0.0, rng)
+    enable!(md, "fastaction", Exponential(1.0), 0.0, 0.0, rng)
+
+    # `chosen` maps clock key -> integer scan index (not the SamplerKey).
+    @test md.chosen isa Dict{String,Int}
+    @test md.chosen["moveslow"] isa Int
+    @test md.chosen["fastaction"] isa Int
+    @test md.chosen["moveslow"] == md.scanmap[:slow]
+    @test md.chosen["fastaction"] == md.scanmap[:fast]
+
+    seen = Set{String}()
+    for _ in 1:100
+        _, which = next(md, 0.0, rng)
+        push!(seen, which)
+    end
+    @test "moveslow" ∈ seen
+    @test "fastaction" ∈ seen
+    @test length(enabled(md)) == 2
 end

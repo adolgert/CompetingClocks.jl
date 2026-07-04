@@ -69,8 +69,8 @@ the current state of the destination sampler. This is useful for splitting
 techniques where you make copies of a simulation and restart it with different
 random number generators.
 """
-function copy_clocks!(sampler::SSA{K,T}) where {K,T}
-    error("Not implemented for $(typeof(sampler))")
+function copy_clocks!(dst::SSA, src::SSA)
+    error("Not implemented for $(typeof(dst))")
 end
 
 
