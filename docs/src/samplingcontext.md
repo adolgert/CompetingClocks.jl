@@ -42,16 +42,16 @@ end
 
  3. **Enable/disable events during state update.** When updating the model
     state, you might enable or disable events. Here is an example from
-    gene expression.
+    an assembly line.
 
 ```julia
-function translate_protein(model, sampler, individual, when, θ)
-    pre_event_total = count(x -> x[2], model.mrna)
-    model.protein += 1
+function assemble_widget(model, sampler, individual, when, θ)
+    pre_event_total = count(x -> x[2], model.part)
+    model.widget += 1
     if pre_event_total > 0
-        transrate1 = Exponential(inv(θ[:translate][1] * pre_event_total))
-        transrate2 = Exponential(inv(θ[:translate][2] * pre_event_total))
-        enable!(sampler, (:translate, 0), [transrate1, transrate2])
+        transrate1 = Exponential(inv(θ[:assemble][1] * pre_event_total))
+        transrate2 = Exponential(inv(θ[:assemble][2] * pre_event_total))
+        enable!(sampler, (:assemble, 0), [transrate1, transrate2])
     end
 end
 ```

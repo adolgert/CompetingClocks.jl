@@ -118,7 +118,7 @@ The clean way to plug this into Gen is still via a custom distribution or genera
 
 ### b) Importance sampling and mixture proposals
 
-We have already seen [importance sampling](../gene_expression.md) with CompetingClocks.
+We have already seen [importance sampling](../factory.md) with CompetingClocks.
 
 Within Gen:
 

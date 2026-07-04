@@ -1,6 +1,6 @@
 using SimpleDiffEq, SimpleNonlinearSolve, Distributions
 
-# gene regulation ex from https://github.com/CharlotteJana/pdmpsim?tab=readme-ov-file#a-simple-example
+# a machine controller with positive feedback, a simple piecewise-deterministic control example
 # use algo from https://arxiv.org/abs/1504.06873
 # especially the change of time variable, eqn 3.1 to avoid costly inversion
 
@@ -47,7 +47,7 @@ end
 p = NamedTuple{(keys(pars)..., :x0)}((pars..., x0))
 sol = solve_jump_time_analytic()
 
-mutable struct GeneRegulation{T<:NamedTuple}
+mutable struct MachineController{T<:NamedTuple}
     parameters::T
     f::Float64
     d::Int
@@ -55,7 +55,7 @@ mutable struct GeneRegulation{T<:NamedTuple}
 end
 
 # examplePDMP <- new("pdmpModel",
-#                   descr = "Gene regulation with positive feedback",
+#                   descr = "Machine controller with positive feedback",
 #                   parms = list(b = 0.5, a0 = 1, a1 = 3, k10 = 1, k01 = 0.5), 
 #                   init = c(f = 1, d = 1),
 #                   discStates = list(d = 0:1),

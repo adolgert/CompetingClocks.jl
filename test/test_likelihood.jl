@@ -550,17 +550,17 @@ end
     cs = ClockState()
     cs.check_sum = true
     ss = SampleState(sampler)
-    # Simulate the pattern: enable transcribe, fire, re-enable transcribe
+    # Simulate the pattern: enable fabricate, fire, re-enable fabricate
     actions = [
-        Enable(:transcribe, Exponential(10.0), 0.0),
-        Enable(:degrade, Gamma(4.0, 0.25), 0.0),
-        Fire(:transcribe, 0.1),
-        # After transcribe fires, re-enable it
-        Enable(:transcribe, Exponential(10.0), 0.0),
-        Fire(:degrade, 0.2),
-        Fire(:transcribe, 0.25),
-        Enable(:transcribe, Exponential(10.0), 0.0),
-        Fire(:transcribe, 0.4),
+        Enable(:fabricate, Exponential(10.0), 0.0),
+        Enable(:scrap, Gamma(4.0, 0.25), 0.0),
+        Fire(:fabricate, 0.1),
+        # After fabricate fires, re-enable it
+        Enable(:fabricate, Exponential(10.0), 0.0),
+        Fire(:scrap, 0.2),
+        Fire(:fabricate, 0.25),
+        Enable(:fabricate, Exponential(10.0), 0.0),
+        Fire(:fabricate, 0.4),
     ]
     execute(cs, ss, actions)
 end

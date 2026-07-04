@@ -67,7 +67,7 @@ Learn More Techniques
    - [SIR Model](sir.md)
    - [Reliability](reliability.md)
    - [Birth-Death Process](constant_birth.md)
-   - [Gene Expression](gene_expression.md)
+   - [Assembly Line](factory.md)
 
 Advanced Features
 
