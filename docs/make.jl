@@ -106,6 +106,7 @@ makedocs(;
             "integration-guide.md",
             "low_level_interface.md",
             "samplers.md",
+            "correctness.md",
             "delayed.md",
             "guide.md",
             "distributions.md",

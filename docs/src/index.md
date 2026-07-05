@@ -32,6 +32,7 @@ or to calculate the likelihood of a sample path for statistical estimation.
 
 ## Version History
 
+ - v0.3.0 (2026-07) - Split fire! from enable! for correctness.
  - v0.2.0 (2025-12) - Likelihood calculation, variance reduction.
  - v0.1.0 (2024-06) - Initial release of samplers.
 

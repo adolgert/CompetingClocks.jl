@@ -53,6 +53,10 @@ These are all of the samplers.
 | [`PartialPropensityMethod`](@ref)         | Exponential-only     | For reaction networks. |
 | [`PetriMethod`](@ref)          | All                  | Debug rare errors              |
 
+Every sampler in this table is validated by a statistical test matrix against
+a trusted reference; see [Sampler Correctness](correctness.md) for the
+methodology and current results.
+
 ### Spec-to-Sampler Crosswalk
 
 Each method spec on the left constructs the developer-level sampler type on the
