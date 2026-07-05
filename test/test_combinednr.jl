@@ -24,6 +24,7 @@ end
 
 @safetestset CombinedNextReaction_interface = "CombinedNextReaction basic interface" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, jitter!, sampling_space
     using Distributions
     using Random: Xoshiro
 
@@ -57,6 +58,7 @@ end
 
 @safetestset CombinedNextReaction_pair_keys = "CombinedNextReaction pair keys" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, jitter!, sampling_space
     using Distributions
     using Random: Xoshiro
 
@@ -92,6 +94,7 @@ end
 
 @safetestset CombinedNextReaction_copy = "CombinedNextReaction copy" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, jitter!, sampling_space
     using Distributions
     using Random: Xoshiro
 
@@ -120,6 +123,7 @@ end
 
 @safetestset CombinedNextReaction_set = "CombinedNextReaction set" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, jitter!, sampling_space
     using Distributions
     using Random: Xoshiro
 

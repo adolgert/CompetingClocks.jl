@@ -2,6 +2,7 @@ using SafeTestsets
 
 module MultipleKeyedHelp
 using CompetingClocks
+using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
 using Distributions: Exponential, UnivariateDistribution
 
 struct ByName <: SamplerChoice{Symbol,String} end
@@ -23,6 +24,7 @@ end
     using Distributions
     using Random
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using ..MultipleKeyedHelp
 
     rng = Xoshiro(432234)
@@ -73,6 +75,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using ..MultipleKeyedHelp
 
     rng = Xoshiro(234567)
@@ -99,6 +102,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using CompetingClocks: jitter!
     using ..MultipleKeyedHelp
 
@@ -124,6 +128,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using ..MultipleKeyedHelp
 
     rng = Xoshiro(456789)
@@ -164,6 +169,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using ..MultipleKeyedHelp
 
     rng = Xoshiro(567890)
@@ -190,6 +196,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using ..MultipleKeyedHelp
 
     rng = Xoshiro(678901)
@@ -223,6 +230,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using CompetingClocks: steploglikelihood, pathloglikelihood
     using ..MultipleKeyedHelp
 
@@ -261,6 +269,7 @@ end
     using Distributions: Exponential
     using Random: Xoshiro
     using CompetingClocks
+    using CompetingClocks: MultipleDirect, SamplerChoice, jitter!
     using ..MultipleKeyedHelp
 
     # ByName is declared as SamplerChoice{Symbol,String}, i.e. the canonical

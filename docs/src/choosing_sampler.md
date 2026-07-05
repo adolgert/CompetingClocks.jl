@@ -53,6 +53,23 @@ These are all of the samplers.
 | [`PartialPropensityMethod`](@ref)         | Exponential-only     | For reaction networks. |
 | [`PetriMethod`](@ref)          | All                  | Debug rare errors              |
 
+### Spec-to-Sampler Crosswalk
+
+Each method spec on the left constructs the developer-level sampler type on the
+right. The right column is the developer-level type, reachable as
+`CompetingClocks.<Name>`; users normally pick the left column in a
+`SamplerBuilder`.
+
+| Method spec                   | Underlying sampler type            |
+|-------------------------------|------------------------------------|
+| `FirstToFireMethod`           | `CompetingClocks.FirstToFire`         |
+| `NextReactionMethod`          | `CompetingClocks.CombinedNextReaction` |
+| `DirectMethod`                | `CompetingClocks.DirectCall`          |
+| `RejectionMethod`             | `CompetingClocks.RSSA`                |
+| `PartialPropensityMethod`     | `CompetingClocks.PSSACR`              |
+| `FirstReactionMethod`         | `CompetingClocks.FirstReaction`       |
+| `PetriMethod`                 | `CompetingClocks.Petri`               |
+
 
 ## Hierarchical Samplers
 

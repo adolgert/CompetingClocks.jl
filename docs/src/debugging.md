@@ -12,6 +12,7 @@ Petri sampler ignores the distribution of times for events and picks the
 next event evenly among all enabled keys.
 
 ```julia
+using CompetingClocks: Petri
 petri_sampler = Petri{K,T}()
 enable!(tw, 3, Exponential(100.0), 0.0, 0.0, rng)
 when, what = next(petri_sampler, now, rng)

@@ -2,6 +2,7 @@ using SafeTestsets
 
 @safetestset with_common_random_smoke = "Common Random smoke" begin
     using CompetingClocks
+    using CompetingClocks: CommonRandom, misscount, misses
     using Random: Xoshiro
     using Distributions
 
@@ -26,6 +27,7 @@ end
 
 @safetestset crn_replay_exact = "Common random numbers exact replay" begin
     using CompetingClocks
+    using CompetingClocks: CommonRandom, misscount, misses
     using Random: Xoshiro
     using Distributions
 
@@ -66,6 +68,7 @@ end
 
 @safetestset crn_replay_and_more = "Common random numbers replay plus some" begin
     using CompetingClocks
+    using CompetingClocks: CommonRandom, misscount, misses
     using Random: Xoshiro
     using Distributions
 

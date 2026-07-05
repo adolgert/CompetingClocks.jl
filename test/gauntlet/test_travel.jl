@@ -1,5 +1,6 @@
 using Test
 using CompetingClocks
+using CompetingClocks: FirstReaction, SSA, TrackWatcher
 using Random
 using Distributions
 using Graphs

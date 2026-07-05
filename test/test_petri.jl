@@ -2,6 +2,7 @@
 @safetestset track_Petri_smoke = "Petri smoke" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: Petri
     using Random
     using Base
     rng = Xoshiro(3242234)
@@ -38,6 +39,7 @@ end
 @safetestset track_Petri_more = "Petri more functions" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: Petri
     using Random
     using Base
     rng = Xoshiro(3242234)

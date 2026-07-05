@@ -18,6 +18,7 @@ end
 
 @safetestset samplerbuilder_construct_single = "SamplerBuilder single construction" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, DirectCall, FirstToFire, MultiSampler, MultipleDirect, build_sampler
     scbuild = SamplerBuilder(Tuple, Float64)
     @test isempty(scbuild.group)
     add_group!(scbuild, :capistrano => (k, d) -> true; method=FirstToFireMethod())
@@ -27,6 +28,7 @@ end
 
 @safetestset samplerbuilder_construct_once = "SamplerBuilder single construction" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, DirectCall, FirstToFire, MultiSampler, MultipleDirect, build_sampler
     scbuild = SamplerBuilder(Tuple, Float64; method=FirstToFireMethod())
     @test !isempty(scbuild.group)
     scresult = build_sampler(scbuild)
@@ -35,6 +37,7 @@ end
 
 @safetestset samplerbuilder_construct_multi = "SamplerBuilder multi construction" begin
     using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, DirectCall, FirstToFire, MultiSampler, MultipleDirect, build_sampler
     scbuild = SamplerBuilder(Tuple, Float64)
     add_group!(scbuild, :sparky => (x, d) -> x[1] == :recover; method=NextReactionMethod())
     add_group!(scbuild, :forthright => (x, d) -> x[1] == :infect)

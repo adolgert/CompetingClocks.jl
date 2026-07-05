@@ -3,6 +3,7 @@ using Random
 using Random: Xoshiro
 using Distributions
 using CompetingClocks
+using CompetingClocks: DelayedState
 
 @testset "DelayedState: duration distribution, not pre-sampled times" begin
     rng = MersenneTwister(1234)
@@ -391,6 +392,7 @@ end
 
 @safetestset delayed_pair_needs_support = "Pair enable! without support_delayed errors helpfully" begin
     using CompetingClocks
+    using CompetingClocks: DelayedState
     using Distributions: Exponential, Gamma
     using Random: Xoshiro
 
@@ -412,6 +414,7 @@ end
 
 @safetestset plain_next_on_delayed_errors = "plain next() on a delayed context points to next_delayed" begin
     using CompetingClocks
+    using CompetingClocks: DelayedState
     using Distributions: Exponential
     using Random: Xoshiro
 
@@ -439,6 +442,7 @@ end
 
 @safetestset enabled_on_delayed_returns_pairs = "enabled() on a delayed context returns (clock, phase) tuples" begin
     using CompetingClocks
+    using CompetingClocks: DelayedState
     using Distributions: Exponential
     using Random: Xoshiro
 

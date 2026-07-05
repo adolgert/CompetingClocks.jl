@@ -3,6 +3,7 @@ using SafeTestsets
 
 module MultiSamplerHelp
 using CompetingClocks
+using CompetingClocks: DirectCall, FirstToFire, MultiSampler, SamplerChoice, choose_sampler, jitter!
 using Distributions: Exponential, UnivariateDistribution
 using Random: AbstractRNG
 

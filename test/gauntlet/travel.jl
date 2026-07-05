@@ -1,7 +1,7 @@
 module TravelModel
 
 using CompetingClocks
-using CompetingClocks: SamplerSpec
+using CompetingClocks: SamplerSpec, SSA, FirstReaction
 using Random
 using Distributions
 using Graphs
