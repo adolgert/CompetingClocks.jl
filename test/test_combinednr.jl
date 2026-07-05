@@ -320,18 +320,29 @@ end
     enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
     t1, k1 = next(sampler, 0.0, rng)
 
-    # Update the same clock with different distribution (exercises consume_survival)
-    enable!(sampler, 1, Exponential(2.0), 0.0, 0.5, rng)
-    t2, k2 = next(sampler, 0.5, rng)
-    @test t2 >= 0.5
+    # Update the same clock with different distribution (exercises consume_survival).
+    # The re-enable time must not step past the pending firing t1: next()'s time
+    # argument may never advance past a pending firing without that event being
+    # fired. Survival mark moved from next! to fire! (2026-07-04): previously
+    # next() zeroed the returned clock's survival, so a re-enable that stepped
+    # over the pending firing (the old when=0.5) silently redrew instead of
+    # reusing; with next() now pure, reuse is faithful and an out-of-contract
+    # re-enable time would consume survival past the firing, so we re-enable at a
+    # time strictly before t1.
+    when_re = t1 / 2
+    enable!(sampler, 1, Exponential(2.0), 0.0, when_re, rng)
+    t2, k2 = next(sampler, when_re, rng)
+    @test t2 >= when_re
 
-    # Update with a LogSampling distribution to exercise that branch
+    # Update with a LogSampling distribution to exercise that branch, again
+    # re-enabling in-contract (before the pending firing t3).
     sampler2 = CombinedNextReaction{Int,Float64}()
     enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.0, rng)
     t3, k3 = next(sampler2, 0.0, rng)
-    enable!(sampler2, 1, Gamma(3.0, 1.0), 0.0, 0.5, rng)
-    t4, k4 = next(sampler2, 0.5, rng)
-    @test t4 >= 0.5
+    when_re2 = t3 / 2
+    enable!(sampler2, 1, Gamma(3.0, 1.0), 0.0, when_re2, rng)
+    t4, k4 = next(sampler2, when_re2, rng)
+    @test t4 >= when_re2
 end
 
 
@@ -429,4 +440,290 @@ end
     t2, k2 = next(sampler2, 0.5, rng)
     @test k2 == 1
     @test t2 >= 0.5
+end
+
+
+# ======================================================================
+# Cache-protection battery for CombinedNextReaction (CNR).
+#
+# These tests pin the Anderson/Gibson-Bruck draw-reuse machinery after the
+# behavior change of 2026-07-04: the "survival mark" that committed a clock to
+# firing moved from next!() to fire!(). next() is now a pure read of the firing
+# queue; fire!() is what consumes a draw completely. The tests below verify:
+#   (a) next() purity + zero RNG consumption
+#   (b) fired path -> re-enable takes the fresh-redraw branch
+#   (c) LOSER path (the fixed bug): a clock returned by next() but NOT fired
+#       must, on re-enable, REUSE its draw (no RNG, analytic match)
+#   (d) disable-without-fire -> re-enable reuses remaining survival (no RNG)
+#   (e) consume_survival analytic checks in LinearSampling and LogSampling
+#   (f) same-te/same-dist re-enable no-op (heap entry + survival unchanged, no RNG)
+#   (g) MultiSampler routing regression (fire! reaches sub-sampler) + DirectCall
+#       likelihood accumulation regression through a MultiSampler.
+# ======================================================================
+
+# Helper chooser that routes every clock to a single sub-sampler (key 1). Used
+# by the MultiSampler routing regressions below.
+module CNRMultiHelp
+using CompetingClocks
+using CompetingClocks: SamplerChoice, choose_sampler
+using Distributions: UnivariateDistribution
+struct AllToOne <: SamplerChoice{Int64,Int64} end
+function CompetingClocks.choose_sampler(
+    ::AllToOne, clock::Int64, distribution::UnivariateDistribution
+)::Int64
+    return 1
+end
+end
+
+
+@safetestset CNR_next_purity = "CNR next() is pure and consumes no RNG" begin
+    using CompetingClocks: CombinedNextReaction, enable!, next
+    using Random: Xoshiro
+    using Distributions: Weibull, Exponential
+
+    rng = Xoshiro(11)
+    sampler = CombinedNextReaction{Int,Float64}()
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)
+
+    # Snapshot the RNG, snapshot the sampler's internal state, then call next
+    # several times with no intervening enable!/disable!/fire!.
+    rng_saved = copy(rng)
+    entry1_before = sampler.transition_entry[1]
+    entry2_before = sampler.transition_entry[2]
+
+    r1 = next(sampler, 0.0, rng)
+    r2 = next(sampler, 0.0, rng)
+    r3 = next(sampler, 0.0, rng)
+
+    # Purity: repeated next() returns an identical (when, key) reservation.
+    @test r1 == r2
+    @test r2 == r3
+
+    # next() mutated no stored survival (the old code zeroed the returned clock).
+    @test sampler.transition_entry[1] == entry1_before
+    @test sampler.transition_entry[2] == entry2_before
+
+    # next() consumed no random numbers: the RNG stream is unadvanced.
+    @test rand(rng) == rand(rng_saved)
+end
+
+
+@safetestset CNR_fired_path_redraws = "CNR fire! consumes draw; re-enable redraws fresh" begin
+    using CompetingClocks: CombinedNextReaction, enable!, next, fire!
+    using CompetingClocks: get_survival_zero, sampling_space
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    rng = Xoshiro(22)
+    sampler = CombinedNextReaction{Int,Float64}()
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+
+    when, which = next(sampler, 0.0, rng)
+    @test which == 1
+
+    fire!(sampler, 1, when)
+    # fire! removed the clock from the queue and zeroed its survival completely.
+    rec = sampler.transition_entry[1]
+    @test rec.heap_handle == 0
+    @test rec.survival == get_survival_zero(sampling_space(Exponential))
+
+    # Re-enabling (with any distribution) must take the fresh-redraw branch,
+    # which draws a new random number.
+    rng_saved = copy(rng)
+    enable!(sampler, 1, Exponential(2.0), when, when, rng)
+    @test rand(rng) != rand(rng_saved)   # RNG advanced => fresh redraw
+end
+
+
+@safetestset CNR_loser_path_reuses = "CNR loser (returned-but-not-fired) re-enable reuses draw" begin
+    # This is the bug the change fixes. Before the fix, next() marked the
+    # returned clock's survival to zero, so re-enabling that (non-fired) clock
+    # took the fresh-redraw branch, destroying draw reuse. After the fix, next()
+    # is pure and the re-enable REUSES the draw via consume_survival +
+    # sample_by_inversion, consuming no RNG.
+    using CompetingClocks: CombinedNextReaction, enable!, next
+    using CompetingClocks: consume_survival, sample_by_inversion, sampling_space, LogSampling
+    using Random: Xoshiro
+    using Distributions: Weibull
+
+    rng = Xoshiro(33)
+    sampler = CombinedNextReaction{Int,Float64}()
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Weibull(1.5, 2.0), 0.0, 0.0, rng)
+
+    when, loser = next(sampler, 0.0, rng)   # the returned (minimum) clock; do NOT fire it
+
+    # Re-enable that same, non-fired clock with a CHANGED distribution at a later
+    # time, keeping te the same so we hit the consume_survival reuse branch.
+    newdist = Weibull(3.0, 1.5)
+    S = sampling_space(newdist)             # LogSampling
+    @test S === LogSampling
+    when_re = 0.5
+    rec = sampler.transition_entry[loser]
+    te = rec.te
+
+    # Compute the expected reused firing time analytically with the package's own
+    # cache functions.
+    survival_remain = consume_survival(rec, rec.distribution, S, when_re)
+    expected_tau = sample_by_inversion(newdist, S, te, when_re, survival_remain)
+
+    rng_saved = copy(rng)
+    enable!(sampler, loser, newdist, te, when_re, rng)
+
+    # Reuse => no RNG consumed, and the stored firing time matches the analytic
+    # inversion of the recorded survival.
+    @test rand(rng) == rand(rng_saved)
+    @test sampler[loser] ≈ expected_tau
+end
+
+
+@safetestset CNR_disable_without_fire_reuses = "CNR disable (no fire) preserves survival for reuse" begin
+    using CompetingClocks: CombinedNextReaction, enable!, next, disable!
+    using CompetingClocks: sample_by_inversion, sampling_space, get_survival_zero, LogSampling
+    using Random: Xoshiro
+    using Distributions: Weibull
+
+    rng = Xoshiro(44)
+    sampler = CombinedNextReaction{Int,Float64}()
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    next(sampler, 0.0, rng)          # queried but not fired
+    disable!(sampler, 1, 0.3)        # preserves remaining survival, heap_handle -> 0
+
+    rec = sampler.transition_entry[1]
+    @test rec.heap_handle == 0
+    @test rec.survival > get_survival_zero(LogSampling)   # remaining survival kept (> -Inf)
+
+    newdist = Weibull(2.0, 1.0)
+    S = sampling_space(newdist)
+    when_re = 0.5
+    # Disabled-branch reuse uses record.survival directly (no consume_survival).
+    expected_tau = sample_by_inversion(newdist, S, rec.te, when_re, rec.survival)
+
+    rng_saved = copy(rng)
+    enable!(sampler, 1, newdist, rec.te, when_re, rng)
+
+    @test rand(rng) == rand(rng_saved)       # reuse => no RNG
+    @test sampler[1] ≈ expected_tau
+end
+
+
+@safetestset CNR_consume_survival_analytic = "CNR consume_survival analytic in both spaces" begin
+    using CompetingClocks: NRTransition, consume_survival, LinearSampling, LogSampling
+    using Distributions: Uniform, Weibull, ccdf, logccdf
+
+    te = 0.0
+    t0 = 1.0
+    tn = 3.0
+
+    # --- LinearSampling (Gibson-Bruck): survival * (S(te,t0) / S(te,tn)) ---
+    dist_lin = Uniform(0.0, 10.0)
+    s0 = 0.4
+    rec_lin = NRTransition{Float64}(1, s0, dist_lin, te, t0)
+    expected_lin = s0 * (ccdf(dist_lin, t0 - te) / ccdf(dist_lin, tn - te))
+    @test consume_survival(rec_lin, dist_lin, LinearSampling, tn) ≈ expected_lin
+
+    # --- LogSampling (Anderson): survival - (logS(te,tn) - logS(te,t0)) ---
+    dist_log = Weibull(2.0, 1.0)
+    sl0 = -0.7
+    rec_log = NRTransition{Float64}(1, sl0, dist_log, te, t0)
+    expected_log = sl0 - (logccdf(dist_log, tn - te) - logccdf(dist_log, t0 - te))
+    @test consume_survival(rec_log, dist_log, LogSampling, tn) ≈ expected_log
+
+    # --- Edge case: te at/after t0 and tn -> the conditional survivals are 1
+    #     (linear) / 0 (log), so consume_survival returns the stored survival. ---
+    te2 = 5.0
+    rec_lin2 = NRTransition{Float64}(1, s0, dist_lin, te2, t0)
+    @test consume_survival(rec_lin2, dist_lin, LinearSampling, tn) ≈ s0
+    rec_log2 = NRTransition{Float64}(1, sl0, dist_log, te2, t0)
+    @test consume_survival(rec_log2, dist_log, LogSampling, tn) ≈ sl0
+end
+
+
+@safetestset CNR_same_te_same_dist_noop = "CNR re-enable with same te and dist is a no-op" begin
+    using CompetingClocks: CombinedNextReaction, enable!, next
+    using Random: Xoshiro
+    using Distributions: Weibull
+
+    rng = Xoshiro(55)
+    sampler = CombinedNextReaction{Int,Float64}()
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+
+    t_before = sampler[1]
+    rec_before = sampler.transition_entry[1]
+    rng_saved = copy(rng)
+
+    # Re-enabling an already-enabled clock with the identical distribution and
+    # enabling time must change nothing and consume no randomness.
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+
+    @test sampler[1] == t_before
+    rec_after = sampler.transition_entry[1]
+    @test rec_after.survival == rec_before.survival
+    @test rec_after.heap_handle == rec_before.heap_handle
+    @test rand(rng) == rand(rng_saved)
+end
+
+
+@safetestset CNR_multisampler_fire_routing = "MultiSampler fire! reaches CNR sub-sampler" begin
+    # Regression: MultiSampler.fire! must forward to the sub-sampler's fire!
+    # (not disable!). Proof: after next() (which no longer mutates), fire!
+    # through the MultiSampler must fully consume the CNR draw, so re-enabling
+    # the fired clock redraws fresh (consumes RNG). Had it routed to disable!,
+    # the remaining survival would be reused and no RNG consumed.
+    using CompetingClocks: CombinedNextReaction, MultiSampler, enable!, next, fire!
+    using CompetingClocks: get_survival_zero, LogSampling
+    using ..CNRMultiHelp: AllToOne
+    using Random: Xoshiro
+    using Distributions: Weibull
+
+    rng = Xoshiro(66)
+    sampler = MultiSampler{Int64,Int64,Float64}(AllToOne())
+    sampler[1] = CombinedNextReaction{Int64,Float64}()
+
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    when, which = next(sampler, 0.0, rng)
+    @test which == 1
+
+    fire!(sampler, 1, when)
+
+    sub = sampler.propagator[1]
+    @test sub.transition_entry[1].survival == get_survival_zero(LogSampling)
+
+    rng_saved = copy(rng)
+    enable!(sampler, 1, Weibull(2.0, 1.0), when, when, rng)
+    @test rand(rng) != rand(rng_saved)   # fresh redraw => fire! reached the sub-sampler
+end
+
+
+@safetestset CNR_multisampler_directcall_likelihood = "MultiSampler fire! accumulates DirectCall likelihood" begin
+    # Regression for the separate DirectCall bug: DirectCall.fire! accumulates
+    # sampler-native step log-likelihood beyond disable!. MultiSampler.fire!
+    # previously routed to disable! and silently skipped it. Now fire! reaches
+    # the sub-sampler, so the accumulated likelihood matches firing a bare
+    # DirectCall directly.
+    using CompetingClocks: DirectCall, MultiSampler, enable!, fire!
+    using ..CNRMultiHelp: AllToOne
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    # Bare DirectCall reference.
+    rng1 = Xoshiro(77)
+    dc = DirectCall{Int64,Float64}(trajectory=true)
+    enable!(dc, 1, Exponential(1.0), 0.0, 0.0, rng1)
+    enable!(dc, 2, Exponential(2.0), 0.0, 0.0, rng1)
+    fire!(dc, 1, 0.5)
+    bare_ll = dc.log_likelihood
+
+    # Same firing, but routed through a MultiSampler.
+    rng2 = Xoshiro(77)
+    ms = MultiSampler{Int64,Int64,Float64}(AllToOne())
+    ms[1] = DirectCall{Int64,Float64}(trajectory=true)
+    enable!(ms, 1, Exponential(1.0), 0.0, 0.0, rng2)
+    enable!(ms, 2, Exponential(2.0), 0.0, 0.0, rng2)
+    fire!(ms, 1, 0.5)
+    ms_ll = ms.propagator[1].log_likelihood
+
+    @test ms_ll == bare_ll
+    @test ms_ll != 0.0    # likelihood really was accumulated (disable! would leave it 0)
 end

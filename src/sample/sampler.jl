@@ -154,8 +154,12 @@ function enable!(
 end
 
 
-fire!(sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
-) where {SamplerKey,Key,Time} = disable!(sampler, clock, when)
+function fire!(
+    sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
+) where {SamplerKey,Key,Time}
+    fire!(sampler.propagator[sampler.chosen[clock]], clock, when)
+    delete!(sampler.chosen, clock)
+end
 
 
 function disable!(
