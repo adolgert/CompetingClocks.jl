@@ -19,7 +19,7 @@ using CompetingClocks
     @test ctx.delayed isa DelayedState{Symbol,Float64}
 
     # Enable a delayed reaction: immediate initiation, fixed duration 1.0
-    delayed = Dirac(0.0) => Dirac(1.0)
+    delayed = Delayed(Dirac(0.0) => Dirac(1.0))
     enable!(ctx, :recover, delayed)
 
     # The delayed state should store the *distribution* for the duration
@@ -339,4 +339,72 @@ end
     # Path likelihood should be finite
     pl = pathloglikelihood(ctx, time(ctx))
     @test isfinite(pl)
+end
+
+
+@testset "No type piracy on =>, but pair syntax still builds Delayed" begin
+    # `=>` between two distributions must remain an ordinary Base.Pair, not a
+    # Delayed. Loading CompetingClocks must not change what `=>` means.
+    p = Exponential(1.0) => Gamma(2.0)
+    @test p isa Pair
+    @test !(p isa Delayed)
+
+    # Ordinary Pair behavior (Dict, replace) must be unaffected.
+    d = Dict(Exponential(1.0) => Gamma(2.0))
+    @test d isa Dict
+    @test length(d) == 1
+    @test d[Exponential(1.0)] == Gamma(2.0)
+
+    @test replace([Exponential(1.0)], Exponential(1.0) => Weibull(1.0, 2.0)) == [Weibull(1.0, 2.0)]
+
+    # The package's own constructor converts the pair to a Delayed.
+    delayed = Delayed(Exponential(1.0) => Gamma(2.0))
+    @test delayed isa Delayed
+    @test delayed.initiation == Exponential(1.0)
+    @test delayed.duration == Gamma(2.0)
+
+    # End-to-end: enable! accepts the `d1 => d2` pair syntax directly and runs a
+    # full delayed initiation/completion cycle.
+    rng = MersenneTwister(24680)
+    builder = SamplerBuilder(Symbol, Float64;
+                             support_delayed = true,
+                             method = FirstToFireMethod())
+    ctx = SamplingContext(builder, rng)
+
+    enable!(ctx, :recover, Dirac(0.0) => Dirac(1.0))
+    @test haskey(ctx.delayed.durations, :recover)
+    @test ctx.delayed.durations[:recover] == Dirac(1.0)
+
+    when1, which1, phase1 = next_delayed(ctx)
+    @test which1 === :recover
+    @test phase1 === :initiate
+    fire!(ctx, which1, phase1, when1)
+
+    when2, which2, phase2 = next_delayed(ctx)
+    @test which2 === :recover
+    @test phase2 === :complete
+    @test isapprox(when2 - when1, 1.0; atol=1e-8)
+    fire!(ctx, which2, phase2, when2)
+    @test !haskey(ctx.delayed.durations, :recover)
+end
+
+
+@safetestset delayed_pair_needs_support = "Pair enable! without support_delayed errors helpfully" begin
+    using CompetingClocks
+    using Distributions: Exponential, Gamma
+    using Random: Xoshiro
+
+    # A Pair of distributions means a delayed reaction. On a context built
+    # without support_delayed=true this must fail at the API boundary with a
+    # pointer to the fix, not deep inside a sampler with a MethodError.
+    rng = Xoshiro(4409123)
+    ctx = SamplingContext(Symbol, Float64, rng)
+    err = try
+        enable!(ctx, :recover, Exponential(1.0) => Gamma(2.0))
+        nothing
+    catch e
+        e
+    end
+    @test err isa ErrorException
+    @test occursin("support_delayed", err.msg)
 end

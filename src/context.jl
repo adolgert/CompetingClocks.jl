@@ -341,6 +341,35 @@ function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
     ctx.debug !== nothing && enable!(ctx.debug, internal_clock, delayed.initiation, te, when, ctx.rng)
 end
 
+"""
+    enable!(ctx, clock, p::Pair, relative_te)
+
+Enable a delayed reaction from a pair of distributions. Writing `d1 => d2`
+builds an ordinary `Pair`, which this method converts to a `Delayed` and
+forwards to the `Delayed` method above. This is how the user-facing syntax
+`enable!(ctx, clock, Exponential(1.0) => Gamma(2.0))` is supported without any
+type piracy on `Base.:(=>)`.
+"""
+function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
+                 clock::K, p::Pair{<:UnivariateDistribution,<:UnivariateDistribution},
+                 relative_te::T=zero(T)) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+    enable!(ctx, clock, Delayed(p), relative_te)
+end
+
+"""
+    enable!(ctx, clock, p::Pair, relative_te)
+
+A `Pair` of distributions specifies a delayed reaction, which this context was
+not built to support. Guard method so the mistake fails at the API boundary
+with a pointer to the fix, instead of deep inside a sampler.
+"""
+function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
+                 clock::K, p::Pair{<:UnivariateDistribution,<:UnivariateDistribution},
+                 relative_te::T=zero(T)) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+    error("A Pair of distributions, initiation => duration, describes a delayed " *
+          "reaction. Create the context with support_delayed=true to use it.")
+end
+
 
 # ----------------------------------------------------------------------
 # disable!
