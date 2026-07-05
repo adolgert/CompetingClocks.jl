@@ -96,6 +96,40 @@ left (memory), and `enablingtime == when` starts it fresh. At the context layer
 the same three cases are `relative_te > 0`, `relative_te < 0`, and
 `relative_te == 0`.
 
+## Fire versus disable
+
+Two verbs end a clock's enabled episode, and they are not synonyms.
+
+Call `fire!` for the clock that *happened*. Firing realizes the draw: the
+firing time has been observed, nothing about that draw remains unknown, and if
+the clock is enabled again later it starts from a fresh draw.
+
+Call `disable!` for clocks whose *preconditions vanished* — the event that
+fired removed their reason to run. Disabling censors the draw: all you learned
+is that the clock had not yet fired, so a sampler is entitled to keep the
+draw's remaining randomness and reuse it when the clock is enabled again.
+`CombinedNextReaction` does exactly that; it is why the next-reaction method
+needs only one random number per clock per enabling episode, and it is what
+keeps common random numbers aligned across runs.
+
+For exponential clocks the distinction is invisible — memorylessness makes a
+fresh draw and a reused draw the same in law and in cost. For everything else,
+using the wrong verb is a statistics bug, not a style choice:
+
+!!! warning "Use the verb that matches what happened"
+    Calling `disable!` on a clock that actually fired tells a reusing sampler
+    to keep residual randomness for a draw that was fully consumed — a later
+    re-enable can resurrect a dead draw. Calling `fire!` on a clock that was
+    merely switched off throws away residual randomness it was entitled to
+    keep — the law of your process survives, but draw reuse and common random
+    numbers do not.
+
+The high-level interface makes this hard to get wrong: `fire!(ctx, clock,
+when)` on the [`SamplingContext`](@ref) does the right thing for the fired
+clock, and your model's `disable!` calls should only ever be about
+preconditions. If you drive a sampler directly through the low-level API, the
+choice of verb is yours on every event.
+
 Like the older question of whether an event always changes state or only
 sometimes does, memory is part of what *you* mean by an event. The library keeps
 the clocks consistent; it is up to you to say which process you are simulating.
