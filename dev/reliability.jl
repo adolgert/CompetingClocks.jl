@@ -5,6 +5,7 @@
 using ColorSchemes
 using Distributions
 using CompetingClocks
+using CompetingClocks: FirstToFire
 using Logging
 using Plots
 using Random

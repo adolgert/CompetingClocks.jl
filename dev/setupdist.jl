@@ -4,14 +4,15 @@ using SpecialFunctions
 using Random
 using LogExpFunctions: log1mexp
 
-export TranscriptionRate
+export SetupRate
 
 
 """
-    TranscriptionRate(α_max, k_rem; t0=0.0)
+    SetupRate(α_max, k_rem; t0=0.0)
 
 A continuous univariate distribution defined by a time-varying
-hazard rate that starts at time `t0` where `t0 > 0`.
+hazard rate that starts at time `t0` where `t0 > 0`. It models the
+initial slowness of a workstation warming up before fabrication ramps up.
 
 The hazard rate λ_s(t) is:
 - 0                      if t < 0
@@ -22,12 +23,12 @@ Parameters:
 - `k_rem`: The rate parameter controlling how fast the hazard approaches α_max.
 - `t0`: The shift time. The distribution's support is [0, ∞).
 """
-struct TranscriptionRate{T<:Real} <: ContinuousUnivariateDistribution
+struct SetupRate{T<:Real} <: ContinuousUnivariateDistribution
     α_max::T
     k_rem::T
     t0::T
 
-    function TranscriptionRate(α_max::Real, k_rem::Real; t0::Real=0.0)
+    function SetupRate(α_max::Real, k_rem::Real; t0::Real=0.0)
         if α_max <= 0 || k_rem <= 0
             error("Parameters α_max and k_rem must be positive.")
         end
@@ -39,31 +40,31 @@ struct TranscriptionRate{T<:Real} <: ContinuousUnivariateDistribution
     end
 end
 
-Distributions.params(d::TranscriptionRate) = (d.α_max, d.k_rem, d.t0)
+Distributions.params(d::SetupRate) = (d.α_max, d.k_rem, d.t0)
 
 
 """
-    cumulative_hazard(d::TranscriptionRate, t::Real)
+    cumulative_hazard(d::SetupRate, t::Real)
 
 Calculates the cumulative hazard Λ(t) for the forward-shifted distribution.
 The hazard λ(t) = α_max * (1 - exp(-k_rem * (t + t0))) integrates to:
 Λ(t) = Λ_base(t + t0) - Λ_base(t0)
 """
-function cumulative_hazard(d::TranscriptionRate, t::Real)
+function cumulative_hazard(d::SetupRate, t::Real)
     t < zero(t) && return zero(t)
     return d.α_max * (t + exp(-d.k_rem * d.t0) * expm1(-d.k_rem * t) / d.k_rem)
 end
 
-function hazard(d::TranscriptionRate, t::Real)
+function hazard(d::SetupRate, t::Real)
     return d.α_max * (1.0 - exp(-d.k_rem * (t + d.t0)))
 end
 
-function Distributions.cdf(d::TranscriptionRate, t::Real)
+function Distributions.cdf(d::SetupRate, t::Real)
     t < 0.0 && return 0.0
     return 1.0 - exp(-cumulative_hazard(d, t))
 end
 
-function Distributions.pdf(d::TranscriptionRate, t::Real)
+function Distributions.pdf(d::SetupRate, t::Real)
     t < 0.0 && return 0.0
     # PDF is f(t) = λ(t) * S(t)
     # where λ(t) = α_max * (1 - exp(-k_rem * (t + t0)))
@@ -71,7 +72,7 @@ function Distributions.pdf(d::TranscriptionRate, t::Real)
     return hazard(d, t) * survival
 end
 
-function Distributions.logpdf(d::TranscriptionRate, t::Real)
+function Distributions.logpdf(d::SetupRate, t::Real)
     t < 0.0 && return -Inf
 
     # log(λ(t)) where λ(t) = α_max * (1 - exp(-k_rem * (t + t0)))
@@ -86,13 +87,13 @@ function Distributions.logpdf(d::TranscriptionRate, t::Real)
     return log_λ + log_S
 end
 
-function Distributions.logccdf(d::TranscriptionRate, t::Real)
+function Distributions.logccdf(d::SetupRate, t::Real)
     t < 0.0 && return 0.0
     return -cumulative_hazard(d, t)
 end
 
 """
-    Base.rand(rng::AbstractRNG, d::TranscriptionRate)
+    Base.rand(rng::AbstractRNG, d::SetupRate)
 
 Sample from the forward-shifted distribution.
 We need to solve: Λ(T) = Λ_base(T + t0) - Λ_base(t0) = E
@@ -100,7 +101,7 @@ where E ~ Exp(1).
 
 This is equivalent to: Λ_base(T + t0) = E + Λ_base(t0)
 """
-function Base.rand(rng::AbstractRNG, d::TranscriptionRate)
+function Base.rand(rng::AbstractRNG, d::SetupRate)
     E = randexp(rng)
     f(t) = cumulative_hazard(d, t) - E
     if d.t0 < 1e-5

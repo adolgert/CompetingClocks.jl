@@ -3,6 +3,7 @@
 using Random
 using Distributions
 using CompetingClocks
+using CompetingClocks: SSA, FirstToFire
 
 # [Birth-death processes](https://en.wikipedia.org/wiki/Birth%E2%80%93death_process) are a fundamental
 # type of stochastic process, and are the building block of many more complicated models. Here

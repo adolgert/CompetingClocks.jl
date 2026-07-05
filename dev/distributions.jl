@@ -13,7 +13,7 @@ using ForwardDiff #hide
 # 
 # ## Distributions in Time
 # 
-# Let's say you have a cold. You know you aren't going to recover immediately, but, as days go by, you're more and more sure you'll recover soon. This graph below shows recovery as a *hazard rate, which is the probability, per unit time, given that the event has not yet happened.*
+# Let's say a machine has developed a fault. You know it isn't going to be repaired immediately, but, as days go by, you're more and more sure it will return to service soon. This graph below shows repair as a *hazard rate, which is the probability, per unit time, given that the event has not yet happened.*
 
 const Gamma51 = Gamma(5.0, 1.0) #hide
 survival = ccdf #hide
@@ -29,9 +29,9 @@ title!(p, "Hazard of a Gamma Distribution") #hide
 DisplayAs.PNG(p) #hide
 
 # 
-# This hazard rate starts at zero, meaning there's no way you'll recover when you're first sick. It gets more likely over time that you're at the tail end of being sick. The hazard rate shown is that of a Gamma distribution, commonly used to describe the rate of recovery for a population of individuals who are sick.
+# This hazard rate starts at zero, meaning there's no way the machine is repaired the moment it first faults. It gets more likely over time that you're at the tail end of the repair. The hazard rate shown is that of a Gamma distribution, commonly used to describe the rate of repair for a population of faulted machines.
 # 
-# If, instead, you want to see the number of people who recover on any given day, that is called a probability distribution function (pdf), which is a much more common way to display a distribution in time.
+# If, instead, you want to see the number of machines that are repaired on any given day, that is called a probability distribution function (pdf), which is a much more common way to display a distribution in time.
 #
 x = 0:0.01:15 #hide
 y = pdf.(Gamma51, x) #hide
@@ -50,7 +50,7 @@ DisplayAs.PNG(p) #hide
 # 
 # The graph of the pdf tells us that the most likely time for this event is a little before time 5, in whatever units. You will see graphs of [pdfs on Wikipedia](https://en.wikipedia.org/wiki/Gamma_distribution#/media/File:Gamma_distribution_pdf.svg) because this is how people usually think about the probability an event happens at some time.
 # 
-# A simulation, however, has multiple events possible at any one time. One event may happen, and then other events need to restart. Let's ask, if you still have a cold on day 5, what is the probability distribution function for when you will recover?
+# A simulation, however, has multiple events possible at any one time. One event may happen, and then other events need to restart. Let's ask, if the machine is still faulted on day 5, what is the probability distribution function for when it will be repaired?
 
 t=5.0 #hide
 x1 = 5:0.01:15 #hide
@@ -66,7 +66,7 @@ title!(sgp, "Change to PDF After Not Firing") #hide
 DisplayAs.PNG(sgp) #hide
 
 # 
-# The probability distribution function changes now that you know you didn't recover earlier than day 5. On the other hand, the hazard rate for recovery from the cold will be unchanged. Using the same hazard rate, we can recalculate the pdf from the new time $t_0=5$.
+# The probability distribution function changes now that you know the machine wasn't repaired earlier than day 5. On the other hand, the hazard rate for repair of the machine will be unchanged. Using the same hazard rate, we can recalculate the pdf from the new time $t_0=5$.
 # 
 # ```math
 # f(t;t>t_0) = \lambda(t) e^{-\int_{t_0}^t \lambda(s)ds}
@@ -95,13 +95,13 @@ ylabel!(p, "Probability") #hide
 title!(p, "Cumulative distribution and Survival functions \nof a Gamma Distribution") #hide
 DisplayAs.PNG(p) #hide
 
-# For our example, survival is the chance the cold lasts longer than the given time.
+# For our example, survival is the chance the fault lasts longer than the given time.
 
 # ## Competition
 # 
 # ### Individual Distributions
 # 
-# Let's think of a moment when there are three possible next events. There is a Gamma distribution for when you recover from a cold, a Weibull distribution for when you decide to take medicine for the cold, and an Exponential distribution for when your Mom calls you. Each one is described by a distribution in time, and we can think of them as three hazard rates.
+# Let's think of a moment when there are three possible next events. There is a Gamma distribution for when the machine is repaired, a Weibull distribution for when you call a technician to apply a repair, and an Exponential distribution for when your Mom calls you. Each one is described by a distribution in time, and we can think of them as three hazard rates.
 # 
 com_dists = [ #hide
     Exponential(10), #hide
@@ -210,7 +210,7 @@ DisplayAs.PNG(plot(a, b, size=(1000, 400))) #hide
 # 
 # ## Specification of a Simulation
 #
-# If we imagine a drug trial, where patients can recover, die, or exit the trial for some other reason, there are three mutually-exclusive events, like the example above. If we pick the recovery event and plot its distribution in time, which of the above plots will we see? This will be a holding time. It won't be the pdf that represents the rate of recovery in the absence of competing events. However, given observations of competing events, it is possible to calculate back to the original hazard rates using survival analysis.
+# If we imagine a durability trial, where units can be repaired, fail permanently, or be withdrawn from the trial for some other reason, there are three mutually-exclusive events, like the example above. If we pick the repair event and plot its distribution in time, which of the above plots will we see? This will be a holding time. It won't be the pdf that represents the rate of repair in the absence of competing events. However, given observations of competing events, it is possible to calculate back to the original hazard rates using survival analysis.
 #
 # [Survival analysis](https://en.wikipedia.org/wiki/Survival_analysis) uses observations of event times and event cancellations to estimate hazard rates for each event. It helps you tease apart the effects of competition to see the underlying probability per unit time that any event would fire, given that it has not yet fired.
 #
