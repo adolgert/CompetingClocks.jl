@@ -103,7 +103,9 @@ function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution
     ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
 
-fire!(ts::EnabledWatcher{K,T}, clock::K, when::T) where {K,T} = disable!(ts, clock, when)
+# fire! for EnabledWatcher subtypes is the SSA interface fallback (forwards to
+# disable!): these watchers retain no residual draw randomness, so firing and
+# disabling act identically on their state.
 
 function disable!(ts::EnabledWatcher{K,T}, clock::K, when::T) where {K,T}
     if haskey(ts.enabled, clock)
@@ -247,6 +249,11 @@ end
 function disable!(propagator::MemorySampler{S,K,T}, clock::K, when::T) where {S,K,T}
     disable!(propagator.track, clock, when)
     disable!(propagator.sampler, clock, when)
+end
+
+function fire!(propagator::MemorySampler{S,K,T}, clock::K, when::T) where {S,K,T}
+    fire!(propagator.track, clock, when)
+    fire!(propagator.sampler, clock, when)
 end
 
 function Base.getindex(propagator::MemorySampler, clock)

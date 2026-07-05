@@ -69,3 +69,22 @@ end
     @test cloned.time_duration == 2.5  # time_duration is preserved
     @test length(sampler) == 2  # original unchanged
 end
+
+
+@safetestset track_Petri_fire = "Petri fire! disables the fired clock" begin
+    using CompetingClocks: Petri, enable!, fire!, next, isenabled
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    # Petri retains no residual draw randomness, so fire! is the interface
+    # fallback and acts as disable!. This pins that the fallback reaches it.
+    rng = Xoshiro(979697)
+    petri = Petri{Int,Float64}(1.0)
+    enable!(petri, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(petri, 2, Exponential(1.0), 0.0, 0.0, rng)
+    when, which = next(petri, 0.0, rng)
+    fire!(petri, which, when)
+    @test !isenabled(petri, which)
+    @test isenabled(petri, which == 1 ? 2 : 1)
+    @test length(petri) == 1
+end

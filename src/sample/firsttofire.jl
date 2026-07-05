@@ -98,7 +98,10 @@ function enable!(
 end
 
 
-fire!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T} = disable!(propagator, clock, when)
+# fire! is the SSA interface fallback (forwards to disable!): FirstToFire
+# holds a clock's drawn firing time only while the clock is enabled and
+# discards it at disable!, so it retains no residual draw randomness and
+# firing and disabling act identically on its state.
 
 
 function disable!(propagator::FirstToFire{K,T}, clock::K, when::T) where {K,T}

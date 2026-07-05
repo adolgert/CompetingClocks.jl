@@ -110,6 +110,30 @@ function disable!(sampler::SSA{K,T}, clock::K, when::T) where {K,T}
 end
 
 """
+    fire!(sampler, clock, when)
+
+Tell the sampler that `clock` fired at time `when`.
+
+Firing and disabling are different operations on a clock's draw. Disabling
+*censors* the draw: the simulation learns only that the clock had not yet
+fired, so a sampler may retain the draw's remaining randomness and reuse it
+if the clock is enabled again. Firing *realizes* the draw: the firing time
+is observed exactly, no residual randomness remains, and a re-enabled clock
+must draw fresh.
+
+The two operations act identically on stored state whenever a sampler
+retains no residual draw randomness across state changes. That holds for
+every sampler in this package except [`CombinedNextReaction`](@ref), whose
+per-clock survival is retained and reused across enabling episodes
+(the Anderson/Gibson-Bruck property). This fallback therefore forwards to
+[`disable!`](@ref). Override `fire!` for any sampler that retains residual
+draw randomness, so that firing consumes the draw completely.
+"""
+fire!(sampler::SSA{K,T}, clock::K, when::T) where {K,T} =
+    disable!(sampler, clock, when)
+
+
+"""
     next(sampler, when, rng)
 
 Ask the sampler for what happens next, in the form of

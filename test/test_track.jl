@@ -528,3 +528,33 @@ end
     # The hazard at t=5 for a distribution starting at te=10 should be 0
     # because t < te
 end
+
+
+@safetestset memory_sampler_fire_forwards = "MemorySampler fire! forwards to track and sampler" begin
+    using CompetingClocks: CombinedNextReaction, MemorySampler, get_survival_zero
+    using CompetingClocks: enable!, fire!, next, sampling_space
+    using Random: Xoshiro
+    using Distributions: Weibull
+
+    # MemorySampler's docstring promises that enable!/disable!/fire! are all
+    # forwarded to both the TrackWatcher and the wrapped sampler. fire! must
+    # reach the inner sampler's own fire! (which, for CombinedNextReaction,
+    # consumes the draw) and remove the entry from the track.
+    rng = Xoshiro(2206)
+    inner = CombinedNextReaction{Int,Float64}()
+    ms = MemorySampler(inner)
+    enable!(ms, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(ms, 2, Weibull(1.5, 2.0), 0.0, 0.0, rng)
+    when, which = next(ms, 0.0, rng)
+
+    fire!(ms, which, when)
+
+    # Track no longer holds the fired clock.
+    @test !haskey(ms.track.enabled, which)
+    @test haskey(ms.track.enabled, which == 1 ? 2 : 1)
+    # The inner sampler's fire! ran: the draw is fully consumed, so the stored
+    # survival is the zero of the clock's sampling space.
+    rec = inner.transition_entry[which]
+    @test rec.survival == get_survival_zero(sampling_space(rec.distribution))
+    @test rec.heap_handle == 0
+end
