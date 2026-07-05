@@ -29,7 +29,9 @@ include("runner.jl")
 function main()
     n_replications = length(ARGS) >= 1 ? parse(Int, ARGS[1]) : 1000
     seed = length(ARGS) >= 2 ? parse(Int, ARGS[2]) : 20260704
-    verdicts = run_gauntlet(
+
+    # Milestone-1 baseline: bare NextReactionMethod on the cycle-graph condition.
+    all_verdicts = run_gauntlet(
         NextReactionMethod();
         n_replications = n_replications,
         seed = seed,
@@ -37,7 +39,32 @@ function main()
         history_steps = 5,
         verbose = true,
     )
-    return verdicts
+
+    # MultiSampler battery on the complete-graph condition (both parity groups
+    # always active), plus a bare-NR reference on the same condition so the
+    # single-group control (c) can be compared against it, plus condition (a)
+    # under the non-exponential (Weibull) model variant.
+    battery = [
+        (NextReactionMethod(), default_model_builder),
+        (multisampler_control_spec(), default_model_builder),   # (c) control
+        (multisampler_split_spec(), default_model_builder),     # (a) CNR|CNR
+        (multisampler_mixed_spec(), default_model_builder),     # (b) CNR|FirstToFire
+        (multisampler_split_spec(), weibull_model_builder),     # (a) under Weibull rates
+    ]
+    for (spec, builder) in battery
+        verdicts = run_gauntlet(
+            spec;
+            n_replications = n_replications,
+            seed = seed,
+            state_cnt = 5,
+            history_steps = 5,
+            config = multisampler_condition(),
+            model_builder = builder,
+            verbose = true,
+        )
+        append!(all_verdicts, verdicts)
+    end
+    return all_verdicts
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

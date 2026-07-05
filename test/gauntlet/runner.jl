@@ -2,7 +2,10 @@
 #
 # This runs the gauntlet END TO END for ONE sampler under ONE condition (the
 # simplest one: all-Exponential rates, forget/no-memory, no enabling delay) and
-# produces statistical verdicts.
+# produces statistical verdicts. It also supports MultiSampler compositions
+# (sub-samplers keyed by a chooser predicate) as the sampler under test, and a
+# pluggable `model_builder` so a non-exponential (Weibull) TravelModel variant
+# can be tested without modifying travel.jl.
 #
 # It reuses the package's own machinery and the existing gauntlet building
 # blocks rather than reimplementing statistics:
@@ -25,7 +28,7 @@
 # test_gauntlet_smoke.jl for a self-contained entry point.
 
 using CompetingClocks
-using CompetingClocks: NextReactionMethod, FirstReactionMethod
+using CompetingClocks: NextReactionMethod, FirstReactionMethod, FirstToFireMethod
 using HypothesisTests
 using Distributions
 using Random
@@ -70,6 +73,137 @@ end
 
 
 """
+    multisampler_condition()
+
+Condition for MultiSampler-under-test runs: same as `simple_condition()` but on
+a COMPLETE graph. With a complete graph on `state_cnt >= 4` sites the enabled
+set at every step is all destinations except the current site, so a parity
+split of the clocks always places clocks in BOTH sub-sampler groups — including
+in the condensed enabled set used by the two-sample test. (On the 5-cycle, the
+2-clock enabled sets can be single-parity, which would leave one group idle.)
+"""
+function multisampler_condition()
+    return TravelConfig(
+        TravelMemory.forget,
+        TravelGraph.complete,
+        TravelRateDist.exponential,
+        TravelRateCount.destination,
+        TravelRateDelay.none,
+    )
+end
+
+
+"""
+    default_model_builder(state_cnt, config, rng) -> Travel
+
+The standard TravelModel construction (exponential per-destination rates, as
+`Travel(state_cnt, config, rng)` builds today).
+"""
+default_model_builder(state_cnt::Int, config::TravelConfig, rng::AbstractRNG) =
+    Travel(state_cnt, config, rng)
+
+
+"""
+    weibull_model_builder(state_cnt, config, rng) -> Travel
+
+A non-exponential TravelModel variant: one Weibull distribution per destination
+(shapes spread across [0.7, 1.6], so both decreasing- and increasing-hazard
+clocks appear), no enabling delay. Built directly from the `Travel` struct
+constructor because the existing `Travel(state_cnt, config, rng)` constructor
+ignores `config.dist` and always builds exponential rates (see travel.jl);
+wiring `TravelRateDist.general` through that constructor is matrix-milestone
+work. Non-exponential rates are where the two-sample test has real power:
+inside the contract, CombinedNextReaction's inversion for non-exponentials is
+not the same uniform-to-time transform as FirstReaction's, so the comparison is
+no longer trivially pathwise-identical.
+"""
+function weibull_model_builder(state_cnt::Int, config::TravelConfig, rng::AbstractRNG)
+    g = travel_make_graph(config.graph, state_cnt)
+    shapes = collect(range(0.7, stop=1.6, length=state_cnt))
+    scales = exp.(range(-1.0, stop=1.0, length=state_cnt))
+    rates = Dict{Tuple{Int,Int},Tuple{UnivariateDistribution,Float64}}()
+    for i in 1:state_cnt, j in 1:state_cnt
+        i == j && continue
+        rates[(i, j)] = (Weibull(shapes[j], scales[j]), 0.0)
+    end
+    return Travel(g, rates, zeros(Float64, state_cnt), config.memory)
+end
+
+
+# --- MultiSampler-under-test specs -----------------------------------------
+#
+# The runner builds samplers by calling `sampler_spec(Int, Float64)`. These
+# specs extend that interface to CompetingClocks.MultiSampler compositions:
+# a chooser (SamplerChoice) routes each clock to a sub-sampler group by a key
+# predicate, and each group holds its own low-level sampler.
+
+"Route travel clocks (destination site numbers) to `:even`/`:odd` groups."
+struct GauntletParitySplit <: CompetingClocks.SamplerChoice{Symbol,Int} end
+function CompetingClocks.choose_sampler(
+    ::GauntletParitySplit, clock::Int, ::UnivariateDistribution
+)::Symbol
+    return iseven(clock) ? :even : :odd
+end
+
+"Route every clock to the single `:all` group (control composition)."
+struct GauntletOneGroup <: CompetingClocks.SamplerChoice{Symbol,Int} end
+function CompetingClocks.choose_sampler(
+    ::GauntletOneGroup, clock::Int, ::UnivariateDistribution
+)::Symbol
+    return :all
+end
+
+
+"""
+    MultiSamplerGauntletSpec(name, chooser, groups)
+
+A sampler-spec-like callable for the gauntlet runner: `spec(K, T)` builds a
+`CompetingClocks.MultiSampler{Symbol,K,T}` with the given chooser and one
+sub-sampler per `group_key => sub_spec` pair (each `sub_spec` is itself a
+sampler spec such as `NextReactionMethod()`).
+"""
+struct MultiSamplerGauntletSpec{C}
+    name::String
+    chooser::C
+    groups::Vector
+end
+
+function (spec::MultiSamplerGauntletSpec)(K, T)
+    ms = CompetingClocks.MultiSampler{Symbol,K,T}(spec.chooser)
+    for (group_key, sub_spec) in spec.groups
+        ms[group_key] = sub_spec(K, T)
+    end
+    return ms
+end
+
+"Condition (a): two groups split by destination parity, both CombinedNextReaction."
+multisampler_split_spec() = MultiSamplerGauntletSpec(
+    "MultiSampler(even=>CNR,odd=>CNR)",
+    GauntletParitySplit(),
+    [:even => NextReactionMethod(), :odd => NextReactionMethod()],
+)
+
+"Condition (b): mixed sub-samplers, CombinedNextReaction and FirstToFire."
+multisampler_mixed_spec() = MultiSamplerGauntletSpec(
+    "MultiSampler(even=>CNR,odd=>FirstToFire)",
+    GauntletParitySplit(),
+    [:even => NextReactionMethod(), :odd => FirstToFireMethod()],
+)
+
+"Condition (c): control, ONE group containing all clocks (CombinedNextReaction)."
+multisampler_control_spec() = MultiSamplerGauntletSpec(
+    "MultiSampler(all=>CNR)",
+    GauntletOneGroup(),
+    [:all => NextReactionMethod()],
+)
+
+
+"Human-readable sampler name for the verdict table."
+gauntlet_sampler_name(spec) = string(nameof(typeof(spec)))
+gauntlet_sampler_name(spec::MultiSamplerGauntletSpec) = spec.name
+
+
+"""
     doob_meyer_stepcumulant(sampler_spec, config, state_cnt, n_steps, rng)
 
 Run a single trajectory of `n_steps` steps of the sampler under test and collect
@@ -83,9 +217,12 @@ which we surface as a bonus.
 Returns a NamedTuple with `pvalue` (pooled Doob-Meyer), `n`, per-state detail,
 and the mark-calibration result.
 """
-function doob_meyer_stepcumulant(sampler_spec, config, state_cnt::Int, n_steps::Int, rng::Xoshiro)
+function doob_meyer_stepcumulant(
+    sampler_spec, config, state_cnt::Int, n_steps::Int, rng::Xoshiro;
+    model_builder = default_model_builder,
+)
     sampler = sampler_spec(Int, Float64)
-    model = Travel(state_cnt, config, rng)
+    model = model_builder(state_cnt, config, rng)
     tracker = CompetingClocks.TrackWatcher{Int64,Float64}()
     observer = ScoreEvents(tracker, rng)
     # SamplerRecord mirrors every enable!/disable!/fire! into the TrackWatcher so
@@ -156,6 +293,23 @@ end
 
 
 """
+    gauntlet_history_commands(model_builder, history_steps, state_cnt, config, rng)
+
+Generate a fixed command history: a `history_steps`-step FirstReaction
+trajectory of the model built by `model_builder`. With the default builder this
+matches `TravelModel.travel_commands`; the builder injection lets the same
+history generation serve non-exponential model variants.
+"""
+function gauntlet_history_commands(model_builder, history_steps::Int, state_cnt::Int, config, rng)
+    model = model_builder(state_cnt, config, rng)
+    sampler = CompetingClocks.FirstReaction{Int,Float64}()
+    rec = VectorRecord()
+    travel_run(history_steps, sampler, model, (x, y) -> nothing, rec, rng)
+    return rec.commands
+end
+
+
+"""
     two_sample_ad_vs_reference(sampler_spec, config, state_cnt, history_steps,
                                n_replications, rng)
 
@@ -171,9 +325,10 @@ Returns a NamedTuple with the aggregate `pvalue`, `n`, and per-clock detail.
 """
 function two_sample_ad_vs_reference(
     sampler_spec, config, state_cnt::Int, history_steps::Int,
-    n_replications::Int, rng::AbstractRNG,
+    n_replications::Int, rng::AbstractRNG;
+    model_builder = default_model_builder,
 )
-    commands = travel_commands(history_steps, state_cnt, config, rng)
+    commands = gauntlet_history_commands(model_builder, history_steps, state_cnt, config, rng)
     enabled = final_enabled_distributions(commands)
     t_final = commands[end][end]::Float64
 
@@ -215,6 +370,10 @@ Keyword arguments:
   - `state_cnt`: number of sites in the TravelModel (default 5).
   - `history_steps`: length of the fixed history for the two-sample test.
   - `doob_steps`: Doob-Meyer trajectory length (defaults to `n_replications`).
+  - `config`: the TravelModel condition (defaults to `simple_condition()`).
+  - `model_builder`: how to construct the Travel model from `(state_cnt,
+    config, rng)`; pass `weibull_model_builder` for the non-exponential variant.
+  - `condition_label`: condition description for the verdict table header.
   - `verbose`: print the verdict table to stdout.
 """
 function run_gauntlet(
@@ -224,15 +383,25 @@ function run_gauntlet(
     state_cnt::Int = 5,
     history_steps::Int = 5,
     doob_steps::Int = n_replications,
+    config::TravelConfig = simple_condition(),
+    model_builder = default_model_builder,
+    condition_label::AbstractString = string(
+        "memory=", config.memory, " graph=", config.graph,
+        " delay=", config.delay, " rates=",
+        model_builder === weibull_model_builder ? "Weibull-per-destination" : "Exponential-per-destination",
+    ),
     verbose::Bool = true,
 )
-    config = simple_condition()
-    sampler_name = string(nameof(typeof(sampler_spec)))
+    sampler_name = gauntlet_sampler_name(sampler_spec)
 
-    dm = doob_meyer_stepcumulant(sampler_spec, config, state_cnt, doob_steps, Xoshiro(seed))
+    dm = doob_meyer_stepcumulant(
+        sampler_spec, config, state_cnt, doob_steps, Xoshiro(seed);
+        model_builder,
+    )
     ts = two_sample_ad_vs_reference(
         sampler_spec, config, state_cnt, history_steps, n_replications,
-        Xoshiro(seed + 1),
+        Xoshiro(seed + 1);
+        model_builder,
     )
 
     verdicts = [
@@ -245,7 +414,7 @@ function run_gauntlet(
     ]
 
     if verbose
-        print_verdict_table(verdicts; sampler_name, seed, n_replications, dm, ts)
+        print_verdict_table(verdicts; sampler_name, seed, n_replications, dm, ts, condition_label)
     end
     return verdicts
 end
@@ -257,10 +426,14 @@ end
 Print a small, human-readable verdict table to stdout with the plan's
 interpretation bands.
 """
-function print_verdict_table(verdicts; sampler_name="", seed=0, n_replications=0, dm=nothing, ts=nothing)
+function print_verdict_table(
+    verdicts;
+    sampler_name="", seed=0, n_replications=0, dm=nothing, ts=nothing,
+    condition_label="Exponential rates, memory=forget, delay=none, graph=cycle, per-destination",
+)
     println("=" ^ 78)
     println("Gauntlet verdicts - sampler=$(sampler_name)")
-    println("condition: Exponential rates, memory=forget, delay=none, graph=cycle, per-destination")
+    println("condition: $(condition_label)")
     println("n_replications=$(n_replications)  seed=$(seed)")
     println("-" ^ 78)
     println(rpad("test", 34), lpad("p-value", 10), "  ", lpad("n", 6), "  ", "verdict")

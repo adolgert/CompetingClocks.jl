@@ -73,6 +73,33 @@ using SafeTestsets
         end
     end
 
+    @testset "run_gauntlet MultiSampler composition (machinery only)" begin
+        # Mixed composition: even-destination clocks -> CombinedNextReaction,
+        # odd -> FirstToFire, on the complete graph so both groups get clocks.
+        verdicts = run_gauntlet(
+            multisampler_mixed_spec();
+            n_replications = 40,
+            seed = 777,
+            state_cnt = 4,
+            history_steps = 3,
+            config = multisampler_condition(),
+            verbose = false,
+        )
+        @test length(verdicts) == 3
+        @test all(v -> v.sampler == "MultiSampler(even=>CNR,odd=>FirstToFire)", verdicts)
+        @test all(v -> 0.0 <= v.pvalue <= 1.0, verdicts)
+        @test all(v -> v.verdict in (:likely_bug, :rerun, :likely_correct), verdicts)
+        # The chooser must actually route clocks to both groups.
+        ms = multisampler_mixed_spec()(Int, Float64)
+        rng = Xoshiro(1)
+        enable!(ms, 1, Exponential(1.0), 0.0, 0.0, rng)
+        enable!(ms, 2, Exponential(1.0), 0.0, 0.0, rng)
+        @test ms.chosen[1] == :odd
+        @test ms.chosen[2] == :even
+        @test ms.propagator[:even] isa CompetingClocks.CombinedNextReaction
+        @test ms.propagator[:odd] isa CompetingClocks.FirstToFire
+    end
+
     @testset "run_gauntlet works for FirstReactionMethod (self-consistency)" begin
         verdicts = run_gauntlet(
             FirstReactionMethod();
