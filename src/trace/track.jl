@@ -1,8 +1,6 @@
 using Base
 using Random: AbstractRNG
 using Distributions: UnivariateDistribution
-export TrackWatcher, DebugWatcher, enable!, disable!, steploglikelihood
-export pathloglikelihood, fire!, absolute_enabling
 
 """
     EnablingEntry{K,T}(clock::K, distribution, te::T, when::T)
@@ -204,6 +202,19 @@ function stepconditionalprobability(tw::EnabledWatcher{K,T}, t) where {K,T}
 end
 
 
+"""
+    MemorySampler(sampler)
+
+Wraps another `sampler` together with a [`TrackWatcher`](@ref) so that every
+enabled clock's distribution and enabling time can be inspected while a
+simulation runs. Each `enable!`/`disable!`/`fire!` is forwarded to the wrapped
+sampler and mirrored into the watcher, letting you query the live set of
+enabled clocks during debugging.
+
+This is kept as a debugging tool. The mainstream way to record this
+information is `SamplingContext(recording=true)`; reach for `MemorySampler`
+only when you want to poke at a bare sampler directly.
+"""
 mutable struct MemorySampler{S,K,T}
     sampler::S
     track::TrackWatcher{K,T}
@@ -217,8 +228,6 @@ function MemorySampler(sampler::Sampler) where {Sampler}
         sampler, TrackWatcher{K,T}(), zero(T)
     )
 end
-
-export MemorySampler
 
 keytype(propagator::MemorySampler{S,K,T}) where {S,K,T} = K
 

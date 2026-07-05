@@ -1,13 +1,11 @@
-export SamplerBuilder, add_group!, build_sampler
-
 has_steploglikelihood(::Type) = false
 has_steploglikelihood(::Type{<:CombinedNextReaction}) = true
 has_steploglikelihood(::Type{<:DirectCall}) = true
 has_steploglikelihood(::Type{<:MultipleDirect}) = true
 has_steploglikelihood(::Type{<:EnabledWatcher}) = true
 has_pathloglikelihood(::Type) = false
-has_pathloglikelihood(::Type{DirectCall}) = true
-has_pathloglikelihood(::Type{MultipleDirect}) = true
+has_pathloglikelihood(::Type{<:DirectCall}) = true
+has_pathloglikelihood(::Type{<:MultipleDirect}) = true
 
 
 mutable struct SamplerBuilderGroup

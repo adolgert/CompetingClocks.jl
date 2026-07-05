@@ -4,6 +4,7 @@ using SafeTestsets
 @safetestset track_trackwatcher_smoke = "TrackWatcher smoke" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
     using Base
     rng = Xoshiro(3242234)
@@ -29,6 +30,7 @@ end
     # This is a clear-box test. It depends heavily on implementation.
     using CompetingClocks: FirstToFire, enable!, disable!, next
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random: Xoshiro
     using Distributions
 
@@ -62,6 +64,7 @@ end
 @safetestset track_debugwatcher_smoke = "DebugWatcher smoke" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
     rng = Xoshiro(3242234)
     dw = DebugWatcher{Int,Float64}()
@@ -84,6 +87,7 @@ end
 @safetestset track_debugwatcher_clone = "DebugWatcher clone" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: clone
     using Random
 
@@ -112,6 +116,7 @@ end
 @safetestset track_debugwatcher_reset = "DebugWatcher reset!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: reset!
     using Random
 
@@ -143,6 +148,7 @@ end
 @safetestset track_debugwatcher_fire = "DebugWatcher fire!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
 
     rng = Xoshiro(7654321)
@@ -179,6 +185,7 @@ end
 @safetestset track_debugwatcher_log_option = "DebugWatcher log option" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
 
     rng = Xoshiro(1111111)
@@ -204,6 +211,7 @@ end
 @safetestset track_trackwatcher_clone = "TrackWatcher clone" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: clone
     using Random
 
@@ -231,6 +239,7 @@ end
 @safetestset track_jitter = "EnabledWatcher jitter!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: jitter!
     using Random
 
@@ -251,6 +260,7 @@ end
 @safetestset track_memorysampler_keytype = "MemorySampler keytype" begin
     using CompetingClocks: FirstToFire, MemorySampler, keytype
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
 
     # Create MemorySampler with Int64 keys
     propagator = MemorySampler(FirstToFire{Int64,Float64}())
@@ -269,6 +279,7 @@ end
 @safetestset track_memorysampler_getindex = "MemorySampler getindex" begin
     using CompetingClocks: FirstToFire, MemorySampler
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random: Xoshiro
     using Distributions
 
@@ -298,6 +309,7 @@ end
 @safetestset track_isenabled_enabled = "TrackWatcher isenabled and enabled" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: isenabled, enabled
     using Random
 
@@ -337,6 +349,7 @@ end
 @safetestset track_trackwatcher_iterate = "TrackWatcher iteration" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
 
     rng = Xoshiro(9999999)
@@ -363,6 +376,7 @@ end
 @safetestset track_disable_nonexistent = "TrackWatcher disable nonexistent clock" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
 
     rng = Xoshiro(1010101)
@@ -380,6 +394,7 @@ end
 @safetestset track_enable_replaces = "TrackWatcher enable replaces existing" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
 
     rng = Xoshiro(2020202)
@@ -405,6 +420,7 @@ end
 @safetestset track_steploglikelihood_edge_cases = "steploglikelihood edge cases" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using Random
 
     rng = Xoshiro(3030303)
@@ -430,6 +446,7 @@ end
 @safetestset track_stepcumulant = "stepcumulant function" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: stepcumulant
     using Random
 
@@ -461,6 +478,7 @@ end
 @safetestset track_stepconditionalprobability = "stepconditionalprobability function" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: stepconditionalprobability, hazard
     using Random
 
@@ -492,6 +510,7 @@ end
 @safetestset track_stepconditionalprobability_zero_hazard = "stepconditionalprobability zero hazard" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: DebugWatcher, FirstToFire, MemorySampler, TrackWatcher, absolute_enabling, jitter!
     using CompetingClocks: stepconditionalprobability
     using Random
 

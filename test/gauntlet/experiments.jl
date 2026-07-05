@@ -5,8 +5,10 @@ using UnitTestDesign
 function rng_set(single_rng)
     rng = Vector{Xoshiro}(undef, Threads.maxthreadid())
     rng[1] = single_rng
+    # Derive independent per-thread RNGs from the seed stream of the first.
+    # (Previously this called an undefined `jump!`; Xoshiro has no public jump.)
     for rng_gen in 2:length(rng)
-        rng[rng_gen] = jump!(rng[rng_gen - 1])
+        rng[rng_gen] = Xoshiro(rand(rng[rng_gen - 1], UInt64))
     end
     return rng
 end

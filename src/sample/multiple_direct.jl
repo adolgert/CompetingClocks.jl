@@ -1,6 +1,3 @@
-export MultipleDirect
-
-
 """
     MultipleDirect{SamplerKey,K,Time,Chooser} <: SSA{K,Time}
 
@@ -30,12 +27,12 @@ end
 function MultipleDirect{SamplerKey,K,Time}(
     chooser::Chooser;
     trajectory=false
-) where {SamplerKey,K,Time,Chooser<:SamplerChoice{K,SamplerKey}}
+) where {SamplerKey,K,Time,Chooser<:SamplerChoice{SamplerKey,K}}
     MultipleDirect{SamplerKey,K,Time,Chooser}(
         Vector{KeyedPrefixSearch}(),
         Vector{Time}(),
         chooser,
-        Dict{K,SamplerKey}(),
+        Dict{K,Int}(),
         Dict{SamplerKey,Int}(),
         zero(Time),
         zero(Float64),

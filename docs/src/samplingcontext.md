@@ -9,6 +9,9 @@ This is the main interface to the package.
     
 
 ```julia
+using CompetingClocks
+using Random
+
 ClockKey = Int64
 Time = Float64
 rng = Xoshiro(899987987)
@@ -27,7 +30,7 @@ its own sampler in the hierarchy.
 
 ```julia
 function one_epoch(model, sampler)
-    observe = Observer()
+    observer = Observer()
     step_model!(model, sampler, (:on, 0), time(sampler))
     when, which = next(sampler)
     while !isnothing(which)
@@ -42,16 +45,15 @@ end
 
  3. **Enable/disable events during state update.** When updating the model
     state, you might enable or disable events. Here is an example from
-    gene expression.
+    an assembly line.
 
 ```julia
-function translate_protein(model, sampler, individual, when, θ)
-    pre_event_total = count(x -> x[2], model.mrna)
-    model.protein += 1
+function assemble_widget(model, sampler, individual, when, θ)
+    pre_event_total = count(x -> x[2], model.part)
+    model.widget += 1
     if pre_event_total > 0
-        transrate1 = Exponential(inv(θ[:translate][1] * pre_event_total))
-        transrate2 = Exponential(inv(θ[:translate][2] * pre_event_total))
-        enable!(sampler, (:translate, 0), [transrate1, transrate2])
+        transrate = Exponential(inv(θ[:assemble] * pre_event_total))
+        enable!(sampler, (:assemble, 0), transrate)
     end
 end
 ```

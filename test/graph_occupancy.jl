@@ -235,7 +235,7 @@ function sample_run_graph_occupancy(options=Set{String}())
     single_groc = GraphOccupancy(features, model_rng)
 
     groc = deepcopy(single_groc)
-    sampler = ChatReaction{keyspace(GraphOccupancy)}()
+    sampler = CompetingClocks.FirstReaction{keyspace(GraphOccupancy),Time}()
     rng = Xoshiro(2342374)
     occupancy = run_graph_occupancy(groc, 1e6, sampler, rng)
     return occupancy

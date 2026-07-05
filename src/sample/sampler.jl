@@ -1,7 +1,4 @@
 
-export MultiSampler
-
-
 abstract type SamplerChoice{SamplerKey,Key} end
 
 function choose_sampler(
@@ -9,9 +6,6 @@ function choose_sampler(
 )::SamplerKey where {SamplerKey,Key}
     throw(MissingException("No sampler choice given to the MultiSampler"))
 end
-
-export SamplerChoice
-export choose_sampler
 
 """
     MultiSampler{SamplerKey,Key,Time}(which_sampler::Chooser) <: SSA{Key,Time}
@@ -135,10 +129,10 @@ function next(
     least_when::Time = typemax(Time)
     least_transition::Union{Nothing,Key} = nothing
     for propagator in values(sampler.propagator)
-        when, transition = next(propagator, when, rng)
-        if when < least_when
-            least_when = when
-            least_transition = transition
+        sub_when, sub_transition = next(propagator, when, rng)
+        if sub_when < least_when
+            least_when = sub_when
+            least_transition = sub_transition
         end
     end
     return (least_when, least_transition)
@@ -160,8 +154,12 @@ function enable!(
 end
 
 
-fire!(sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
-) where {SamplerKey,Key,Time} = disable!(sampler, clock, when)
+function fire!(
+    sampler::MultiSampler{SamplerKey,Key,Time}, clock::Key, when::Time
+) where {SamplerKey,Key,Time}
+    fire!(sampler.propagator[sampler.chosen[clock]], clock, when)
+    delete!(sampler.chosen, clock)
+end
 
 
 function disable!(

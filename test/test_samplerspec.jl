@@ -1,5 +1,6 @@
 @safetestset available_samplers_test = "SamplerSpec list all" begin
     using CompetingClocks
+    using CompetingClocks: SSA
     samplist = available_samplers()
     tofind = ["NextReaction", "FirstReaction", "Direct", "Petri", "FirstToFire"]
     for sstring in tofind
@@ -10,6 +11,7 @@ end
 
 @safetestset samplerspec_nextreaction = "SamplerSpec next reaction" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = NextReactionMethod()
     sampler = spec(Int, Float64)
@@ -19,6 +21,7 @@ end
 
 @safetestset samplerspec_direct = "SamplerSpec direct method" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = DirectMethod()
     sampler = spec(Int, Float64)
@@ -44,6 +47,7 @@ end
 
 @safetestset samplerspec_firstreaction = "SamplerSpec first reaction" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = FirstReactionMethod()
     sampler = spec(Int, Float64)
@@ -53,6 +57,7 @@ end
 
 @safetestset samplerspec_firsttofire = "SamplerSpec first to fire" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = FirstToFireMethod()
     sampler = spec(Int, Float64)
@@ -62,6 +67,7 @@ end
 
 @safetestset samplerspec_rssa = "SamplerSpec rssa method" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = RejectionMethod()
     sampler = spec(Int, Float64)
@@ -75,6 +81,7 @@ end
 
 @safetestset samplerspec_pssacr = "SamplerSpec pssacr method" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = PartialPropensityMethod()
     sampler = spec(Int, Float64)
@@ -88,6 +95,7 @@ end
 
 @safetestset samplerspec_petri = "SamplerSpec petri method" begin
     using CompetingClocks
+    using CompetingClocks: SSA
 
     spec = PetriMethod()
     sampler = spec(Int, Float64)

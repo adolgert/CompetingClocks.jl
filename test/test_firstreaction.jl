@@ -27,6 +27,7 @@ end
 
 @safetestset first_reaction_interface = "FirstReaction basic interface" begin
     using CompetingClocks
+    using CompetingClocks: FirstReaction
     using Random: Xoshiro
     using Distributions
 

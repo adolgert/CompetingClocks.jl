@@ -1,5 +1,3 @@
-export Delayed, DelayedState
-
 using Distributions: UnivariateDistribution
 
 """
@@ -10,9 +8,9 @@ Pair of distributions for delayed reactions.
 - `initiation` : distribution for time from enabling to initiation
 - `duration`   : distribution for time from initiation to completion
 
-Users normally construct this via the `=>` syntax:
-
-    Exponential(1.0) => Gamma(2, 0.5)
+At the package's API boundary you may pass a plain `Pair` of distributions,
+`initiation => duration`, which is converted to a `Delayed`. For example
+`enable!(ctx, clock, Exponential(1.0) => Gamma(2, 0.5))`.
 
 Note: `Delayed` is not itself a distribution. It's a marker type that triggers
 specialized `enable!` behavior in `SamplingContext`.
@@ -23,11 +21,13 @@ struct Delayed{D1<:UnivariateDistribution,D2<:UnivariateDistribution}
 end
 
 """
-    d1 => d2
+    Delayed(p::Pair{<:UnivariateDistribution,<:UnivariateDistribution})
 
-Convenience syntax for `Delayed(d1, d2)`.
+Construct a `Delayed` from an ordinary `Pair` of distributions,
+`initiation => duration`. This lets callers write the pair syntax
+`Exponential(1.0) => Gamma(2, 0.5)` without any type piracy on `Base.:(=>)`.
 """
-Base.:(=>)(d1::UnivariateDistribution, d2::UnivariateDistribution) = Delayed(d1, d2)
+Delayed(p::Pair{<:UnivariateDistribution,<:UnivariateDistribution}) = Delayed(p.first, p.second)
 
 
 """

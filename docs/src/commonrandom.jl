@@ -13,7 +13,7 @@
 
 # ## Using Common Random Numbers in CompetingClocks
 
-# CompetingClocks implements common random numbers by recording the state of the random number generator every time a clock is enabled. There are other ways to do this, but this one works with the [CombinedNextReaction](@ref) and [FirstToFire](@ref) samplers. The workflow you would use looks notionally like:
+# CompetingClocks implements common random numbers by recording the state of the random number generator every time a clock is enabled. There are other ways to do this, but this one works with the [CompetingClocks.CombinedNextReaction](@ref) and [CompetingClocks.FirstToFire](@ref) samplers. The workflow you would use looks notionally like:
 
 #   1. Create a sampler with the keyword argument `common_random=true`.
 #   2. Run a lot of simulations in order to explore and record all possible clock states. Run `reset!(recorder)` after each simulation.
@@ -48,6 +48,6 @@ end
 
 # If your simulation has a large sample space, CRN may not help. We run a first set of simulations in order to record the state of the system for lots of different clocks and different multiplicities of clock events. If that worked well, then subsequent runs of the simulation will re-use draws from the random number generator. If there are a lot of events which are needed but haven't been recorded, those misses are a sign that CRN is unlikely to reduce variance much for this simulation.
 
-# We check this by checking the [misscount](@ref) during later runs of the simulation under CRN. If that miss count is high, we can look into which clocks are firing that didn't previously fire by iterating over the [misses](@ref), which are pairs of (clock key, number of misses for that clock).
+# We check this by checking the [CompetingClocks.misscount](@ref) during later runs of the simulation under CRN. If that miss count is high, we can look into which clocks are firing that didn't previously fire by iterating over the [CompetingClocks.misses](@ref), which are pairs of (clock key, number of misses for that clock).
 
 # The final word on effectiveness of CRN is to look at the variance of summary outcomes for runs with and without CRN. The CRN will, in general, slow down a sampler, but it should mean that many fewer runs are required to distinguish the effect of changes in system parameters.

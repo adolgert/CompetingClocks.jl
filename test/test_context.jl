@@ -134,7 +134,7 @@ end
 
 @safetestset context_with_debug = "SamplingContext with debug/recording" begin
     using CompetingClocks: SamplingContext, SamplerBuilder, enable!, next, fire!, disable!
-    using CompetingClocks: enabled_history, disabled_history
+    using CompetingClocks: enabled_history, disabled_history, debug_of
     using Random: Xoshiro
     using Distributions: Exponential
 
@@ -143,7 +143,7 @@ end
     builder = SamplerBuilder(Int64, Float64; recording=true)
     ctx = SamplingContext(builder, rng)
 
-    @test ctx.debug !== nothing
+    @test debug_of(ctx) !== nothing
 
     enable!(ctx, 1, Exponential(1.0))
     enable!(ctx, 2, Exponential(2.0))
@@ -289,4 +289,95 @@ end
     builder2 = SamplerBuilder(Int64, Float64)
     ctx2 = SamplingContext(builder2, rng)
     @test_throws ErrorException reset_crn!(ctx2)
+end
+
+
+@safetestset context_likelihood_capability_probe = "SamplingContext likelihood capability probes" begin
+    using CompetingClocks: SamplingContext, SamplerBuilder, DirectMethod, FirstToFireMethod
+    using CompetingClocks: enable!, next, steploglikelihood, pathloglikelihood, likelihood_of
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    # (1) A context built with path_likelihood=true still returns pathloglikelihood
+    #     (existing behavior, via the likelihood watcher).
+    rng = Xoshiro(20240704)
+    builder_path = SamplerBuilder(Int64, Float64; path_likelihood=true)
+    ctx_path = SamplingContext(builder_path, rng)
+    enable!(ctx_path, 1, Exponential(1.0))
+    next(ctx_path)
+    @test pathloglikelihood(ctx_path, 1.0) isa Real
+
+    # (2) A context whose sampler lacks the capability (FirstToFire supports
+    #     neither step nor path likelihood) and has no likelihood watcher throws
+    #     the informative "doesn't support" error.
+    builder_ff = SamplerBuilder(Int64, Float64; method=FirstToFireMethod())
+    ctx_ff = SamplingContext(builder_ff, rng)
+    @test likelihood_of(ctx_ff) === nothing
+    enable!(ctx_ff, 1, Exponential(1.0))
+    next(ctx_ff)
+    @test_throws ErrorException pathloglikelihood(ctx_ff, 1.0)
+    @test_throws ErrorException steploglikelihood(ctx_ff, 1.0, 1)
+
+    # (3) Regression: errors from within the sampler's likelihood code must
+    #     propagate, NOT be swallowed into the misleading "doesn't support"
+    #     message. A bare DirectCall-backed context (trait true, no watcher)
+    #     querying a nonexistent clock key raises a KeyError.
+    builder_dc = SamplerBuilder(Int64, Float64; method=DirectMethod())
+    ctx_dc = SamplingContext(builder_dc, rng)
+    @test likelihood_of(ctx_dc) === nothing
+    enable!(ctx_dc, 1, Exponential(1.0))
+    next(ctx_dc)
+    # A valid key returns a real value (trait routes directly to the sampler).
+    @test steploglikelihood(ctx_dc, 1.0, 1) isa Real
+    @test pathloglikelihood(ctx_dc, 1.0) isa Real
+    # A nonexistent key surfaces the real underlying error, not the misleading one.
+    @test_throws KeyError steploglikelihood(ctx_dc, 1.0, 999999)
+end
+
+
+@safetestset context_custom_watcher = "SamplingContext one-place extensibility via watcher tuple" begin
+    # Demonstrates that adding a brand-new observer watcher requires touching
+    # ONLY the watcher tuple: the context fan-out (context.jl) is not modified.
+    using CompetingClocks
+    using CompetingClocks: SamplingContext, next, FirstToFire
+    using Random: Xoshiro
+    using Distributions: Exponential
+
+    # A ~10-line custom watcher counting the three lifecycle callbacks.
+    mutable struct CountingWatcher
+        enables::Int
+        disables::Int
+        fires::Int
+    end
+    CountingWatcher() = CountingWatcher(0, 0, 0)
+    CompetingClocks.enable!(w::CountingWatcher, clock, dist, te, when, rng) = (w.enables += 1; nothing)
+    CompetingClocks.disable!(w::CountingWatcher, clock, when) = (w.disables += 1; nothing)
+    CompetingClocks.fire!(w::CountingWatcher, clock, when) = (w.fires += 1; nothing)
+    CompetingClocks.reset!(w::CountingWatcher) = (w.enables = w.disables = w.fires = 0; nothing)
+    CompetingClocks.clone(w::CountingWatcher) = CountingWatcher()
+
+    rng = Xoshiro(2024)
+    sampler = FirstToFire{Int64,Float64}()
+    watcher = CountingWatcher()
+    # The ONLY thing needed to support the new observer: put it in the tuple.
+    ctx = SamplingContext{Int64,Float64,typeof(sampler),typeof(rng),
+                          Tuple{CountingWatcher},Nothing,Nothing}(
+        sampler, rng, (watcher,), nothing, 1.0, 0.0, 0.0, 1, nothing)
+
+    enable!(ctx, 1, Exponential(1.0))
+    enable!(ctx, 2, Exponential(2.0))
+    @test watcher.enables == 2
+
+    when, which = next(ctx)
+    fire!(ctx, which, when)
+    @test watcher.fires == 1
+
+    other = which == 1 ? 2 : 1
+    disable!(ctx, other)
+    @test watcher.disables == 1
+
+    reset!(ctx)
+    @test watcher.enables == 0
+    @test watcher.disables == 0
+    @test watcher.fires == 0
 end

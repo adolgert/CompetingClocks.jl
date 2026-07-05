@@ -3,7 +3,7 @@
 From [Gen's](https://www.gen.dev/) point of view, there are two main “hooks” CompetingClocks.jl can plug into:
 
 1. probability distributions (`Distribution{T}` with `random`/`logpdf`), and
-2. generative functions (things that implement the Generative Function Interface and produce traces with scores). ([Gen][1])
+2. generative functions (things that implement the Generative Function Interface and produce traces with scores).
 
 CompetingClocks already the operations Gen needs: forward simulation of event paths, and step‑ or path‑wise log‑likelihoods.
 
@@ -24,7 +24,7 @@ Relevant features:
 * `TrajectoryWatcher` and `PathLikelihoods` objects that do not sample but compute the log‑likelihood of a full path of `(event, time)` pairs. 
 * An integration pattern where you replay a sequence of events and call `pathloglikelihood(sampler, end_time)` to get the log probability of that entire trajectory.
 
-This is exactly what Gen’s distribution API wants as `random` (sampling a path) and `logpdf` (log‑likelihood of a path). ([Gen][1])
+This is exactly what Gen’s distribution API wants as `random` (sampling a path) and `logpdf` (log‑likelihood of a path).
 
 ### How this looks conceptually in Gen
 
@@ -49,15 +49,15 @@ This is exactly what Gen’s distribution API wants as `random` (sampling a path
      * `path ~ gsmp_path(params, T)` inside an `@gen` function.
    * As an observed path:
 
-     * Use `generate(model, (params, T), choicemap((:path, observed_path)))`; Gen will call your `logpdf` to score that trace. ([Gen][1])
+     * Use `generate(model, (params, T), choicemap((:path, observed_path)))`; Gen will call your `logpdf` to score that trace.
 
-Once you do this, all Gen inference methods that operate on generative functions calling distributions—importance sampling, SMC, generic MH, etc.—can work with your GSMP path as just another random variable. ([Gen][1])
+Once you do this, all Gen inference methods that operate on generative functions calling distributions—importance sampling, SMC, generic MH, etc.—can work with your GSMP path as just another random variable.
 
 ---
 
 ## 2. CompetingClocks as a custom Generative Function
 
-If you want finer control over the trace (addressable choices per event, incremental updates, gradient hooks), you can wrap CompetingClocks as a full Gen *generative function* rather than just a single distribution. ([Gen][2])
+If you want finer control over the trace (addressable choices per event, incremental updates, gradient hooks), you can wrap CompetingClocks as a full Gen *generative function* rather than just a single distribution.
 
 ### Core idea
 
@@ -76,26 +76,26 @@ Key points:
    * You can align your CompetingClocks clock keys with Gen trace addresses directly:
 
      * e.g. event key `ClockKey(:infect, i, j)` maps to Gen address `(:infect, i, j)` or to the suggested `:infect => i` / similar scheme.
-   * The generative function’s `get_choices(trace)` then gives a choice map whose addresses *are* your event identifiers. ([Gen][3])
+   * The generative function’s `get_choices(trace)` then gives a choice map whose addresses *are* your event identifiers.
 
 2. **Implementing the Generative Function Interface**
 
    At minimum you implement:
 
    * `simulate`: build the `SamplingContext` (with `path_likelihood=true`), run the main loop, record events into the trace, and store `pathloglikelihood` as the trace score.
-   * `get_args`, `get_retval` (e.g. the final state or full path), `get_choices`, `get_score`. ([Gen][2])
+   * `get_args`, `get_retval` (e.g. the final state or full path), `get_choices`, `get_score`.
 
    If you want full use of Gen’s MCMC/SMC:
 
    * add `generate` (to create traces that satisfy constraints on some events/times),
    * `update`/`regenerate` (for efficient incremental proposals that adjust only part of the path),
-   * optionally `choice_gradients` and `accumulate_param_gradients!` if you expose derivatives of the path log‑likelihood w.r.t. parameters or event times. ([Gen][2])
+   * optionally `choice_gradients` and `accumulate_param_gradients!` if you expose derivatives of the path log‑likelihood w.r.t. parameters or event times.
 
 3. **When this is attractive**
 
    * You want to expose internal events as addressable random choices for custom proposals.
    * You need incremental updates of long trajectories inside MCMC (rather than resimulating whole paths).
-   * You want Gen’s gradient‑based machinery to see through to your likelihood (after you supply `logpdf_grad`/`choice_gradients`). ([Gen][4])
+   * You want Gen’s gradient‑based machinery to see through to your likelihood (after you supply `logpdf_grad`/`choice_gradients`).
 
 ---
 
@@ -114,11 +114,11 @@ Given observed event times/types:
   * replays the observed sequence into the watcher/sampler, and
   * returns `log_prob = pathloglikelihood(watcher_or_sampler, end_time)`.
 
-The clean way to plug this into Gen is still via a custom distribution or generative function whose `logpdf` / `get_score` calls this function. That keeps the likelihood inside Gen’s bookkeeping, so all standard inference algorithms see the correct score. ([Gen][4])
+The clean way to plug this into Gen is still via a custom distribution or generative function whose `logpdf` / `get_score` calls this function. That keeps the likelihood inside Gen’s bookkeeping, so all standard inference algorithms see the correct score.
 
 ### b) Importance sampling and mixture proposals
 
-We have already seen [importance sampling](../gene_expression.md) with CompetingClocks.
+We have already seen [importance sampling](../factory.md) with CompetingClocks.
 
 Within Gen:
 
@@ -143,7 +143,7 @@ Two ways this interacts with Gen:
 
 2. **Gen‑native gradients**
 
-   * Because `pathloglikelihood` is ordinary Julia code, it can in principle be differentiated using AD; Gen’s distribution and generative‑function APIs have hooks (`logpdf_grad`, `choice_gradients`) to expose these gradients to its optimizers and variational methods. ([Gen][4])
+   * Because `pathloglikelihood` is ordinary Julia code, it can in principle be differentiated using AD; Gen’s distribution and generative‑function APIs have hooks (`logpdf_grad`, `choice_gradients`) to expose these gradients to its optimizers and variational methods.
 
 ---
 

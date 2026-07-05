@@ -1,5 +1,14 @@
+```@meta
+CurrentModule = CompetingClocks
+```
 
 # Low-level Sampler Interface
+
+!!! note
+    This page documents the low-level sampler layer for framework authors. Most
+    users want the [`SamplingContext`](@ref) interface (see the Quickstart and
+    [Context Interface](@ref)). These types are no longer exported; reach them as
+    `CompetingClocks.<Name>`.
 
 The main interface to the package is the [`SamplingContext`](@ref).
 The `SamplingContext` contains sampling algorithms and other helper classes. This describes the interface to underlying sampling algorithms, which differ slightly:

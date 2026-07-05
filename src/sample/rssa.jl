@@ -6,8 +6,6 @@
 using Random
 using Distributions: UnivariateDistribution, Exponential, rate
 
-export RSSA, set_bound!, set_global_bound_factor!
-
 """
     RSSA{KeyType,TimeType}(; bound_factor=1.05)
 

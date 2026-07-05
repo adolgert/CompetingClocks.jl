@@ -30,7 +30,7 @@ adliterate = [
     ("memory.jl", "memory"),
     ("gsmp.jl", "gsmp"),
     ("hierarchical.jl", "hierarchical"),
-    ("gene_expression.jl", "gene_expression")
+    ("factory.jl", "factory")
 ]
 literate_subdir = joinpath(example_base, "literate")
 isdir(literate_subdir) || mkdir(literate_subdir)
@@ -83,15 +83,24 @@ makedocs(;
     modules=[CompetingClocks],
     authors="Andrew Dolgert <adolgert@uw.edu>",
     sitename="CompetingClocks.jl Documentation",
-    checkdocs=:none,  # Don't require all internal methods to be documented
+    checkdocs=:exports,  # Require every exported name's docstring to appear in the manual
     format=format,
     pages=[
         "Home" => "index.md",
         "Getting Started" => [
             "install.md",
             "quickstart.md",
+            "samplingcontext.md",
             "mainloop.md",
             "choosing_sampler.md",
+        ],
+        "Concepts" => [
+            "background.md",
+            "distrib.md",
+            "gsmp.md",
+            "shifting.md",
+            "memory_idioms.md",
+            "vas.md",
         ],
         "User Guide" => [
             "integration-guide.md",
@@ -108,7 +117,7 @@ makedocs(;
             "SIR Model" => "sir.md",
             "Birth-death Process" => "constant_birth.md",
             "memory.md",
-            "Gene Expression" => "gene_expression.md",
+            "Assembly Line" => "factory.md",
         ],
         "Statistical Methods" => [
             "commonrandom.md",

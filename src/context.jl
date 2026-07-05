@@ -1,13 +1,83 @@
-export SamplingContext, enable!, fire!, isenabled, freeze_crn!
-export sample_from_distribution!, enabled_history, disabled_history
-export next_delayed, timetype
+# ----------------------------------------------------------------------
+# Watchers
+#
+# The context carries zero or more *observer* middleware (likelihood
+# trackers, debug recorders, ...) in a single heterogeneous `watchers`
+# tuple. All fan-out is compile-time tuple recursion, so an absent
+# watcher costs nothing and a present one is a fully-inlined call.
+#
+# `crn` (common random numbers) and `delayed` are NOT watchers: `crn`
+# is a sampler decorator and `delayed` is per-clock state, so they stay
+# dedicated fields.
+#
+# These helpers are internal; none are exported or public.
+# ----------------------------------------------------------------------
 
-mutable struct SamplingContext{K,T,Sampler<:SSA,RNG,Like,CRN,Dbg,DS}
+# Watchers that want the FULL vector of distributions on a vector-enable
+# (for importance sampling / likelihoods). Everything else receives the
+# single sampled distribution, matching the sampler.
+const LikelihoodWatcher = Union{TrackWatcher, TrajectoryWatcher, PathLikelihoods}
+
+# --- fan-out: enable! -------------------------------------------------
+# `dists` is what a LikelihoodWatcher sees (the full vector on a vector
+# enable, the scalar otherwise); `sampled` is what everyone else sees.
+@inline watch_enable_one!(w::LikelihoodWatcher, clock, dists, sampled, te, when, rng) =
+    enable!(w, clock, dists, te, when, rng)
+@inline watch_enable_one!(w, clock, dists, sampled, te, when, rng) =
+    enable!(w, clock, sampled, te, when, rng)
+
+@inline watch_enable!(::Tuple{}, clock, dists, sampled, te, when, rng) = nothing
+@inline function watch_enable!(ws::Tuple, clock, dists, sampled, te, when, rng)
+    watch_enable_one!(first(ws), clock, dists, sampled, te, when, rng)
+    watch_enable!(Base.tail(ws), clock, dists, sampled, te, when, rng)
+end
+
+# --- fan-out: disable! / fire! / reset! / copy_clocks! ----------------
+@inline watch_disable!(::Tuple{}, clock, when) = nothing
+@inline function watch_disable!(ws::Tuple, clock, when)
+    disable!(first(ws), clock, when)
+    watch_disable!(Base.tail(ws), clock, when)
+end
+
+@inline watch_fire!(::Tuple{}, clock, when) = nothing
+@inline function watch_fire!(ws::Tuple, clock, when)
+    fire!(first(ws), clock, when)
+    watch_fire!(Base.tail(ws), clock, when)
+end
+
+watch_reset!(::Tuple{}) = nothing
+function watch_reset!(ws::Tuple)
+    reset!(first(ws))
+    watch_reset!(Base.tail(ws))
+end
+
+@inline watch_copy_clocks!(::Tuple{}, ::Tuple{}) = nothing
+@inline function watch_copy_clocks!(dst::Tuple, src::Tuple)
+    copy_clocks!(first(dst), first(src))
+    watch_copy_clocks!(Base.tail(dst), Base.tail(src))
+end
+
+# --- compile-time lookup by watcher type ------------------------------
+# Returns the first watcher that is an instance of `U`, or `nothing`.
+# The `isa` checks are on concrete types, so they constant-fold and the
+# result type is inferred exactly (the watcher type or `Nothing`).
+@inline _first_of(::Type{U}, ::Tuple{}) where {U} = nothing
+@inline function _first_of(::Type{U}, ws::Tuple) where {U}
+    first(ws) isa U ? first(ws) : _first_of(U, Base.tail(ws))
+end
+
+# Filter a tuple, dropping `nothing` entries. Used at construction to
+# assemble the watcher tuple from the optional middleware.
+@inline _compact(::Tuple{}) = ()
+@inline _compact(t::Tuple) =
+    first(t) === nothing ? _compact(Base.tail(t)) : (first(t), _compact(Base.tail(t))...)
+
+
+mutable struct SamplingContext{K,T,Sampler<:SSA,RNG,W<:Tuple,CRN,DS}
     sampler::Sampler # The actual sampler (may use internal key type)
     rng::RNG
-    likelihood::Like
+    watchers::W      # Tuple of observer middleware (likelihood, debug, ...)
     crn::CRN
-    debug::Dbg      # Union{Nothing, TrackingState{K_int,T}}
     split_weight::Float64
     time::T
     fixed_start::T
@@ -17,13 +87,62 @@ end
 
 
 """
+    likelihood_of(ctx)
+
+Return the likelihood watcher (`TrackWatcher`/`TrajectoryWatcher`/`PathLikelihoods`)
+held by the context, or `nothing`. Compile-time tuple lookup; type-stable.
+Internal accessor.
+"""
+@inline likelihood_of(ctx::SamplingContext) = _first_of(LikelihoodWatcher, ctx.watchers)
+
+"""
+    debug_of(ctx)
+
+Return the `DebugWatcher` held by the context, or `nothing`. Internal accessor.
+"""
+@inline debug_of(ctx::SamplingContext) = _first_of(DebugWatcher, ctx.watchers)
+
+
+"""
+    internal_key(ctx, clock)
+
+Map a user clock key to the sampler's internal key. Identity for a
+non-delayed context (`DS === Nothing`); `(clock, :regular)` for a delayed
+context. Dispatch-based, so it constant-folds.
+"""
+@inline internal_key(::SamplingContext{K,T,S,R,W,C,Nothing}, clock) where {K,T,S,R,W,C} = clock
+@inline internal_key(::SamplingContext{K,T,S,R,W,C,DS}, clock) where {K,T,S,R,W,C,DS<:DelayedState} = (clock, :regular)
+
+
+"""
+    sampler_enable!(ctx, ikey, dist, te, when)
+
+Enable `ikey` on the underlying sampler, wrapping the draw in common
+random numbers when the context has a CRN recorder. This is the single
+place the CRN branch lives; every enable path routes through here.
+"""
+@inline function sampler_enable!(ctx::SamplingContext, ikey, dist, te, when)
+    crn = ctx.crn
+    if crn !== nothing
+        with_common_rng(crn, ikey, ctx.rng) do wrapped_rng
+            enable!(ctx.sampler, ikey, dist, te, when, wrapped_rng)
+        end
+    else
+        enable!(ctx.sampler, ikey, dist, te, when, ctx.rng)
+    end
+end
+
+
+"""
     SamplingContext(builder::SamplerBuilder, rng)
 
 Uses the [`SamplerBuilder`](@ref) to make a SamplingContext.
 
-`K` is always the *user* key type (`builder.clock_type`). The sampler and
-middleware use an internal key type `K_int` which is equal to `K` for regular
-contexts and `Tuple{K,Symbol}` when `builder.support_delayed == true`.
+`K` is always the *user* key type (`builder.clock_type`). In a delayed context
+(`builder.support_delayed == true`) the public event identity is the tuple
+`(clock, phase)`, with `phase` one of `:regular`, `:initiate`, or `:complete`.
+The sampler and middleware store keys as `K_int`, which is `Tuple{K,Symbol}` for
+delayed contexts and `K` for regular ones.
 """
 function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
@@ -59,11 +178,14 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
         debug = nothing
     end
 
+    # Observer middleware collapses into a single heterogeneous tuple.
+    watchers = _compact((likelihood, debug))
+
     # Delayed state
     delayed_state = builder.support_delayed ? DelayedState{K,T}() : nothing
 
-    SamplingContext{K,T,typeof(sampler),R,typeof(likelihood),typeof(crn),typeof(debug),typeof(delayed_state)}(
-        sampler, rng, likelihood, crn, debug,
+    SamplingContext{K,T,typeof(sampler),R,typeof(watchers),typeof(crn),typeof(delayed_state)}(
+        sampler, rng, watchers, crn,
         1.0, builder.start_time, builder.start_time, 1,
         delayed_state,
     )
@@ -85,16 +207,15 @@ end
     clone(sampling, rng)
 
 Clone a `SamplingContext` as though constructed again, using a new RNG.
-All subcomponents (sampler, likelihood, CRN, debug, delayed state) are cloned.
+All subcomponents (sampler, watchers, CRN, delayed state) are cloned.
 """
-function clone(sc::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS}, rng::RNG) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS}
+function clone(sc::SamplingContext{K,T,Sampler,RNG,W,CRN,DS}, rng::RNG) where {K,T,Sampler,RNG,W,CRN,DS}
     delayed_copy = sc.delayed === nothing ? nothing : clone(sc.delayed)
-    SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS}(
+    SamplingContext{K,T,Sampler,RNG,W,CRN,DS}(
         clone(sc.sampler),
         rng,
-        isnothing(sc.likelihood) ? nothing : clone(sc.likelihood),
+        map(clone, sc.watchers),
         isnothing(sc.crn) ? nothing : clone(sc.crn),
-        isnothing(sc.debug) ? nothing : clone(sc.debug),
         1.0,
         sc.fixed_start,
         sc.fixed_start,
@@ -119,10 +240,11 @@ Choose which element of a vector-of-distributions to sample from when using
 path likelihoods (importance sampling).
 """
 function sample_from_distribution!(ctx::SamplingContext, dist_index)
-    if dist_index > 1 && !(ctx.likelihood isa PathLikelihoods)
+    likelihood = likelihood_of(ctx)
+    if dist_index > 1 && !(likelihood isa PathLikelihoods)
         error("Can't sample from a later distribution unless likelihood_cnt>1 in SamplerBuilder")
     end
-    dist_cnt = _likelihood_cnt(ctx.likelihood)
+    dist_cnt = _likelihood_cnt(likelihood)
     if dist_index ∉ 1:dist_cnt
         error("Expected a distribution index between 1 and $dist_cnt")
     end
@@ -161,144 +283,58 @@ end
 
 
 # ----------------------------------------------------------------------
-# enable! – regular clocks (non-delayed contexts)
+# enable! – regular clocks
+#
+# A single scalar body and a single vector body serve BOTH delayed and
+# non-delayed contexts; `internal_key` folds the (clock, :regular) mapping.
 # ----------------------------------------------------------------------
 
 """
     enable!(ctx, clock, dist, relative_te)
 
-Enable a regular clock in a non-delayed context.
+Enable a regular clock. In a delayed-support context the user key `clock`
+is mapped to the internal key `(clock, :regular)`.
 """
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
-                 clock::K, dist, relative_te::T) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::UnivariateDistribution, relative_te::T) where {K,T}
     when = ctx.time
     te   = when + relative_te
-    ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
-    if ctx.crn !== nothing
-        with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, clock, dist, te, when, wrapped_rng)
-        end
-    else
-        enable!(ctx.sampler, clock, dist, te, when, ctx.rng)
-    end
-    ctx.debug !== nothing && enable!(ctx.debug, clock, dist, te, when, ctx.rng)
+    ikey = internal_key(ctx, clock)
+    watch_enable!(ctx.watchers, ikey, dist, dist, te, when, ctx.rng)
+    sampler_enable!(ctx, ikey, dist, te, when)
 end
 
-
 """
-    enable!(ctx::SamplingContext, clock::K, dist::Vector)
+    enable!(ctx, clock, dist)
 
-Enabling when there is no shift in enabling time and no delayed distributions.
+Enable with no shift in enabling time.
 """
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
-                 clock::K, dist) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::UnivariateDistribution) where {K,T}
     enable!(ctx, clock, dist, zero(T))
 end
-
 
 """
     enable!(ctx, clock, dist::Vector, relative_te)
 
-Vectorized enable in a non-delayed context.
+Vectorized enable (importance sampling). The likelihood watcher receives the
+full vector of distributions while the sampler and other watchers receive the
+selected `dist[sample_idx]`.
 """
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
-                 clock::K, dist::Vector, relative_te::T) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector, relative_te::T) where {K,T}
     when = ctx.time
     te   = when + relative_te
     sample_idx = length(dist) == 1 ? 1 : ctx.sample_distribution
-    ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
-    if ctx.crn !== nothing
-        with_common_rng(ctx.crn, clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, clock, dist[sample_idx], te, when, wrapped_rng)
-        end
-    else
-        enable!(ctx.sampler, clock, dist[sample_idx], te, when, ctx.rng)
-    end
-    ctx.debug !== nothing && enable!(ctx.debug, clock, dist[sample_idx], te, when, ctx.rng)
-end
-
-
-"""
-    enable!(ctx::SamplingContext, clock::K, dist::Vector)
-
-Enabling for a vector of distributions (for importance sampling) when there
-is no shift in enabling time and no delayed distributions.
-"""
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
-                 clock::K, dist::Vector) where {K,T,Sampler,RNG,Like,CRN,Dbg}
-    enable!(ctx, clock, dist, zero(T))
-end
-
-
-# ----------------------------------------------------------------------
-# enable! – regular clocks (delayed contexts)
-# ----------------------------------------------------------------------
-
-"""
-    enable!(ctx, clock, dist, relative_te)
-
-Regular (non-delayed) clock enable in a delayed-support context.
-User key `clock::K` is mapped to internal `(clock, :regular)`.
-"""
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-                 clock::K, dist, relative_te::T) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
-    when = ctx.time
-    te   = when + relative_te
-    internal_clock = (clock, :regular)
-
-    ctx.likelihood !== nothing && enable!(ctx.likelihood, internal_clock, dist, te, when, ctx.rng)
-    if ctx.crn !== nothing
-        with_common_rng(ctx.crn, internal_clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, internal_clock, dist, te, when, wrapped_rng)
-        end
-    else
-        enable!(ctx.sampler, internal_clock, dist, te, when, ctx.rng)
-    end
-    ctx.debug !== nothing && enable!(ctx.debug, internal_clock, dist, te, when, ctx.rng)
+    sampled = dist[sample_idx]
+    ikey = internal_key(ctx, clock)
+    watch_enable!(ctx.watchers, ikey, dist, sampled, te, when, ctx.rng)
+    sampler_enable!(ctx, ikey, sampled, te, when)
 end
 
 """
-    enable!(ctx::SamplingContext, clock::K, dist)
+    enable!(ctx, clock, dist::Vector)
 
-Enabling when there is no shifted enabling time but there are delayed distributions.
+Vectorized enable with no shift in enabling time.
 """
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-                 clock::K, dist) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
-    enable!(ctx, clock, dist, zero(T))
-end
-
-
-"""
-    enable!(ctx, clock, dist::Vector, relative_te)
-
-Vectorized enable for regular clocks in a delayed context.
-"""
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-                 clock::K, dist::Vector, relative_te::T) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
-    when = ctx.time
-    te   = when + relative_te
-    sample_idx = length(dist) == 1 ? 1 : ctx.sample_distribution
-    internal_clock = (clock, :regular)
-
-    ctx.likelihood !== nothing && enable!(ctx.likelihood, internal_clock, dist, te, when, ctx.rng)
-    if ctx.crn !== nothing
-        with_common_rng(ctx.crn, internal_clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, internal_clock, dist[sample_idx], te, when, wrapped_rng)
-        end
-    else
-        enable!(ctx.sampler, internal_clock, dist[sample_idx], te, when, ctx.rng)
-    end
-    ctx.debug !== nothing && enable!(ctx.debug, internal_clock, dist[sample_idx], te, when, ctx.rng)
-end
-
-"""
-    enable!(ctx::SamplingContext, clock::K, dist::Vector)
-
-Enabling when there is a vector of distributions and no shifted enabling time for those distributions
-and there are delayed distributions.
-"""
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-                 clock::K, dist::Vector) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+function enable!(ctx::SamplingContext{K,T}, clock::K, dist::Vector) where {K,T}
     enable!(ctx, clock, dist, zero(T))
 end
 
@@ -319,8 +355,8 @@ Enable a delayed reaction. This:
 
 The `relative_te` shift applies only to the initiation, not the completion.
 """
-function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-                 clock::K, delayed::Delayed, relative_te::T=zero(T)) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+function enable!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS},
+                 clock::K, delayed::Delayed, relative_te::T=zero(T)) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
     # Clean up any existing events for this clock (e.g., if re-enabling during completion phase)
     if haskey(ctx.delayed.durations, clock)
         disable!(ctx, clock)
@@ -332,17 +368,38 @@ function enable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
     # Store duration distribution, not a sampled duration
     ctx.delayed.durations[clock] = delayed.duration
 
-    internal_clock = (clock, :initiate)
+    ikey = (clock, :initiate)
+    watch_enable!(ctx.watchers, ikey, delayed.initiation, delayed.initiation, te, when, ctx.rng)
+    sampler_enable!(ctx, ikey, delayed.initiation, te, when)
+end
 
-    ctx.likelihood !== nothing && enable!(ctx.likelihood, internal_clock, delayed.initiation, te, when, ctx.rng)
-    if ctx.crn !== nothing
-        with_common_rng(ctx.crn, internal_clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, internal_clock, delayed.initiation, te, when, wrapped_rng)
-        end
-    else
-        enable!(ctx.sampler, internal_clock, delayed.initiation, te, when, ctx.rng)
-    end
-    ctx.debug !== nothing && enable!(ctx.debug, internal_clock, delayed.initiation, te, when, ctx.rng)
+"""
+    enable!(ctx, clock, p::Pair, relative_te)
+
+Enable a delayed reaction from a pair of distributions. Writing `d1 => d2`
+builds an ordinary `Pair`, which this method converts to a `Delayed` and
+forwards to the `Delayed` method above. This is how the user-facing syntax
+`enable!(ctx, clock, Exponential(1.0) => Gamma(2.0))` is supported without any
+type piracy on `Base.:(=>)`.
+"""
+function enable!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS},
+                 clock::K, p::Pair{<:UnivariateDistribution,<:UnivariateDistribution},
+                 relative_te::T=zero(T)) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
+    enable!(ctx, clock, Delayed(p), relative_te)
+end
+
+"""
+    enable!(ctx, clock, p::Pair, relative_te)
+
+A `Pair` of distributions specifies a delayed reaction, which this context was
+not built to support. Guard method so the mistake fails at the API boundary
+with a pointer to the fix, instead of deep inside a sampler.
+"""
+function enable!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,Nothing},
+                 clock::K, p::Pair{<:UnivariateDistribution,<:UnivariateDistribution},
+                 relative_te::T=zero(T)) where {K,T,Sampler,RNG,W,CRN}
+    error("A Pair of distributions, initiation => duration, describes a delayed " *
+          "reaction. Create the context with support_delayed=true to use it.")
 end
 
 
@@ -355,11 +412,10 @@ end
 
 Non-delayed context: disable a single clock.
 """
-function disable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing}, clock::K) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+function disable!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,Nothing}, clock::K) where {K,T,Sampler,RNG,W,CRN}
     when = ctx.time
-    ctx.likelihood !== nothing && disable!(ctx.likelihood, clock, when)
+    watch_disable!(ctx.watchers, clock, when)
     disable!(ctx.sampler, clock, when)
-    ctx.debug !== nothing && disable!(ctx.debug, clock, when)
 end
 
 """
@@ -368,20 +424,17 @@ end
 Delayed context: disable all phases associated with `clock` and clear any stored
 duration distribution.
 """
-function disable!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS}, clock::K) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+function disable!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS}, clock::K) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
     when = ctx.time
     for phase in (:regular, :initiate, :complete)
         internal_clock = (clock, phase)
         # Only disable if this phase is actually enabled
         if isenabled(ctx.sampler, internal_clock)
-            ctx.likelihood !== nothing && disable!(ctx.likelihood, internal_clock, when)
+            watch_disable!(ctx.watchers, internal_clock, when)
             disable!(ctx.sampler, internal_clock, when)
-            ctx.debug !== nothing && disable!(ctx.debug, internal_clock, when)
         end
     end
-    if ctx.delayed !== nothing
-        delete!(ctx.delayed.durations, clock)
-    end
+    delete!(ctx.delayed.durations, clock)
 end
 
 
@@ -392,12 +445,34 @@ end
 """
     next(ctx::SamplingContext)
 
-Return `(when, internal_key)` for the next event from the underlying sampler.
-For non-delayed contexts, `internal_key` is the user key. For delayed contexts
-it is the internal key, e.g. `(user_key, phase)`.
+Return `(when, which)` for the next event from the underlying sampler, where
+`which::K` is the user clock key.
+
+The returned `(when, which)` is a *reservation*, not a commitment. It is valid
+only until the next `enable!`, `disable!`, or `fire!` call changes the sampler's
+state. Calling `next` twice without an intervening state change returns valid
+reservations, but they are not guaranteed to be identical across samplers:
+`FirstReaction` redraws on each call, while `CombinedNextReaction` returns the
+same cached reservation. Act on the most recent call's result. The two supported
+responses are to fire it—call `fire!` with the returned clock and time—or to
+decline it and stop the simulation (the fixed-horizon pattern). There is
+deliberately no `peek`.
+
+The underlying sampler requires a time argument that never decreases and never
+advances past a pending event without firing it. The context satisfies this
+automatically: it passes its own current time, which `fire!` keeps equal to the
+last fired event's time.
+
+On a delayed context this method errors; use [`next_delayed`](@ref), which
+returns `(when, clock, phase)`.
 """
-function next(ctx::SamplingContext{K,T}) where {K,T}
+function next(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,Nothing}) where {K,T,Sampler,RNG,W,CRN}
     next(ctx.sampler, ctx.time, ctx.rng)
+end
+
+function next(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS}) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
+    error("On a delayed context an event's identity is (clock, phase), so use " *
+          "next_delayed(), which returns (when, clock, phase).")
 end
 
 """
@@ -407,13 +482,13 @@ For delayed-support contexts, return `(when, which, phase)` where
 `which::K` is the user key and `phase::Symbol` is `:regular`, `:initiate`,
 or `:complete`.
 """
-function next_delayed(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS}) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+function next_delayed(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS}) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
     when, internal_key = next(ctx.sampler, ctx.time, ctx.rng)
     clock, phase = internal_key
     return when, clock::K, phase::Symbol
 end
 
-function next_delayed(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing}) where {K,T,Sampler,RNG,Like,CRN,Dbg}
+function next_delayed(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,Nothing}) where {K,T,Sampler,RNG,W,CRN}
     error("next_delayed() requires support_delayed=true in the SamplerBuilder")
 end
 
@@ -427,11 +502,10 @@ end
 
 Non-delayed context: fire a regular event and advance time.
 """
-function fire!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing},
-               clock::K, when::T) where {K,T,Sampler,RNG,Like,CRN,Dbg}
-    ctx.likelihood !== nothing && fire!(ctx.likelihood, clock, when)
+function fire!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,Nothing},
+               clock::K, when::T) where {K,T,Sampler,RNG,W,CRN}
+    watch_fire!(ctx.watchers, clock, when)
     fire!(ctx.sampler, clock, when)
-    ctx.debug !== nothing && fire!(ctx.debug, clock, when)
     ctx.time = when
 end
 
@@ -440,8 +514,8 @@ end
 
 Delayed context: treat this as a regular (non-delayed) event with phase `:regular`.
 """
-function fire!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-               clock::K, when::T) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+function fire!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS},
+               clock::K, when::T) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
     fire!(ctx, clock, :regular, when)
 end
 
@@ -454,13 +528,12 @@ Delayed context: fire an event with phase information.
 - `phase == :initiate`  : initiation of a delayed reaction; schedules completion
 - `phase == :complete`  : completion of a delayed reaction; clears delayed state
 """
-function fire!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
-               clock::K, phase::Symbol, when::T) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+function fire!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS},
+               clock::K, phase::Symbol, when::T) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
     internal_clock = (clock, phase)
 
-    ctx.likelihood !== nothing && fire!(ctx.likelihood, internal_clock, when)
+    watch_fire!(ctx.watchers, internal_clock, when)
     fire!(ctx.sampler, internal_clock, when)
-    ctx.debug !== nothing && fire!(ctx.debug, internal_clock, when)
 
     if phase === :initiate
         # Look up duration distribution and enable completion
@@ -480,23 +553,15 @@ end
 Internal helper: schedule the completion event for a delayed reaction at time
 `when + X` where `X` is drawn from `duration_dist`.
 """
-function enable_completion!(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS},
+function enable_completion!(ctx::SamplingContext{K,T,Sampler,RNG,W,CRN,DS},
                             clock::K,
                             duration_dist::UnivariateDistribution,
-                            when::T) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
-    internal_clock = (clock, :complete)
-    dist = duration_dist
+                            when::T) where {K,T,Sampler,RNG,W,CRN,DS<:DelayedState{K,T}}
+    ikey = (clock, :complete)
     te   = when   # duration distribution is measured from initiation time
 
-    ctx.likelihood !== nothing && enable!(ctx.likelihood, internal_clock, dist, te, when, ctx.rng)
-    if ctx.crn !== nothing
-        with_common_rng(ctx.crn, internal_clock, ctx.rng) do wrapped_rng
-            enable!(ctx.sampler, internal_clock, dist, te, when, wrapped_rng)
-        end
-    else
-        enable!(ctx.sampler, internal_clock, dist, te, when, ctx.rng)
-    end
-    ctx.debug !== nothing && enable!(ctx.debug, internal_clock, dist, te, when, ctx.rng)
+    watch_enable!(ctx.watchers, ikey, duration_dist, duration_dist, te, when, ctx.rng)
+    sampler_enable!(ctx, ikey, duration_dist, te, when)
 end
 
 
@@ -511,9 +576,8 @@ Clear all enabled clocks (and delayed state if present) and reset time to
 the fixed start time.
 """
 function reset!(ctx::SamplingContext{K,T}) where {K,T}
-    ctx.likelihood !== nothing && reset!(ctx.likelihood)
+    watch_reset!(ctx.watchers)
     reset!(ctx.sampler)
-    ctx.debug !== nothing && reset!(ctx.debug)
     if ctx.delayed !== nothing
         reset!(ctx.delayed)
     end
@@ -530,8 +594,7 @@ destination sampler so it will generate different `next()` samples.
 function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) where {K,T}
     copy_clocks!(dst.sampler, src.sampler)
     jitter!(dst.sampler, src.time, dst.rng)
-    src.likelihood !== nothing && copy_clocks!(dst.likelihood, src.likelihood)
-    src.debug      !== nothing && copy_clocks!(dst.debug, src.debug)
+    watch_copy_clocks!(dst.watchers, src.watchers)
     dst.split_weight = src.split_weight
 
     if (src.delayed !== nothing) && (dst.delayed !== nothing)
@@ -563,11 +626,14 @@ end
 """
     enabled(sampling)
 
-Return the set of enabled clock keys. For delayed contexts this returns the
-*internal* keys, e.g. `(K, Symbol)`.
+Return the set of enabled clock keys. In a delayed context each key is the
+public event identity `(clock, phase)`, with `phase` one of `:regular`,
+`:initiate`, or `:complete`—the same identity that `fire!` takes and
+`next_delayed` returns.
 """
 function enabled(ctx::SamplingContext)
-    ctx.likelihood !== nothing && return enabled(ctx.likelihood)
+    likelihood = likelihood_of(ctx)
+    likelihood !== nothing && return enabled(likelihood)
     return enabled(ctx.sampler)
 end
 
@@ -578,7 +644,8 @@ end
 Total number of enabled clocks.
 """
 function Base.length(ctx::SamplingContext)
-    ctx.likelihood !== nothing && return length(ctx.likelihood)
+    likelihood = likelihood_of(ctx)
+    likelihood !== nothing && return length(likelihood)
     return length(ctx.sampler)
 end
 
@@ -591,8 +658,9 @@ if any phase (`:regular`, `:initiate`, `:complete`) is enabled.
 """
 function isenabled(ctx::SamplingContext{K}, clock::K) where {K}
     if ctx.delayed === nothing
-        if ctx.likelihood !== nothing
-            return isenabled(ctx.likelihood, clock)
+        likelihood = likelihood_of(ctx)
+        if likelihood !== nothing
+            return isenabled(likelihood, clock)
         else
             return isenabled(ctx.sampler, clock)
         end
@@ -623,18 +691,18 @@ timetype(ctx::SamplingContext{K,T}) where {K,T} = T
     steploglikelihood(ctx, when, which)
 
 Step log-likelihood of an event `which` at `when`.
-For delayed contexts, `which` should be the internal key (e.g. `(clock, phase)`).
+In a delayed context, `which` is the public event identity `(clock, phase)`—the
+same identity that `fire!` takes and `next_delayed` returns.
 """
 function steploglikelihood(ctx::SamplingContext, when, which)
-    if ctx.likelihood !== nothing
-        return steploglikelihood(ctx.likelihood, ctx.time, when, which)
+    likelihood = likelihood_of(ctx)
+    if likelihood !== nothing
+        return steploglikelihood(likelihood, ctx.time, when, which)
+    elseif has_steploglikelihood(typeof(ctx.sampler))
+        return steploglikelihood(ctx.sampler, ctx.time, when, which)
     else
-        try
-            return steploglikelihood(ctx.sampler, ctx.time, when, which)
-        catch
-            error("The sampler doesn't support steploglikelihood " *
-                  "unless you request it in the builder.")
-        end
+        error("The sampler doesn't support steploglikelihood " *
+              "unless you request it in the builder.")
     end
 end
 
@@ -647,16 +715,15 @@ event fires after the last event before `endtime`.
 """
 function pathloglikelihood(ctx::SamplingContext, endtime)
     log_split = log(ctx.split_weight)
-    if ctx.likelihood !== nothing
+    likelihood = likelihood_of(ctx)
+    if likelihood !== nothing
         @debug "Using likelihood object for trajectory"
-        return pathloglikelihood(ctx.likelihood, endtime) .+ log_split
+        return pathloglikelihood(likelihood, endtime) .+ log_split
+    elseif has_pathloglikelihood(typeof(ctx.sampler))
+        return pathloglikelihood(ctx.sampler, endtime) .+ log_split
     else
-        try
-            return pathloglikelihood(ctx.sampler, endtime) .+ log_split
-        catch MethodError
-            error("The sampler doesn't support pathloglikelihood " *
-                  "unless you request it in the builder.")
-        end
+        error("The sampler doesn't support pathloglikelihood " *
+              "unless you request it in the builder.")
     end
 end
 
@@ -669,8 +736,9 @@ Returns a `Vector{EnablingEntry{K,T}}` that has every time a clock was enabled.
 See [`CompetingClocks.EnablingEntry`](@ref).
 """
 function enabled_history(ctx::SamplingContext)
-    if !isnothing(ctx.debug)
-        return enabled_history(ctx.debug)
+    debug = debug_of(ctx)
+    if debug !== nothing
+        return enabled_history(debug)
     else
         error("In order to get history of enabling create context with `recording=true`")
     end
@@ -684,8 +752,9 @@ Returns a `Vector{DisablingEntry{K,T}}` that has every time a clock was disabled
 See [`CompetingClocks.DisablingEntry`](@ref).
 """
 function disabled_history(ctx::SamplingContext)
-    if !isnothing(ctx.debug)
-        return disabled_history(ctx.debug)
+    debug = debug_of(ctx)
+    if debug !== nothing
+        return disabled_history(debug)
     else
         error("In order to get history of disabling create context with `recording=true`")
     end

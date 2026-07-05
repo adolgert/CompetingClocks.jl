@@ -2,9 +2,6 @@ using Random: AbstractRNG
 using Distributions: UnivariateDistribution
 import Base: getindex, keys, length, keytype, haskey
 
-export SSA, enable!, disable!, next, copy_clocks!,
-    getindex, keys, length, keytype, reset!
-
 """
     SSA{KeyType,TimeType}
 
@@ -35,8 +32,11 @@ These times are **absolute** since the start of the simulation. The current time
 should be `when`. If you want to shift the distribution so that this event cannot
 happen for a little while then choose `enablingtime > when`. If you want to modify
 the distribution by shifting it left, then choose `enablingtime < when`. Usually,
-`enablingtime == when`. It is also possible to always use `enablingtime == when`
-and use the `truncated()` function to modify distributions.
+`enablingtime == when`. The `truncated()` function from Distributions.jl can make
+the left-shift conditioning explicit, but pair it with the shifted enabling time —
+`enable!(sampler, clock, truncated(dist; lower=age), when - age, when, rng)` —
+because a truncated distribution with `enablingtime == when` measures the
+truncated sample from now, pushing every firing at least `age` into the future.
 """
 function enable!(
     sampler::SSA{K,T},
@@ -69,8 +69,8 @@ the current state of the destination sampler. This is useful for splitting
 techniques where you make copies of a simulation and restart it with different
 random number generators.
 """
-function copy_clocks!(sampler::SSA{K,T}) where {K,T}
-    error("Not implemented for $(typeof(sampler))")
+function copy_clocks!(dst::SSA, src::SSA)
+    error("Not implemented for $(typeof(dst))")
 end
 
 
@@ -114,6 +114,28 @@ end
 
 Ask the sampler for what happens next, in the form of
 `(when, which)::Tuple{TimeType,KeyType}`. `rng` is a random number generator.
+
+The returned `(when, which)` is a *reservation*, not a commitment. It is valid
+only until the next `enable!`, `disable!`, or `fire!` call changes the sampler's
+state. Calling `next` twice without an intervening state change returns valid
+reservations, but they are not guaranteed to be identical across samplers:
+`FirstReaction` redraws on each call, while `CombinedNextReaction` returns the
+same cached reservation. Act on the most recent call's result. The two supported
+responses are to fire it—call `fire!` with the returned clock and time—or to
+decline it and stop the simulation (the fixed-horizon pattern). There is
+deliberately no `peek`.
+
+The `when` argument must not decrease from one call to the next, and must never
+advance past a pending firing time without that event being fired. The time of
+the most recently fired event is always a safe choice. Within this invariant,
+re-querying `next` at a later `when` is legal — this is how `MultiSampler`
+composes sub-samplers: the global minimum event time cannot exceed any
+sub-sampler's pending minimum, so losing sub-samplers are re-queried
+in-contract at the advanced global time. Outside the invariant, samplers
+legitimately disagree: `FirstReaction` re-conditions every clock on survival to
+`when`, while `CombinedNextReaction` returns putative times cached at enabling.
+Within it they agree, because every surviving clock's putative time is at least
+`when`.
 """
 function next(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
     error("Not implemented for $(typeof(sampler))")

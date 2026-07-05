@@ -17,7 +17,7 @@ using SafeTestsets
     @test_throws ErrorException disable!(sampler, 1, 0.0)
     @test_throws ErrorException next(sampler, 0.0, rng)
     @test_throws ErrorException reset!(sampler)
-    @test_throws ErrorException copy_clocks!(sampler)
+    @test_throws ErrorException copy_clocks!(sampler, sampler)
     @test_throws ErrorException clone(sampler)
     @test_throws ErrorException jitter!(sampler, 0.0, rng)
     @test_throws ErrorException sampler[1]

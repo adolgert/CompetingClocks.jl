@@ -12,14 +12,14 @@ a model.
 The discrete case is much easier to understand than the continuous case
 because it can be explained without employing any results from calculus.
 Throughout this section, $\mathbf{X}$ will be assumed to real-valued random
-variable. For example, $\mathbf{X}$ could represent latent periods for
-measles.
+variable. For example, $\mathbf{X}$ could represent dormancy periods
+before a component fault.
 
 It frequently happens that random samples of the real valued variables
 such as $\mathbf{X}$ are actually analyzed on a discrete scale. For example
-Stocks' data on latent periods of measles in
-`latent_period` is based on daily visits
-by patients [Stocks:1931].
+a classic reliability dataset on dormancy periods before a component fault in
+`latent_period` is based on daily inspections
+of units.
 
 The (cumulative) distribution of $\mathbf{X}$ is defined as
 
@@ -36,9 +36,9 @@ f_{X}(k) & =  \mathcal{P}[X=k] \\
 \end{aligned}
 ```
 
-For Stocks' data in `latent_period`, the
+For this reliability data in `latent_period`, the
 density at day $k$ should be interpreted as the probability of the
-appearance of symptoms since the previous visit on day $k-1$.
+appearance of a detectable fault since the previous inspection on day $k-1$.
 
 The *hazard* is defined as the conditional probability that the value of
 a random selection from $\mathbf{X}$ equals $k$ given it this value is
@@ -52,28 +52,28 @@ h_{X}(k) & =  \mathcal{P}[X=k\; |\; k-1<X] \\
 \end{aligned}
 ```
 
-In the case of Stocks' data, the hazards shown in
+In the case of this reliability data, the hazards shown in
 `latent_period_hazard` would correspond to
-the probability of symptoms appearing at day $k$ given that the patient
-had not displayed symptoms at any previous visit. As time goes on,
-patients who have already developed symptoms effectively reduce the pool
-of patients in the study who are still in a state where they might first
-present symptoms on day $k$. This is the origin of the term in the
+the probability of a fault appearing at day $k$ given that the unit
+had not shown a fault at any previous inspection. As time goes on,
+units that have already developed a fault effectively reduce the pool
+of units in the study who are still in a state where they might first
+show a fault on day $k$. This is the origin of the term in the
 denominator.
 
-![Figure 2. Estimated hazards of latent periods for measles in London
-circa 1931](assets/Stocks_hazard.png)
+![Figure 2. Estimated hazards of dormancy periods before a component fault,
+fit with several distributions.](assets/hazard_curves.png)
 
-On any given day, the hazard for latent periods can be interpreted as
-the rate of appearance of symptoms per asymptomatic (infected but not
-yet symptomatic) patient per day. For example, the hazard inferred from
+On any given day, the hazard for dormancy periods can be interpreted as
+the rate of appearance of a detectable fault per fault-free (degrading but not
+yet faulting) unit per day. For example, the hazard inferred from
 the Weibull distribution is approximately $0.15$ on day 10. In other
-words, 15% of the patients that are asymptomatic on day 9 will present
-symptoms when examined on day 10.
+words, 15% of the units that are fault-free on day 9 will show a
+fault when inspected on day 10.
 
-![Figure 3. Each participant of the Stocks study could either become
-symptomatic or leave the study. Focusing on the hazard accounts for the
-effect of those who leave.](assets/stocks_person.png)
+A unit may fault, or be withdrawn from the test before faulting
+(right-censored). Focusing on the hazard accounts for the effect of
+those that are withdrawn.
 
 This interpretation is extremely important because it connects a hazard
 with a rate for a specific process, and that rate has well defined units
@@ -231,9 +231,9 @@ This means our hazard is
 
 $$\lambda_{ij}(\tau)=\frac{q_{ij}(\tau)}{1-\int_0^\tau \sum_k  q_{ik}(s)ds}.$$
 
-For the measles example, the set of future states $j$ of each individual
-include symptomatic and all the possible other ways an individual leaves
-the study, so you can think of $j=\mbox{left town}$. In practice, we
+For the component fault example, the set of future states $j$ of each unit
+include faulting and all the possible other ways a unit leaves
+the study, so you can think of $j=\mbox{withdrawn}$. In practice, we
 build a hazard in two steps. First, count the probability over all time
 for any one eventual state $j$. This is the same stochastic probability
 $\pi_{ij}$ that is seen in Markov chains. Second, measure the
@@ -280,10 +280,6 @@ waiting time, we won't end up needing to relation $\pi_{ij}(\tau)$ to
 $\Pi_{ij}(\tau)$ when finding trajectories or computing hazards, so the
 more complicated relationship won't be a problem.
 
-## References
-
-[Stocks:1931]	P. Stocks, “[Incubation period of measles](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2313639/),” British Medical Journal 1(3655): p. 157.
-
 ## Acknowledgement
 
-This section comes was created by the Analytical Framework for Infectious Disease Dynamics (AFIDD) group at Cornell University in conjunction with the USDA Agricultural Research Service. This work was supported by the Science & Technology Directorate, Department of Homeland Security via interagency agreement no. HSHQDC-10-X-00138.
+This section was created by the AFIDD group at Cornell University in conjunction with the USDA Agricultural Research Service. This work was supported by the Science & Technology Directorate, Department of Homeland Security via interagency agreement no. HSHQDC-10-X-00138.

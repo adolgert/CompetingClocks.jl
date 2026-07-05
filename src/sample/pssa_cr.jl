@@ -58,8 +58,6 @@
 # A. Slepoy, A. P. Thompson, S. J. Plimpton, "A constant-time kinetic Monte Carlo algorithm...", J. Chem. Phys. 128, 205101 (2008).
 #
 
-export PSSACR
-
 """
     PSSACR{KeyType,TimeType}(; ngroups::Int=64)
 
@@ -147,7 +145,7 @@ function copy_clocks!(dst::PSSACR{K,T}, src::PSSACR{K,T}) where {K,T}
     dst.group_max = copy(src.group_max)
     dst.total_rate = src.total_rate
     dst.cached_next = src.cached_next === nothing ? nothing :
-        OrderedSample{K,T}(getfield(src.cached_next, :clock), getfield(src.cached_next, :time))
+        OrderedSample{K,T}(src.cached_next.key, src.cached_next.time)
     return dst
 end
 
@@ -271,8 +269,8 @@ end
 function next(s::PSSACR{K,T}, when::T, rng::AbstractRNG) where {K,T}
     # If cached, return it.
     if s.cached_next !== nothing
-        t = getfield(s.cached_next, :time)
-        k = getfield(s.cached_next, :clock)
+        t = s.cached_next.time
+        k = s.cached_next.key
         return (t, k)
     end
 

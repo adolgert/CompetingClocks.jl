@@ -7,7 +7,7 @@ Importance sampling is a way to steer a simulation towards simulating the condit
 When you apply importance sampling in simulation, the workflow feels like this:
 
 1. **Baseline run:** Simulate under the desired distributions, $p(x)$. If the event is rare, it might not ever happen in your simulations or might happen too few times to get good statistics on it.
-2. **Bias intuition:** Identify which physical parameters or transitions make the event unlikely (e.g., promoter turns off too soon). Modify those rates to define $q(x)$. Try to pick rates that happen once or twice in the simulation, and start with gentle bias.
+2. **Bias intuition:** Identify which physical parameters or transitions make the event unlikely (e.g., machine switches to idle too soon). Modify those rates to define $q(x)$. Try to pick rates that happen once or twice in the simulation, and start with gentle bias.
 3. **Run biased simulations:** Under $q$, the rare event occurs more often.
 4. **Compute path likelihoods:** Using both the *biased* and *true* rates, form $w = p(x)/q(x)$ for each path.
 5. **Reweight results:** Estimate probabilities or expectations with the weighted average.
@@ -71,7 +71,7 @@ Plot log of the weight, $\log_{10}(w)$ or $\log(w/\text{mean}(w))$. You want a u
 
 ### Mixture proposals
 
-Instead of one biased model, use a mixture of proposals. This helps if different regions of state space are rare for different reasons. For the gene example, maybe one proposal distribution keeps the promoter on longer and another emphasizes instead reducing degradation of MRNA. You would make one set of distribution parameters for each case and run your simulation where each set of distribution parameters is used a fraction $\alpha_i$ of the time.
+Instead of one biased model, use a mixture of proposals. This helps if different regions of state space are rare for different reasons. For the assembly-line example, maybe one proposal distribution keeps the machine running longer and another emphasizes instead reducing scrapping of parts. You would make one set of distribution parameters for each case and run your simulation where each set of distribution parameters is used a fraction $\alpha_i$ of the time.
 
 ```math
 q(x) = \sum_i \alpha_i q_i(x)
@@ -143,13 +143,13 @@ The standard estimator.
 
 ### Control variates
 
-If you know some part of the model's behavior exactly (like average promoter activity in our example), then you can leverage it to stabilize the estimate of what you don't know, the rare event probability. The part you know is a *correlated statistic,* $h(x)$, and what you need to know about it is its expectation, $E_p[h]$. Then you can add this into the total expectation without biasing the final estimate.
+If you know some part of the model's behavior exactly (like average machine running time in our example), then you can leverage it to stabilize the estimate of what you don't know, the rare event probability. The part you know is a *correlated statistic,* $h(x)$, and what you need to know about it is its expectation, $E_p[h]$. Then you can add this into the total expectation without biasing the final estimate.
 
 ```math
 \hat{\mu}=\sum_i w_i(f(x_i)-c(h(x_i)-E_p[h])).
 ```
 
-A good choice of control variate has a strong linear correlation with your outcome, such as producing a lot of proteins in our example. It has a known, or easy-to-calculate, expected value. It doesn't have wild swings itself which could amplify noise rather than decrease it.
+A good choice of control variate has a strong linear correlation with your outcome, such as producing a lot of widgets in our example. It has a known, or easy-to-calculate, expected value. It doesn't have wild swings itself which could amplify noise rather than decrease it.
 
 This technique is often overlooked and can be powerful.
 

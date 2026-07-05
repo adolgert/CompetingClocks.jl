@@ -1,9 +1,6 @@
 using Random: rand, AbstractRNG
 using Distributions: Uniform, Exponential, rate
 
-export DirectCall, enable!, disable!, next, enabled, DirectCallExplicit, clone
-
-
 """
     DirectCall{KeyType,TimeType,TreeType}()
 

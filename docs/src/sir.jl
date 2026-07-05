@@ -4,6 +4,7 @@ using Random
 using Plots
 using Distributions
 using CompetingClocks
+using CompetingClocks: SSA, CombinedNextReaction
 
 # In this tutorial we demonstrate construction of a SIR (susceptible-infectious-removed) model
 # with non-exponential recovery times. Infection events occur at the points of a Poisson process,

@@ -3,6 +3,7 @@ using SafeTestsets
 @safetestset track_trajectory_comparison = "TrajectoryWatcher comparison" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(BigInt(2576889945234392378678934324582349))
     watcher = TrajectoryWatcher{Int64,Float64}()
@@ -34,6 +35,7 @@ end
 @safetestset track_trajectory_gamma = "TrajectoryWatcher compare gamma" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(BigInt(2123459945234392378678934324582349))
     watcher = TrajectoryWatcher{Int64,Float64}()
@@ -62,6 +64,7 @@ end
 @safetestset track_trajectory_compete = "TrajectoryWatcher compare compete" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(BigInt(2123459945234392378678934324582349))
     watcher = TrajectoryWatcher{Int64,Float64}()
@@ -95,6 +98,7 @@ end
 @safetestset trajectory_clone = "TrajectoryWatcher clone" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(1234)
     watcher = TrajectoryWatcher{Int64,Float64}()
@@ -114,6 +118,7 @@ end
 @safetestset trajectory_copy_clocks = "TrajectoryWatcher copy_clocks!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(5678)
 
@@ -139,6 +144,7 @@ end
 @safetestset trajectory_reset = "TrajectoryWatcher reset!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(9012)
 
@@ -163,6 +169,7 @@ end
     using Distributions
     using DataStructures
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(BigInt(212345994379212378678934324582349))
     watcher = TrajectoryWatcher{Int64,Float64}()
@@ -217,6 +224,7 @@ end
 @safetestset pathlikelihoods_basic = "PathLikelihoods basic operations" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(1234)
 
@@ -246,6 +254,7 @@ end
 @safetestset pathlikelihoods_clone = "PathLikelihoods clone" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(5678)
 
@@ -263,6 +272,7 @@ end
 @safetestset pathlikelihoods_copy_clocks = "PathLikelihoods copy_clocks!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(9012)
 
@@ -287,6 +297,7 @@ end
 @safetestset pathlikelihoods_reset = "PathLikelihoods reset!" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(3456)
 
@@ -310,6 +321,7 @@ end
 @safetestset pathlikelihoods_vs_trajectory_single = "PathLikelihoods matches TrajectoryWatcher with single dist" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(7890)
 
@@ -352,6 +364,7 @@ end
 @safetestset pathlikelihoods_vs_trajectory_chain = "PathLikelihoods matches TrajectoryWatcher chain" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
 
     rng = Xoshiro(BigInt(2576889945234392378678934324582349))
@@ -379,6 +392,7 @@ end
 @safetestset pathlikelihoods_vs_trajectory_compete = "PathLikelihoods matches TrajectoryWatcher compete" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
 
     rng = Xoshiro(BigInt(2123459945234392378678934324582349))
@@ -412,6 +426,7 @@ end
 @safetestset pathlikelihoods_vector_distributions = "PathLikelihoods with vector distributions" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(1357)
 
@@ -447,6 +462,7 @@ end
 @safetestset pathlikelihoods_vector_disable = "PathLikelihoods vector distributions disable" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(2468)
 
@@ -475,6 +491,7 @@ end
 @safetestset pathlikelihoods_mixed_single_vector = "PathLikelihoods mixed single and vector" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(3579)
 
@@ -514,6 +531,7 @@ end
 @safetestset pathlikelihoods_shifted_te = "PathLikelihoods with shifted enabling time" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(4680)
 
@@ -545,6 +563,7 @@ end
 @safetestset pathlikelihoods_remaining_clocks = "PathLikelihoods remaining clocks in pathloglikelihood" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(5791)
 
@@ -569,6 +588,7 @@ end
 @safetestset pathlikelihoods_pathloglikelihood_before_curtime = "PathLikelihoods pathloglikelihood when <= curtime" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(6802)
 
@@ -590,6 +610,7 @@ end
 @safetestset pathlikelihoods_error_disable_not_enabled = "PathLikelihoods error on disable not enabled" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(7913)
 
@@ -603,6 +624,7 @@ end
 @safetestset pathlikelihoods_error_fire_not_enabled = "PathLikelihoods error on fire not enabled" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(8024)
 
@@ -616,6 +638,7 @@ end
 @safetestset trajectory_error_disable_not_enabled = "TrajectoryWatcher error on disable not enabled" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(9135)
 
@@ -629,6 +652,7 @@ end
 @safetestset trajectory_error_fire_not_enabled = "TrajectoryWatcher error on fire not enabled" begin
     using Distributions
     using CompetingClocks
+    using CompetingClocks: PathLikelihoods, TrajectoryWatcher
     using Random
     rng = Xoshiro(1024)
 

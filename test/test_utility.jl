@@ -5,6 +5,7 @@ module SampleVAS
 using Combinatorics
 using Distributions
 using CompetingClocks
+using CompetingClocks: DebugWatcher
 export sample_transitions, sample_sir, TrackerSampler, enable!, disable!
 function sample_transitions()
     all = [

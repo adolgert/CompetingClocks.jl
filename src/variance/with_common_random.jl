@@ -1,5 +1,3 @@
-export CommonRandom, misses, misscount, reset_crn!
-
 """
 Continuation/Functional Pattern
 
@@ -38,9 +36,8 @@ Continuation/Functional Pattern
           enable!(ctx.sampler, clock, dist, te, when, ctx.rng)
       end
 
-      # Other components use base RNG
-      ctx.likelihood !== nothing && enable!(ctx.likelihood, clock, dist, te, when, ctx.rng)
-      ctx.debug !== nothing && enable!(ctx.debug, clock, dist, te, when, ctx.rng)
+      # Observer watchers use the base RNG (fanned out over the watcher tuple).
+      watch_enable!(ctx.watchers, clock, dist, dist, te, when, ctx.rng)
   end
 """
 mutable struct CommonRandom{K,RNG}

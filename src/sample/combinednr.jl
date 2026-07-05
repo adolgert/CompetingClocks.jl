@@ -1,9 +1,6 @@
 
 using DataStructures: MutableBinaryHeap, update!
 
-export sampling_space
-export CombinedNextReaction, enabled
-
 """
 This function decides whether a particular distribution can be sampled faster
 and more accurately using its cumulative distribution function or using
@@ -144,7 +141,6 @@ function CombinedNextReaction{K,T}() where {K,T<:ContinuousTime}
 end
 
 clone(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}()
-export clone
 
 function reset!(nr::CombinedNextReaction)
     empty!(nr.firing_queue)
@@ -184,21 +180,16 @@ end
 
 @doc raw"""
 For the first reaction sampler, you can call next() multiple times and get
-different, valid, answers. That isn't the case here. When you call next()
-on a CombinedNextReaction sampler, it returns the key associated with the
-clock that fires and marks that clock as fired. Calling next() again would
-return a nonsensical value.
+different, valid, answers. For a CombinedNextReaction sampler, next() is
+non-mutating: it reads the minimum entry of the firing queue and returns it
+without changing any internal state and without consuming any random numbers.
+Repeated calls to next(), with no intervening enable!, disable!, or fire!,
+return the same cached reservation. Committing to a firing is done separately
+by calling fire!.
 """
 function next(nr::CombinedNextReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
     if !isempty(nr.firing_queue)
         least = first(nr.firing_queue)
-        # For this sampler, mark this transition as the one that will fire
-        # by marking its remaining cumulative time as 0.0.
-        entry = nr.transition_entry[least.key]
-        nr.transition_entry[least.key] = NRTransition{T}(
-            entry.heap_handle, get_survival_zero(entry.distribution),
-            entry.distribution, entry.te, entry.t0
-        )
         return (least.time, least.key)
     else
         # Return type is Tuple{Float64, Union{Nothing,T}} because T is not default-constructible.
@@ -359,7 +350,31 @@ function enable!(
 end
 
 
-fire!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime} = disable!(nr, clock, when)
+@doc raw"""
+    fire!(nr::CombinedNextReaction, clock, when)
+
+Commit to firing `clock` at time `when`. This removes the clock from the firing
+queue and consumes its draw completely by setting its stored survival to the
+zero of its sampling space (`0.0` for linear space, `-Inf` for log space). As a
+result, re-enabling this clock later takes the fresh-redraw branch of `enable!`,
+which is the correct behavior for a draw that has been fully consumed by firing.
+
+This differs from `disable!`, which preserves the clock's *remaining* survival
+so that a later re-enable can reuse the draw (the Anderson/Gibson-Bruck
+draw-reuse property).
+"""
+function fire!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime}
+    record = nr.transition_entry[clock]
+    delete!(nr.firing_queue, record.heap_handle)
+    nr.transition_entry[clock] = NRTransition{T}(
+        0,
+        get_survival_zero(sampling_space(record.distribution)),
+        record.distribution,
+        record.te,
+        when
+    )
+    nothing
+end
 
 
 function disable!(nr::CombinedNextReaction{K,T}, clock::K, when::T) where {K,T<:ContinuousTime}

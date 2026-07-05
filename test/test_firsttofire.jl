@@ -26,6 +26,7 @@ end
 
 @safetestset FirstToFire_interface = "FirstToFire basic interface" begin
     using CompetingClocks
+    using CompetingClocks: FirstToFire, jitter!
     using Distributions
     using Random: Xoshiro
 

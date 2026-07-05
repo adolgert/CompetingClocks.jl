@@ -3,7 +3,9 @@ using SafeTestsets
 
 module MultiSamplerHelp
 using CompetingClocks
+using CompetingClocks: DirectCall, FirstToFire, MultiSampler, SamplerChoice, choose_sampler, jitter!
 using Distributions: Exponential, UnivariateDistribution
+using Random: AbstractRNG
 
 struct ByDistribution <: SamplerChoice{Int64,Int64} end
 
@@ -28,6 +30,20 @@ function CompetingClocks.choose_sampler(
     else
         return "slow"
     end
+end
+
+# A mock sampler that records the `when` argument it is queried with in `next`
+# and returns a fixed (time, key). Used to verify time propagation in
+# MultiSampler.next.
+mutable struct WhenRecorder{K,T} <: CompetingClocks.SSA{K,T}
+    recorded::T
+    fire_time::T
+    fire_key::K
+end
+
+function CompetingClocks.next(s::WhenRecorder{K,T}, when::T, rng::AbstractRNG) where {K,T}
+    s.recorded = when
+    return (s.fire_time, s.fire_key)
 end
 end
 
@@ -285,4 +301,32 @@ end
 
     chooser = NoImplementation()
     @test_throws MissingException choose_sampler(chooser, 1, Exponential(1.0))
+end
+
+
+@safetestset multisampler_next_time_propagation = "MultiSampler next time propagation" begin
+    using Random: Xoshiro
+    using CompetingClocks: MultiSampler, next
+    using ..MultiSamplerHelp: ByDistribution, WhenRecorder
+
+    # Two sub-samplers, each recording the `when` it is queried with. They
+    # return different fixed firing times, so the loop's `least_when` changes
+    # between iterations. The bug reassigned `when`, causing the second
+    # sub-sampler to be queried with the first's firing time.
+    sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
+    rec1 = WhenRecorder{Int64,Float64}(NaN, 3.0, 11)
+    rec2 = WhenRecorder{Int64,Float64}(NaN, 7.0, 22)
+    sampler[1] = rec1
+    sampler[2] = rec2
+
+    rng = Xoshiro(12345)
+    current_time = 5.0
+    when, which = next(sampler, current_time, rng)
+
+    # Both sub-samplers must have been queried with the true current time.
+    @test rec1.recorded == current_time
+    @test rec2.recorded == current_time
+    # The soonest firing time is returned.
+    @test when == 3.0
+    @test which == 11
 end

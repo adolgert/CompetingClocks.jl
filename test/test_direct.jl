@@ -20,6 +20,7 @@ end
 
 @safetestset DirectCall_interface = "DirectCall basic interface" begin
     using CompetingClocks
+    using CompetingClocks: DirectCall, DirectCallExplicit, jitter!
     using Random: Xoshiro
     using Distributions
 
@@ -156,6 +157,7 @@ end
 # Direct methods.
 @safetestset direct_call_multi_erlang = "DirectCall ErlangLoss comparison" begin
     using CompetingClocks
+    using CompetingClocks: DirectCall, DirectCallExplicit, jitter!
     using CompetingClocks: KeyedRemovalPrefixSearch, KeyedKeepPrefixSearch, BinaryTreePrefixSearch, CumSumPrefixSearch
     using Random: Xoshiro
     using Distributions: Exponential

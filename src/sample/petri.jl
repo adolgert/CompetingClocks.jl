@@ -1,12 +1,17 @@
-export Petri
-
 """
-    Petri{KeyType,TimeType}()
+    Petri{KeyType,TimeType}(dt=1.0)
 
-If you want to test a simulation, it can be helpful to test unlikely events.
-This sampler adopts the Petri net rule for which clock fires next: it's randomly
-chosen among all enabled events. The returned time is always the previous time
-plus one.
+A chaos-monkey sampler for smoke-testing. It ignores the clocks'
+distributions entirely and picks the next clock to fire uniformly at random
+among all currently enabled clocks, advancing time by a fixed step `dt`
+(default `1.0`). It's called "Petri" because a Petri net model always chooses
+the next event at random.
+
+Because it drives a simulation through improbable event orderings that a
+distribution-weighted sampler would rarely produce, it is useful for checking
+that a simulation's enable/disable bookkeeping doesn't crash under unlikely
+sequences of events. See [`PetriMethod`](@ref) to select it through the
+builder interface.
 """
 mutable struct Petri{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}

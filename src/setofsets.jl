@@ -1,5 +1,3 @@
-export SetOfSets
-
 """
     SetOfSets{K,T<:AbstractSet{K}} <: AbstractSet{K}
 

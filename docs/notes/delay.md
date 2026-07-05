@@ -16,7 +16,7 @@ Some examples of each type are below (we want to be able to implement each one):
   5. State-dependent delay with state-independent interruption: Consider the damselfly model of [4]; a larvae's maturation delay $\tau(X)$ depends on the density of other larvae as they compete for a resource, but maturing larvae also suffer constant per-capita mortality $\mu$.
   6. State-dependent delay with state-dependent interruption: Consider complicating the damselfly model by making larval mortality state dependent, perhaps by introducing a predator class or cannibalism among the larvae.
 
-Perhaps it would be really nice to have a single model where we could walk from type 1 to type 6, but I can't think of an example that isn't extremely artifical (e.g. infectious persons eating each other).
+Perhaps it would be really nice to have a single model where we could walk from type 1 to type 6, but I can't think of an example that isn't extremely artifical (e.g. predators consuming prey).
 
 ## Delay chemical master equation
 

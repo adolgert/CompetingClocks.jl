@@ -1,9 +1,3 @@
-using InteractiveUtils
-
-export available_samplers, PetriMethod
-export NextReactionMethod, DirectMethod, FirstReactionMethod, FirstToFireMethod
-export RejectionMethod, PartialPropensityMethod
-
 # Define types a user can choose to specify which sampler they want.
 # We make these auxiliary types so that the inner methods can be configurable
 # without introducing lots of complexity.
@@ -28,15 +22,15 @@ struct NextReactionMethod <: SamplerSpec end
 """
     DirectMethod()
     DirectMethod(memory::Symbol, search::Symbol)
-    DirectMethod(:keep, :scan)
+    DirectMethod(:keep, :array)
     DirectMethod(:keep, :tree)
-    DirectMethod(:remove, :scan)
+    DirectMethod(:remove, :array)
     DirectMethod(:remove, :tree)
 
 Use this to specify any Direct method for Exponential distributions. Defaults
 to `memory=:remove` so it limits memory growth over time but `memory=:keep`
 will be faster if the space of clock keys is limited. Defaults to
-`search=:tree` for best performance for many enabled clocks but `search=:scan`
+`search=:tree` for best performance for many enabled clocks but `search=:array`
 is faster for small numbers of clocks. The different kinds of methods, like
 "Optimized Direct Methods" amount to using different computer science techniques
 for scanning sums of hazard rates, and that's what the `search` algorithm lets
@@ -153,11 +147,35 @@ end
 (ss::PetriMethod)(K, T) = Petri{K,T}(ss.dt)
 
 
+# The concrete SamplerSpec types. When you add a new SamplerSpec, add it here
+# so that it shows up in `available_samplers()`.
+const SAMPLER_SPECS = (
+    NextReactionMethod,
+    DirectMethod,
+    FirstReactionMethod,
+    FirstToFireMethod,
+    RejectionMethod,
+    PartialPropensityMethod,
+    PetriMethod,
+)
+
+# Read a type's docstring straight from this module's documentation metadata.
+# We avoid `Base.Docs.doc`, whose method for types is provided by the `REPL`
+# stdlib and would therefore only work when REPL (or Documenter) happens to be
+# loaded. Reading the stored `DocStr` text keeps `available_samplers()` working
+# in a bare `using CompetingClocks` session.
+function _spec_docstring(spec_type)
+    binding = Base.Docs.Binding(@__MODULE__, nameof(spec_type))
+    multidoc = get(Base.Docs.meta(@__MODULE__), binding, nothing)
+    multidoc === nothing && return ""
+    return join((join(docstr.text) for docstr in values(multidoc.docs)), "\n")
+end
+
 """
     available_samplers()
 
 Returns a list of docstrings for all available samplers.
 """
 function available_samplers()
-    return [string(Base.Docs.doc(atype)) for atype in InteractiveUtils.subtypes(SamplerSpec)]
+    return [_spec_docstring(atype) for atype in SAMPLER_SPECS]
 end
