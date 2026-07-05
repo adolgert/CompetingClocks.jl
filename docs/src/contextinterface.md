@@ -7,6 +7,13 @@ CompetingClocks.SamplingContext(::Type{K}, ::Type{T}, rng::R; kwargs...) where {
 CompetingClocks.SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 CompetingClocks.SamplerBuilder
 CompetingClocks.add_group!
+CompetingClocks.available_samplers
+```
+
+## Distributions
+
+```@docs
+CompetingClocks.Never
 ```
 
 ## Choosing Sampler Methods

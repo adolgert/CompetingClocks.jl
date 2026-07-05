@@ -83,15 +83,24 @@ makedocs(;
     modules=[CompetingClocks],
     authors="Andrew Dolgert <adolgert@uw.edu>",
     sitename="CompetingClocks.jl Documentation",
-    checkdocs=:none,  # Don't require all internal methods to be documented
+    checkdocs=:exports,  # Require every exported name's docstring to appear in the manual
     format=format,
     pages=[
         "Home" => "index.md",
         "Getting Started" => [
             "install.md",
             "quickstart.md",
+            "samplingcontext.md",
             "mainloop.md",
             "choosing_sampler.md",
+        ],
+        "Concepts" => [
+            "background.md",
+            "distrib.md",
+            "gsmp.md",
+            "shifting.md",
+            "memory_idioms.md",
+            "vas.md",
         ],
         "User Guide" => [
             "integration-guide.md",

@@ -32,8 +32,11 @@ These times are **absolute** since the start of the simulation. The current time
 should be `when`. If you want to shift the distribution so that this event cannot
 happen for a little while then choose `enablingtime > when`. If you want to modify
 the distribution by shifting it left, then choose `enablingtime < when`. Usually,
-`enablingtime == when`. It is also possible to always use `enablingtime == when`
-and use the `truncated()` function to modify distributions.
+`enablingtime == when`. The `truncated()` function from Distributions.jl can make
+the left-shift conditioning explicit, but pair it with the shifted enabling time —
+`enable!(sampler, clock, truncated(dist; lower=age), when - age, when, rng)` —
+because a truncated distribution with `enablingtime == when` measures the
+truncated sample from now, pushing every firing at least `age` into the future.
 """
 function enable!(
     sampler::SSA{K,T},

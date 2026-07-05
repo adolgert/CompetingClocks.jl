@@ -58,4 +58,9 @@ The initial clock isn't hidden from the user because some simulations need to be
  - Common random numbers and likelihoods are compatible with delayed clocks.
  - There isn't support for using arrays of distributions for vectorized importance sampling.
  - If you check for enabled clocks with `enabled`, each key is the public event identity `(clock, phase)`.
- 
+
+## Reference
+
+```@docs
+CompetingClocks.Delayed
+```

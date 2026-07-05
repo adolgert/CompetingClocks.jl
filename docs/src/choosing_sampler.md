@@ -70,6 +70,12 @@ right. The right column is the developer-level type, reachable as
 | `FirstReactionMethod`         | `CompetingClocks.FirstReaction`       |
 | `PetriMethod`                 | `CompetingClocks.Petri`               |
 
+!!! note "Time-varying hazard rates"
+    Samplers that continuously track a time-inhomogeneous hazard (tRSSA-style
+    bounded rates) are deferred, not denied. In the meantime, re-enabling a clock
+    with a shifted enabling time covers many cases where a rate changes at discrete
+    events. See [Re-enabling and Memory](memory_idioms.md) for the three idioms.
+
 
 ## Hierarchical Samplers
 

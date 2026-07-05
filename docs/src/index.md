@@ -49,9 +49,10 @@ The library provides you with samplers. Each sampler has the same interface. Her
 
 ## When NOT to use Competing Clocks
 
- * **Pure exponential distributions and chemical systems?** JumpProcesses.jl is a complete framework for this.
- * **Need ODE coupling?** Again, it's easier to stay within SciML and JumpProcesses.jl. CompetingClocks.jl supports ODEs as Dirac distributions.
+ * **Need ODE coupling?** If a firing rate is coupled to a continuously-evolving ODE state, it's easier to stay within SciML and [JumpProcesses.jl](https://docs.sciml.ai/JumpProcesses/stable/). Fixed delays are supported here via Dirac distributions (see [delayed reactions](delayed.md)); coupling a full ODE state to a firing time is future work, tracked in [issue #45](https://github.com/adolgert/CompetingClocks.jl/issues/45).
  * **Want high-level frameworks?** Try [Agents.jl](https://juliadynamics.github.io/Agents.jl/stable/) or [ConcurrentSim.jl](https://juliadynamics.github.io/ConcurrentSim.jl/stable/).
+
+You do *not* have to leave for a pure-exponential or chemical-kinetics model. You should be able to write your simulation once, expressively, whether or not every clock is exponential, and a hazard-rate-only interface is rarely the fastest way to sample a distribution. The pointer to JumpProcesses.jl above is for users who need ODE coupling or the rest of the SciML ecosystem, not a suggestion that exponential clocks belong elsewhere.
 
 CompetingClocks.jl is for:
 
