@@ -56,6 +56,8 @@ end
 You tell it what *could* happen with `enable!()`, ask what happens `next()`,
 and decide what you want to `fire!()`. Why is `next()` separate from `fire!()`?
 So that you can stop a simulation at a fixed time rather than after an event.
+The event `next()` returns is a reservation that stays valid until your next
+`enable!()`, `disable!()`, or `fire!()`, so you can inspect it before deciding.
 
 ## Next Steps
 

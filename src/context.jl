@@ -17,9 +17,11 @@ end
 
 Uses the [`SamplerBuilder`](@ref) to make a SamplingContext.
 
-`K` is always the *user* key type (`builder.clock_type`). The sampler and
-middleware use an internal key type `K_int` which is equal to `K` for regular
-contexts and `Tuple{K,Symbol}` when `builder.support_delayed == true`.
+`K` is always the *user* key type (`builder.clock_type`). In a delayed context
+(`builder.support_delayed == true`) the public event identity is the tuple
+`(clock, phase)`, with `phase` one of `:regular`, `:initiate`, or `:complete`.
+The sampler and middleware store keys as `K_int`, which is `Tuple{K,Symbol}` for
+delayed contexts and `K` for regular ones.
 """
 function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
     K = builder.clock_type
@@ -417,12 +419,27 @@ end
 """
     next(ctx::SamplingContext)
 
-Return `(when, internal_key)` for the next event from the underlying sampler.
-For non-delayed contexts, `internal_key` is the user key. For delayed contexts
-it is the internal key, e.g. `(user_key, phase)`.
+Return `(when, which)` for the next event from the underlying sampler, where
+`which::K` is the user clock key.
+
+The returned `(when, which)` is a *reservation*, not a commitment. It is valid
+only until the next `enable!`, `disable!`, or `fire!` call changes the sampler's
+state. Calling `next` twice without an intervening state change is undefined:
+`CombinedNextReaction`'s `next` mutates internal sampler state. The two supported
+responses are to fire it—call `fire!` with the returned clock and time—or to
+decline it and stop the simulation (the fixed-horizon pattern). There is
+deliberately no `peek`.
+
+On a delayed context this method errors; use [`next_delayed`](@ref), which
+returns `(when, clock, phase)`.
 """
-function next(ctx::SamplingContext{K,T}) where {K,T}
+function next(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,Nothing}) where {K,T,Sampler,RNG,Like,CRN,Dbg}
     next(ctx.sampler, ctx.time, ctx.rng)
+end
+
+function next(ctx::SamplingContext{K,T,Sampler,RNG,Like,CRN,Dbg,DS}) where {K,T,Sampler,RNG,Like,CRN,Dbg,DS<:DelayedState{K,T}}
+    error("On a delayed context an event's identity is (clock, phase), so use " *
+          "next_delayed(), which returns (when, clock, phase).")
 end
 
 """
@@ -588,8 +605,10 @@ end
 """
     enabled(sampling)
 
-Return the set of enabled clock keys. For delayed contexts this returns the
-*internal* keys, e.g. `(K, Symbol)`.
+Return the set of enabled clock keys. In a delayed context each key is the
+public event identity `(clock, phase)`, with `phase` one of `:regular`,
+`:initiate`, or `:complete`—the same identity that `fire!` takes and
+`next_delayed` returns.
 """
 function enabled(ctx::SamplingContext)
     ctx.likelihood !== nothing && return enabled(ctx.likelihood)
@@ -648,7 +667,8 @@ timetype(ctx::SamplingContext{K,T}) where {K,T} = T
     steploglikelihood(ctx, when, which)
 
 Step log-likelihood of an event `which` at `when`.
-For delayed contexts, `which` should be the internal key (e.g. `(clock, phase)`).
+In a delayed context, `which` is the public event identity `(clock, phase)`—the
+same identity that `fire!` takes and `next_delayed` returns.
 """
 function steploglikelihood(ctx::SamplingContext, when, which)
     if ctx.likelihood !== nothing

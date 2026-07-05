@@ -408,3 +408,53 @@ end
     @test err isa ErrorException
     @test occursin("support_delayed", err.msg)
 end
+
+
+@safetestset plain_next_on_delayed_errors = "plain next() on a delayed context points to next_delayed" begin
+    using CompetingClocks
+    using Distributions: Exponential
+    using Random: Xoshiro
+
+    # A delayed context speaks the public identity (clock, phase). Plain next()
+    # would leak raw internal (clock, phase) keys, so it must error and point the
+    # user at next_delayed(), which returns (when, clock, phase).
+    rng = Xoshiro(55123)
+    builder = SamplerBuilder(Symbol, Float64;
+                             support_delayed = true,
+                             method = FirstToFireMethod())
+    ctx = SamplingContext(builder, rng)
+
+    enable!(ctx, :recover, Exponential(1.0))
+
+    err = try
+        next(ctx)
+        nothing
+    catch e
+        e
+    end
+    @test err isa ErrorException
+    @test occursin("next_delayed", err.msg)
+end
+
+
+@safetestset enabled_on_delayed_returns_pairs = "enabled() on a delayed context returns (clock, phase) tuples" begin
+    using CompetingClocks
+    using Distributions: Exponential
+    using Random: Xoshiro
+
+    # enabled() reports the public event identity (clock, phase). With a single
+    # regular clock enabled via a plain distribution, the phase is :regular.
+    rng = Xoshiro(66234)
+    builder = SamplerBuilder(Symbol, Float64;
+                             support_delayed = true,
+                             method = FirstToFireMethod())
+    ctx = SamplingContext(builder, rng)
+
+    enable!(ctx, :walk, Exponential(1.0))
+
+    keys = enabled(ctx)
+    @test length(keys) == 1
+    key = first(keys)
+    @test key isa Tuple{Symbol,Symbol}
+    @test key == (:walk, :regular)
+end

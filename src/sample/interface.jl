@@ -111,6 +111,14 @@ end
 
 Ask the sampler for what happens next, in the form of
 `(when, which)::Tuple{TimeType,KeyType}`. `rng` is a random number generator.
+
+The returned `(when, which)` is a *reservation*, not a commitment. It is valid
+only until the next `enable!`, `disable!`, or `fire!` call changes the sampler's
+state. Calling `next` twice without an intervening state change is undefined:
+`CombinedNextReaction`'s `next` mutates internal sampler state. The two supported
+responses are to fire it—call `fire!` with the returned clock and time—or to
+decline it and stop the simulation (the fixed-horizon pattern). There is
+deliberately no `peek`.
 """
 function next(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
     error("Not implemented for $(typeof(sampler))")
