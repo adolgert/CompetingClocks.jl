@@ -91,19 +91,19 @@ The verdict matrix from that run, one `DM/AD/MK` glyph triple per cell
 `-` condition excluded for that sampler):
 
 | sampler | exp/f/cyc | exp/f/cmp | exp/r/cyc | exp/r/cmp | wbl/f/cyc | wbl/f/cmp | wbl/r/cyc | wbl/r/cmp | shf/f/cyc | shf/f/cmp | shf/r/cyc | shf/r/cmp |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| FirstReactionMethod (null control) | X.. | ... | X~. | ... | ... | X.. | .X. | ... | ..X | ... | ... | .~. |
-| NextReactionMethod | X.. | ... | ... | ... | ... | ... | ~.. | ... | ... | .X. | ... | ... |
-| FirstToFireMethod | ..~ | ... | .~. | .~. | ... | ... | ... | ... | ... | ... | ... | ... |
-| DirectMethod(:keep,:array) | ... | .X. | ... | ... | - | - | - | - | - | - | - | - |
-| DirectMethod(:keep,:tree) | ... | ..X | ... | ... | - | - | - | - | - | - | - | - |
-| DirectMethod(:remove,:array) | ... | ... | ... | ... | - | - | - | - | - | - | - | - |
-| DirectMethod(:remove,:tree) | ... | ... | ... | ..~ | - | - | - | - | - | - | - | - |
-| RejectionMethod (RSSA) | ... | ..X | ... | ... | - | - | - | - | - | - | - | - |
-| PartialPropensityMethod (PSSACR) | ... | .X. | ... | X~. | - | - | - | - | - | - | - | - |
-| MultiSampler(all⇒CNR) | ... | ... | ~.. | ... | ... | ..X | ... | X.. | ... | ... | ... | ... |
-| MultiSampler(even⇒CNR, odd⇒CNR) | ... | ... | ..X | ..X | ... | ... | ... | X~. | X.. | ... | X.. | ~.. |
-| MultiSampler(even⇒CNR, odd⇒FirstToFire) | ..~ | ... | ... | ... | ... | ... | ... | ... | ..X | ... | ... | ~.. |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| FirstReactionMethod (null control) | `X..` | `...` | `X~.` | `...` | `...` | `X..` | `.X.` | `...` | `..X` | `...` | `...` | `.~.` |
+| NextReactionMethod | `X..` | `...` | `...` | `...` | `...` | `...` | `~..` | `...` | `...` | `.X.` | `...` | `...` |
+| FirstToFireMethod | `..~` | `...` | `.~.` | `.~.` | `...` | `...` | `...` | `...` | `...` | `...` | `...` | `...` |
+| DirectMethod(:keep,:array) | `...` | `.X.` | `...` | `...` | `-` | `-` | `-` | `-` | `-` | `-` | `-` | `-` |
+| DirectMethod(:keep,:tree) | `...` | `..X` | `...` | `...` | `-` | `-` | `-` | `-` | `-` | `-` | `-` | `-` |
+| DirectMethod(:remove,:array) | `...` | `...` | `...` | `...` | `-` | `-` | `-` | `-` | `-` | `-` | `-` | `-` |
+| DirectMethod(:remove,:tree) | `...` | `...` | `...` | `..~` | `-` | `-` | `-` | `-` | `-` | `-` | `-` | `-` |
+| RejectionMethod (RSSA) | `...` | `..X` | `...` | `...` | `-` | `-` | `-` | `-` | `-` | `-` | `-` | `-` |
+| PartialPropensityMethod (PSSACR) | `...` | `.X.` | `...` | `X~.` | `-` | `-` | `-` | `-` | `-` | `-` | `-` | `-` |
+| MultiSampler(all⇒CNR) | `...` | `...` | `~..` | `...` | `...` | `..X` | `...` | `X..` | `...` | `...` | `...` | `...` |
+| MultiSampler(even⇒CNR, odd⇒CNR) | `...` | `...` | `..X` | `..X` | `...` | `...` | `...` | `X~.` | `X..` | `...` | `X..` | `~..` |
+| MultiSampler(even⇒CNR, odd⇒FirstToFire) | `..~` | `...` | `...` | `...` | `...` | `...` | `...` | `...` | `..X` | `...` | `...` | `~..` |
 
 Column labels abbreviate distribution family (`exp`onential, Wei`b`u`l`l,
 `sh`i`f`ted) / memory (`f`orget, `r`emember) / graph (`cyc`le, `c`o`mp`lete).
