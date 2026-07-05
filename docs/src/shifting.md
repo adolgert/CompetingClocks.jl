@@ -1,7 +1,6 @@
+# Requirements for a Continuous-Time Simulation
 
-## Requirements for a Continuous-Time Simulation
-
-### Shifted Sample
+## Shifted Sample
 
 The First Reaction method requires that we sample a distribution given
 that we known it has not yet fired by a time $t_0$. The statement that
@@ -40,7 +39,7 @@ t &= t_e+F^{-1}\left[U(1-F(t_0-t_e))+F(t_0-t_e)\right]
 
 We will call this operation **SampleShifted.**
 
-### Hazard Rate for Next Reaction
+## Hazard Rate for Next Reaction
 
 The Next Reaction method requires sampling a distribution such that the
 quantile is saved, so that later adjustments to the distribution can use
@@ -117,7 +116,7 @@ The nice part about the first step is that there is no need to sample by
 inversion. Any sampling method will do, as long as the exponential
 quantile is calculated.
 
-### Cumulative Distributions for Next Reaction
+## Cumulative Distributions for Next Reaction
 
 The original form of the Next Reaction, by Gibson and Bruck, was written
 in terms, not of the hazards, but of the cumulative distribution
