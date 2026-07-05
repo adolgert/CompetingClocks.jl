@@ -31,6 +31,9 @@ using SafeTestsets
     include(joinpath(@__DIR__, "running_score.jl"))
     include(joinpath(@__DIR__, "experiments.jl"))
     include(joinpath(@__DIR__, "runner.jl"))
+    include(joinpath(@__DIR__, "config.jl"))
+    include(joinpath(@__DIR__, "matrix.jl"))
+    include(joinpath(@__DIR__, "reporting.jl"))
 
     @testset "pvalue_verdict bands" begin
         @test pvalue_verdict(0.01) == :likely_bug
@@ -111,5 +114,74 @@ using SafeTestsets
         )
         @test length(verdicts) == 3
         @test all(v -> v.sampler == "FirstReactionMethod", verdicts)
+    end
+
+    # --- Matrix machinery (config.jl / matrix.jl / reporting.jl) -----------
+    # Tiny N, tiny n, fixed seeds. Machinery-only: asserts well-formed TestRuns
+    # and report/CSV generation, NOT statistical significance.
+    @testset "config design + filtering" begin
+        design = generate_full_design(; state_cnt=4, history_steps=3, doob_steps=20)
+        @test length(design) == 12                      # 3 families x 2 memory x 2 graph
+        @test all(c -> c isa TestConfiguration, design)
+        expo = exponential_only_configs(design)
+        @test length(expo) == 4                         # only :exponential family
+        @test all(c -> c.family == :exponential, expo)
+        @test filter_for_sampler(design, :general) == design
+        @test filter_for_sampler(design, :exponential) == expo
+        # round-trip key parsing
+        c = design[1]
+        @test parse_config_key(config_key(c); state_cnt=4, history_steps=3, doob_steps=20).family == c.family
+        # registry capabilities
+        @test sampler_capability("RejectionMethod(RSSA)") == :exponential
+        @test sampler_capability("NextReactionMethod") == :general
+    end
+
+    @testset "run_single_cell returns TestRuns" begin
+        cfg = TestConfiguration(:weibull, :forget, :cycle; state_cnt=4, history_steps=3, doob_steps=20)
+        runs = run_single_cell("NextReactionMethod", NextReactionMethod(), cfg, 30, 20260705)
+        @test length(runs) == 3
+        @test all(r -> r isa TestRun, runs)
+        @test all(r -> 0.0 <= r.pvalue <= 1.0, runs)
+        @test all(r -> r.error_message === nothing, runs)
+        # exponential-only sampler on a Weibull condition errors gracefully
+        bad = run_single_cell("RejectionMethod(RSSA)", RejectionMethod(), cfg, 30, 1)
+        @test all(r -> r.verdict == :error && isnan(r.pvalue), bad)
+    end
+
+    @testset "run_matrix + BH + reporting" begin
+        # A minimal 2-sampler x exponential-only design.
+        design = generate_full_design(; families=(:exponential,), memories=(:forget,),
+            graphs=(:cycle, :complete), state_cnt=4, history_steps=3, doob_steps=20)
+        samplers = Tuple{String,Any,Symbol}[
+            ("FirstReactionMethod", FirstReactionMethod(), :general),
+            ("DirectMethod(:remove,:tree)", DirectMethod(:remove, :tree), :exponential),
+        ]
+        runs = run_matrix(; n=30, base_seed=20260705, samplers=samplers, design=design, verbose=false)
+        @test length(runs) == 2 * 2 * 3               # 2 samplers x 2 conditions x 3 tests
+        @test all(r -> r isa TestRun, runs)
+
+        adj, flagged = apply_bh(runs; alpha=0.05)
+        @test length(adj) == length(runs)
+        @test all(a -> isnan(a) || (0.0 <= a <= 1.0), adj)
+        @test flagged isa Vector{Int}
+
+        # BH is monotone-ish: adjusted >= raw for the smallest p-value.
+        raw = [r.pvalue for r in runs]
+        i = argmin(raw)
+        @test adj[i] >= raw[i] - 1e-9
+
+        # grouping helpers
+        g = group_by_parameter(runs, :sampler)
+        @test haskey(g, Symbol("FirstReactionMethod"))
+        prob = identify_problematic_configs(runs; threshold=1.0)  # everything qualifies
+        @test !isempty(prob)
+
+        # report + CSV write to a temp dir
+        d = mktempdir()
+        rp = generate_markdown_report(runs, joinpath(d, "r.md"); n=30, base_seed=20260705)
+        cp = write_matrix_csv(runs, joinpath(d, "r.csv"))
+        @test isfile(rp) && filesize(rp) > 0
+        @test isfile(cp) && filesize(cp) > 0
+        @test occursin("BH FDR", read(rp, String))
     end
 end
