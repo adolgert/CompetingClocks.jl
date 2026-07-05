@@ -122,6 +122,18 @@ state. Calling `next` twice without an intervening state change is undefined:
 responses are to fire it—call `fire!` with the returned clock and time—or to
 decline it and stop the simulation (the fixed-horizon pattern). There is
 deliberately no `peek`.
+
+The `when` argument must not decrease from one call to the next, and must never
+advance past a pending firing time without that event being fired. The time of
+the most recently fired event is always a safe choice. Within this invariant,
+re-querying `next` at a later `when` is legal — this is how `MultiSampler`
+composes sub-samplers: the global minimum event time cannot exceed any
+sub-sampler's pending minimum, so losing sub-samplers are re-queried
+in-contract at the advanced global time. Outside the invariant, samplers
+legitimately disagree: `FirstReaction` re-conditions every clock on survival to
+`when`, while `CombinedNextReaction` returns putative times cached at enabling.
+Within it they agree, because every surviving clock's putative time is at least
+`when`.
 """
 function next(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
     error("Not implemented for $(typeof(sampler))")

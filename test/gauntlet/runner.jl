@@ -11,10 +11,13 @@
 #     on a `CompetingClocks.TrackWatcher` recording context. The collected
 #     step-cumulants should be Uniform(0,1); uniformity is checked with
 #     `HypothesisTests.ApproximateOneSampleKSTest`.
-#   - Two-sample test vs the trusted FirstReactionMethod reference: replays a
-#     fixed command history with both samplers and compares the next-event
-#     firing-time distributions with the two-sample Anderson-Darling test
-#     `HypothesisTests.KSampleADTest`.
+#   - Two-sample test vs the trusted FirstReactionMethod reference: condenses a
+#     fixed command history into its final enabled set (via the existing
+#     `final_enabled_distributions` helper), draws one next-event from each of
+#     many fresh replicas of both samplers, and compares the firing-time
+#     distributions with the two-sample Anderson-Darling test
+#     `HypothesisTests.KSampleADTest`. See `conditional_next_draws` for why the
+#     query is structured this way (the `next` contract).
 #
 # This file assumes the sibling gauntlet files have already been included in the
 # enclosing scope (travel.jl, generate_data.jl, mark_calibration.jl,
@@ -67,23 +70,6 @@ end
 
 
 """
-    gauntlet_rng_vector(seed) -> Vector{Xoshiro}
-
-Build a per-thread RNG vector (one Xoshiro per thread) seeded deterministically
-from `seed`, as needed by the threaded replay/sampling helpers
-(`parallel_replay`, `sample_samplers`), which index into it by thread id.
-"""
-function gauntlet_rng_vector(seed::Integer)
-    n = max(Threads.maxthreadid(), 1)
-    rng = Vector{Xoshiro}(undef, n)
-    for i in 1:n
-        rng[i] = Xoshiro(seed + i)
-    end
-    return rng
-end
-
-
-"""
     doob_meyer_stepcumulant(sampler_spec, config, state_cnt, n_steps, rng)
 
 Run a single trajectory of `n_steps` steps of the sampler under test and collect
@@ -123,29 +109,76 @@ end
 
 
 """
+    conditional_next_draws(sampler_spec, enabled, t_final, n_replications, rng)
+
+Draw `n_replications` samples of the next event `(clock, time)` given a history
+whose final event was at `t_final` and whose surviving clocks are `enabled`
+(a `Dict{Int,DistributionState}` mapping clock to distribution and original
+enabling time `te <= t_final`).
+
+CONTRACT NOTE (see the `next` docstring in `src/sample/interface.jl`): the
+`when` argument of `next(sampler, when, rng)` must never decrease and must
+never advance past a pending firing time without that event being fired; the
+time of the most recently fired event is always a safe choice. Outside that
+invariant samplers legitimately disagree (FirstReaction re-conditions on
+survival at query time; CombinedNextReaction returns putative times cached at
+`enable!` time). Replaying a recorded history into a fresh replica sampler and
+then querying at the history's final time violates the invariant: the replica
+draws its own putative times at each `enable!`, and the replayed history
+advances the clock past them without firing them. So instead we condense the
+history into its final enabled set and, for each replica, call
+`enable!(sampler, clock, dist, te, t_final, rng)` with the ORIGINAL enabling
+time `te` (possibly in the past) at the CURRENT time `t_final`, then query
+`next(sampler, t_final, rng)`. Now `t_final` is exactly the time of the most
+recent state change, no pending event predates it, and conditioning on survival
+through the history is handled uniformly inside `enable!` (both samplers
+truncate to `t_final - te` when `te < t_final`). This measures what the plan's
+two-sample test claims to measure: the distribution of the next event given the
+history.
+"""
+function conditional_next_draws(
+    sampler_spec, enabled::AbstractDict, t_final::Float64,
+    n_replications::Int, rng::AbstractRNG,
+)
+    draws = Vector{ClockDraw}(undef, n_replications)
+    for rep in 1:n_replications
+        sampler = sampler_spec(Int, Float64)
+        for (clock, ds) in enabled
+            enable!(sampler, clock, ds.d, ds.enabling_time, t_final, rng)
+        end
+        when, which = next(sampler, t_final, rng)
+        @assert which !== nothing
+        @assert when >= t_final
+        draws[rep] = (which, when)
+    end
+    return draws
+end
+
+
+"""
     two_sample_ad_vs_reference(sampler_spec, config, state_cnt, history_steps,
-                               n_replications, rng_vec)
+                               n_replications, rng)
 
 Build a fixed command history (a `history_steps`-step FirstReaction trajectory),
-then replay it `n_replications` times with both the trusted `FirstReactionMethod`
-reference and the sampler under test, drawing one next-event from each replica.
-The next-event firing-time distributions are compared with the two-sample
-Anderson-Darling test (`HypothesisTests.KSampleADTest`), pooled over all clocks
-and also per clock.
+condense it to its final enabled set, then draw `n_replications` next-events
+from both the trusted `FirstReactionMethod` reference and the sampler under
+test with `conditional_next_draws` (which documents why the query is structured
+to conform to the `next` contract). The next-event firing-time distributions
+are compared with the two-sample Anderson-Darling test
+(`HypothesisTests.KSampleADTest`), pooled over all clocks and also per clock.
 
 Returns a NamedTuple with the aggregate `pvalue`, `n`, and per-clock detail.
 """
 function two_sample_ad_vs_reference(
     sampler_spec, config, state_cnt::Int, history_steps::Int,
-    n_replications::Int, rng_vec::Vector{Xoshiro},
+    n_replications::Int, rng::AbstractRNG,
 )
-    commands = travel_commands(history_steps, state_cnt, config, rng_vec[1])
+    commands = travel_commands(history_steps, state_cnt, config, rng)
+    enabled = final_enabled_distributions(commands)
+    t_final = commands[end][end]::Float64
 
-    ref_sampler = FirstReactionMethod()(Int, Float64)
-    sut_sampler = sampler_spec(Int, Float64)
-
-    draws_ref, _when = retrieve_draws(commands, ref_sampler, n_replications, rng_vec)
-    draws_sut, _when2 = retrieve_draws(commands, sut_sampler, n_replications, rng_vec)
+    draws_ref = conditional_next_draws(FirstReactionMethod(), enabled, t_final, n_replications, rng)
+    draws_sut = conditional_next_draws(sampler_spec, enabled, t_final, n_replications, rng)
 
     # Aggregate over all clocks: compare the marginal next-firing-time samples.
     times_ref = Float64[x[2] for x in draws_ref]
@@ -199,7 +232,7 @@ function run_gauntlet(
     dm = doob_meyer_stepcumulant(sampler_spec, config, state_cnt, doob_steps, Xoshiro(seed))
     ts = two_sample_ad_vs_reference(
         sampler_spec, config, state_cnt, history_steps, n_replications,
-        gauntlet_rng_vector(seed + 1),
+        Xoshiro(seed + 1),
     )
 
     verdicts = [

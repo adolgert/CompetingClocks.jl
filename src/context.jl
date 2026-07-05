@@ -430,6 +430,11 @@ responses are to fire it—call `fire!` with the returned clock and time—or to
 decline it and stop the simulation (the fixed-horizon pattern). There is
 deliberately no `peek`.
 
+The underlying sampler requires a time argument that never decreases and never
+advances past a pending event without firing it. The context satisfies this
+automatically: it passes its own current time, which `fire!` keeps equal to the
+last fired event's time.
+
 On a delayed context this method errors; use [`next_delayed`](@ref), which
 returns `(when, clock, phase)`.
 """
