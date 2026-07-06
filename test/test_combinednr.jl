@@ -727,3 +727,52 @@ end
     @test ms_ll == bare_ll
     @test ms_ll != 0.0    # likelihood really was accumulated (disable! would leave it 0)
 end
+
+
+@safetestset CNR_steploglikelihood_enabled_only = "CNR steploglikelihood excludes fired and disabled clocks" begin
+    # Fired and disabled clocks are retained in transition_entry (heap_handle == 0)
+    # for draw reuse, but they must not contribute spurious survival terms to the
+    # step log-likelihood. The TrackWatcher, which only tracks enabled clocks,
+    # provides the ground-truth value.
+    using CompetingClocks: CombinedNextReaction, TrackWatcher
+    using CompetingClocks: enable!, fire!, disable!, steploglikelihood
+    using Distributions: Exponential, logpdf, logccdf
+    using Random: Xoshiro
+
+    # Analytic value for the exponential case: the survivor of the disabled/fired
+    # clock 1 must not appear, leaving only clock 2's contribution.
+    analytic = logpdf(Exponential(1.0), 1.0) - logccdf(Exponential(1.0), 0.5)
+    @test analytic ≈ -0.5
+
+    # --- Case 1: fire! retains clock 1 with zeroed survival. ---
+    rng = Xoshiro(101)
+    nr = CombinedNextReaction{Int,Float64}()
+    tw = TrackWatcher{Int,Float64}()
+    for dst in (nr, tw)
+        enable!(dst, 1, Exponential(1.0), 0.0, 0.0, rng)
+        enable!(dst, 2, Exponential(1.0), 0.0, 0.0, rng)
+        fire!(dst, 1, 0.5)
+    end
+    @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ steploglikelihood(tw, 0.5, 1.0, 2)
+    @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ analytic
+    @test steploglikelihood(tw, 0.5, 1.0, 2) ≈ analytic
+
+    # --- Case 2: disable! retains clock 1 with nonzero remaining survival. ---
+    rng = Xoshiro(202)
+    nr = CombinedNextReaction{Int,Float64}()
+    tw = TrackWatcher{Int,Float64}()
+    for dst in (nr, tw)
+        enable!(dst, 1, Exponential(1.0), 0.0, 0.0, rng)
+        enable!(dst, 2, Exponential(1.0), 0.0, 0.0, rng)
+        disable!(dst, 1, 0.5)
+    end
+    @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ steploglikelihood(tw, 0.5, 1.0, 2)
+    @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ analytic
+
+    # --- Case 3: re-enabling clock 1 makes it participate again. ---
+    enable!(nr, 1, Exponential(1.0), 0.5, 0.5, rng)
+    enable!(tw, 1, Exponential(1.0), 0.5, 0.5, rng)
+    @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ steploglikelihood(tw, 0.5, 1.0, 2)
+    # Now clock 1 contributes survival again, so the value drops below analytic.
+    @test steploglikelihood(nr, 0.5, 1.0, 2) < analytic
+end
