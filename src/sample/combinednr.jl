@@ -393,9 +393,12 @@ end
 
 function steploglikelihood(nr::CombinedNextReaction, t0, t, which_fires)
     # We need to adapt our dictionary into a named tuple for consumption by the
-    # calculator fo the step log-likelihood.
+    # calculator of the step log-likelihood. Fired and disabled clocks are retained
+    # in transition_entry (with heap_handle == 0) for draw reuse on re-enable, so we
+    # filter to enabled clocks (heap_handle > 0) to exclude their spurious survival.
     return _steploglikelihood(
-        ((clock=k, distribution=v.distribution, te=v.te) for (k, v) in pairs(nr.transition_entry)),
+        ((clock=k, distribution=v.distribution, te=v.te)
+         for (k, v) in pairs(nr.transition_entry) if v.heap_handle > 0),
         t0,
         t,
         which_fires
