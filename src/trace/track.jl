@@ -191,12 +191,16 @@ cases it will. This is useful for mark calibration testing.
 Note that `t0` isn't required because the hazard depends only on enabling times.
 """
 function stepconditionalprobability(tw::EnabledWatcher{K,T}, t) where {K,T}
-    marginal = Dict{K,Float64}(
+    # The Dict value type follows hazard's return type: Dual-parameterized
+    # distributions yield Dual probabilities (differentiable in θ) while plain
+    # Float64 distributions stay Float64. The generator's inferred eltype settles
+    # the value type by promotion; the key type stays concretely `K`.
+    marginal = Dict(
         entry.clock => hazard(entry.distribution, entry.te, t)
         for entry in values(tw.enabled)
     )
     denominator = sum(values(marginal))
-    denominator == zero(Float64) && return marginal
+    iszero(denominator) && return marginal
     for k in keys(marginal)
         marginal[k] /= denominator
     end
