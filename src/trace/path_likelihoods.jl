@@ -9,23 +9,31 @@ end
 
 
 """
-    PathLikelihoods{K,T}
+    PathLikelihoods{K,T,L}
 
 Calculates the likelihood of one path of events and times according to a vector
 of different distributions. This accepts a vector of distributions in each
 `enable!` call. This can be useful for tuning distribution parameters, but its
 main use is for importance sampling with mixtures of distribution parameters in
 order to stabilize importance sampling.
+
+The `L` type parameter is the number type of the accumulated log-likelihoods. It
+defaults to `Float64`, but allowing it to vary is what lets `ForwardDiff.Dual`
+values from differentiated distribution parameters flow through the accumulator.
 """
-mutable struct PathLikelihoods{K,T}
+mutable struct PathLikelihoods{K,T,L}
     enabled::Dict{K,PathEntry{K,T}}
-    loglikelihood::Vector{Float64}
+    loglikelihood::Vector{L}
     curtime::Float64
-    PathLikelihoods{K,T}(cnt) where {K,T} = new(Dict{K,PathEntry{K,T}}(), zeros(Float64, cnt), zero(Float64))
+    PathLikelihoods{K,T,L}(cnt) where {K,T,L} = new(Dict{K,PathEntry{K,T}}(), zeros(L, cnt), zero(Float64))
 end
 
+# Back-compat: existing call sites construct without specifying the accumulator
+# type, which should keep meaning a Float64 accumulator.
+PathLikelihoods{K,T}(cnt) where {K,T} = PathLikelihoods{K,T,Float64}(cnt)
 
-clone(pl::PathLikelihoods{K,T}) where {K,T} = PathLikelihoods{K,T}(length(pl.loglikelihood))
+
+clone(pl::PathLikelihoods{K,T,L}) where {K,T,L} = PathLikelihoods{K,T,L}(length(pl.loglikelihood))
 
 
 _likelihood_cnt(pl::PathLikelihoods) = length(pl.loglikelihood)
@@ -34,7 +42,7 @@ Base.length(pl::PathLikelihoods) = length(pl.enabled)
 enabled(pl::PathLikelihoods) = keys(pl.enabled)
 isenabled(pl::PathLikelihoods, clock) = haskey(pl.enabled, clock)
 
-function copy_clocks!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) where {K,T}
+function copy_clocks!(dst::PathLikelihoods{K,T,L}, src::PathLikelihoods{K,T,L}) where {K,T,L}
     @debug "PathLikelihood copy!"
     copy!(dst.enabled, src.enabled)
     copy!(dst.loglikelihood, src.loglikelihood)
@@ -43,12 +51,12 @@ function copy_clocks!(dst::PathLikelihoods{K,T}, src::PathLikelihoods{K,T}) wher
 end
 
 
-function pathloglikelihood(tw::PathLikelihoods, when)
+function pathloglikelihood(tw::PathLikelihoods{K,T,L}, when) where {K,T,L}
     @debug "PathLikelihood pathloglikelihood $when"
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
     if when > tw.curtime
-        remaining = zeros(Float64, _likelihood_cnt(tw))
+        remaining = zeros(L, _likelihood_cnt(tw))
         for entry in values(tw.enabled)
             for idx in eachindex(remaining)
                 if when > entry.te
@@ -89,14 +97,14 @@ function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::Vector, te::T, when::
 end
 
 
-function disable!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
+function disable!(ts::PathLikelihoods{K,T,L}, clock::K, now::T) where {K,T,L}
     @debug "PathLikelihood disable! $clock $now"
     entry = get(ts.enabled, clock, nothing)
     if isnothing(entry)
         error("Cannot disable $clock at time $now because it is not enabled.")
     end
     if length(entry.distribution) == 1
-        log_delta = zero(Float64)
+        log_delta = zero(L)
         if now > entry.te  # now > zero-point of the distribution.
             log_delta += logccdf(entry.distribution[1], now - entry.te)
             # simulation time for distribution being turned on > zero-point of distribution.
@@ -120,12 +128,12 @@ function disable!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
 end
 
 
-function fire!(ts::PathLikelihoods{K,T}, clock::K, now::T) where {K,T}
+function fire!(ts::PathLikelihoods{K,T,L}, clock::K, now::T) where {K,T,L}
     @debug "PathLikelihood fire! $clock $now"
     entry = get(ts.enabled, clock, nothing)
     if !isnothing(entry)
         if length(entry.distribution) == 1
-            log_delta = zero(Float64)
+            log_delta = zero(L)
             if now > entry.te
                 log_delta += logpdf(entry.distribution[1], now - entry.te)
             end
