@@ -123,6 +123,7 @@ makedocs(;
         "Statistical Methods" => [
             "commonrandom.md",
             "importance_skills.md",
+            "Differentiating the Likelihood" => "autodiff.md",
             "hamiltonianmontecarlo.md",
             "Gen.jl Integration" => [
                 "gen/overview.md",

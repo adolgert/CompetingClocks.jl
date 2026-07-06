@@ -1,6 +1,59 @@
 # Changelog
 
-## v0.3.0 (unreleased)
+## v0.3.1 (unreleased)
+
+### Added
+
+- **The path log-likelihood is differentiable with ForwardDiff.** Once a trace
+  is fixed, `pathloglikelihood` is a smooth function of the clock
+  distributions' parameters, and its gradient is the score. The user-facing
+  entry point is a new `SamplerBuilder` keyword, `likelihood_eltype`: build the
+  context with `likelihood_eltype=eltype(θ)` inside a closure and
+  `ForwardDiff.gradient`/`hessian` work through `pathloglikelihood` and
+  `steploglikelihood`, including nested duals for observed information. Setting
+  it without requesting a likelihood is an `ArgumentError`. See the new manual
+  page "Differentiating the Likelihood".
+- **Primal boundary between watchers and samplers.** The likelihood watchers
+  keep the caller's (possibly dual-parameterized) distributions while the
+  sampler receives a value-only primal copy through
+  `primal_distribution` — the identity for ordinary parameters, with a
+  ForwardDiff package extension (`[weakdeps]`, loaded only when ForwardDiff
+  is) that strips dual parameters, recursing for nested duals and
+  reconstructing `truncated` wrappers. Consequently `next(ctx)` keeps working
+  under differentiation: it samples a continuation at the primal parameter
+  point while the accumulated log-likelihood stays dual — replaying an
+  observed prefix, sampling forward, and reading the dual `pathloglikelihood`
+  is the score-function estimator `∇E[f] = E[f·∇log L]`. With
+  `step_likelihood=true` and a non-`Float64` eltype the context installs a
+  `TrackWatcher` even when the sampler computes step likelihoods natively,
+  because the native path would run on primal distributions and silently
+  return an underived `Float64`.
+- `TrajectoryWatcher{K,T,L}` and `PathLikelihoods{K,T,L}` gained the
+  accumulator number type `L` as a third type parameter; the two-parameter
+  constructors remain and mean `L=Float64`.
+- `hazard` accepts `Real` times, and `stepconditionalprobability` — the
+  next-event probabilities `P[K | T=t]` — is differentiable: its `Dict` value
+  type follows the distributions' parameter number type (`Float64` for plain
+  distributions, unchanged). Its `t < te` early return promotes to the
+  parameter type so a dual query never evaluates `logpdf` at a negative age.
+
+### Changed
+
+- On the low-level (unexported, `public`) surface, the watcher type identity
+  changed: `typeof(tw) == TrajectoryWatcher{K,T}` comparisons are now false
+  (the concrete type is `TrajectoryWatcher{K,T,Float64}`), watcher objects
+  serialized under the two-parameter layout do not deserialize, and a concrete
+  field annotation `::TrajectoryWatcher{K,T}` is now abstract. Dispatch
+  constraints and constructors are unaffected. `SamplerBuilder`'s struct
+  gained a field, so positional construction (not the keyword API) changed
+  arity.
+
+### Internal
+
+- ForwardDiff is a test-only and docs-only dependency plus a weak dependency
+  for the extension; the package's hard dependencies are unchanged.
+
+## v0.3.0
 
 ### Breaking
 

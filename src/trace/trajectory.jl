@@ -1,24 +1,32 @@
 using Base
 
 """
-    TrajectoryWatcher{K,T}
+    TrajectoryWatcher{K,T,L}
 
 This doesn't sample but calculates the likelihood of the path of samples from
 start to finish. It has many of the same interface functions as a sampler,
 but the core value is in the [`pathloglikelihood`](@ref) function.
+
+The `L` type parameter is the number type of the accumulated log-likelihood. It
+defaults to `Float64`, but allowing it to vary is what lets `ForwardDiff.Dual`
+values from differentiated distribution parameters flow through the accumulator.
 """
-mutable struct TrajectoryWatcher{K,T} <: EnabledWatcher{K,T}
+mutable struct TrajectoryWatcher{K,T,L} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
-    loglikelihood::Float64
+    loglikelihood::L
     curtime::T
-    TrajectoryWatcher{K,T}() where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), zero(Float64), zero(T))
+    TrajectoryWatcher{K,T,L}() where {K,T,L} = new(Dict{K,EnablingEntry{K,T}}(), zero(L), zero(T))
 end
 
+# Back-compat: existing call sites construct without specifying the accumulator
+# type, which should keep meaning a Float64 accumulator.
+TrajectoryWatcher{K,T}() where {K,T} = TrajectoryWatcher{K,T,Float64}()
 
-clone(tw::TrajectoryWatcher{K,T}) where {K,T} = TrajectoryWatcher{K,T}()
+
+clone(tw::TrajectoryWatcher{K,T,L}) where {K,T,L} = TrajectoryWatcher{K,T,L}()
 
 
-function copy_clocks!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) where {K,T}
+function copy_clocks!(dst::TrajectoryWatcher{K,T,L}, src::TrajectoryWatcher{K,T,L}) where {K,T,L}
     copy!(dst.enabled, src.enabled)
     dst.loglikelihood = src.loglikelihood
     dst.curtime = src.curtime
@@ -26,10 +34,10 @@ function copy_clocks!(dst::TrajectoryWatcher{K,T}, src::TrajectoryWatcher{K,T}) 
 end
 
 
-function pathloglikelihood(tw::TrajectoryWatcher, when)
+function pathloglikelihood(tw::TrajectoryWatcher{K,T,L}, when) where {K,T,L}
     # When this is called, there will be transitions that have not yet fired, and
     # they need to be included as though they were just disabled.
-    remaining = zero(Float64)
+    remaining = zero(L)
     for entry in values(tw.enabled)
         if when > entry.te
             remaining += logccdf(entry.distribution, when - entry.te)
@@ -43,9 +51,9 @@ function pathloglikelihood(tw::TrajectoryWatcher, when)
 end
 
 
-function reset!(tw::TrajectoryWatcher{K,T}) where {K,T}
+function reset!(tw::TrajectoryWatcher{K,T,L}) where {K,T,L}
     empty!(tw.enabled)
-    tw.loglikelihood = zero(Float64)
+    tw.loglikelihood = zero(L)
     tw.curtime = zero(T)
     nothing
 end

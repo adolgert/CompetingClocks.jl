@@ -122,6 +122,11 @@ random numbers when the context has a CRN recorder. This is the single
 place the CRN branch lives; every enable path routes through here.
 """
 @inline function sampler_enable!(ctx::SamplingContext, ikey, dist, te, when)
+    # Primal boundary: the sampler only draws numbers, so hand it a value-only
+    # shadow of the distribution. Identity for ordinary Float64 parameters; an
+    # AD extension strips tracer types so the sampler keeps running on Float64
+    # while the differentiable copy lives on the likelihood watcher.
+    dist = primal_distribution(dist)
     crn = ctx.crn
     if crn !== nothing
         with_common_rng(crn, ikey, ctx.rng) do wrapped_rng
@@ -152,15 +157,25 @@ function SamplingContext(builder::SamplerBuilder, rng::R) where {R<:AbstractRNG}
 
     sampler = build_sampler(builder)
 
-    # Likelihood watcher
+    # Likelihood watcher. `L` is the accumulator number type: Float64 normally,
+    # or a ForwardDiff.Dual eltype to carry derivatives through the likelihood.
+    L = builder.likelihood_eltype
     if builder.likelihood_cnt > 1
-        likelihood = PathLikelihoods{K_int,T}(builder.likelihood_cnt)
+        likelihood = PathLikelihoods{K_int,T,L}(builder.likelihood_cnt)
     elseif builder.path_likelihood
-        likelihood = TrajectoryWatcher{K_int,T}()
+        likelihood = TrajectoryWatcher{K_int,T,L}()
     else
         likelihood = nothing
     end
-    if builder.step_likelihood && !has_steploglikelihood(typeof(sampler)) && isnothing(likelihood)
+    # Install a TrackWatcher for step likelihoods when either the sampler can't
+    # compute steploglikelihood itself OR the caller asked for a non-Float64
+    # accumulator. In the latter case the sampler's native steploglikelihood
+    # would run on the PRIMAL distributions it received across the primal
+    # boundary and silently return an underived Float64, dropping the very
+    # derivatives the caller asked for. Forcing the watcher keeps the
+    # Dual-parameterized distributions on the likelihood path.
+    if builder.step_likelihood && isnothing(likelihood) &&
+            (!has_steploglikelihood(typeof(sampler)) || L != Float64)
         likelihood = TrackWatcher{K_int,T}()
     end
 

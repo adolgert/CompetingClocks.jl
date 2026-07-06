@@ -530,6 +530,94 @@ end
 end
 
 
+@safetestset track_stepconditionalprobability_float_valuetype = "stepconditionalprobability keeps Float64 value type for plain distributions" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: TrackWatcher, stepconditionalprobability
+    using Random
+
+    rng = Xoshiro(7070707)
+
+    # Genericizing the Dict value type must not disturb the ordinary Float64
+    # path: plain distributions still produce a concrete Dict{K,Float64}.
+    tw = TrackWatcher{Int,Float64}()
+    enable!(tw, 1, Weibull(2.0, 1.5), 0.0, 0.0, rng)
+    enable!(tw, 2, Exponential(1.0), 0.0, 0.0, rng)
+
+    probs = stepconditionalprobability(tw, 1.3)
+    @test probs isa Dict{Int,Float64}
+    @test sum(values(probs)) ≈ 1.0 atol=1e-12
+end
+
+
+@safetestset track_stepconditionalprobability_dual_gradient = "stepconditionalprobability θ-gradient matches finite differences" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: TrackWatcher, stepconditionalprobability
+    using ForwardDiff
+    using Random
+
+    rng = Xoshiro(8080808)
+
+    # P[K|T=t] should be differentiable in the distribution parameters θ. Rebuild
+    # the watcher inside the closure so every θ (including its Dual perturbation)
+    # constructs fresh distributions the gradient can trace through. Exponential
+    # takes the SCALE = 1/rate, so 1/θ3 gives rate θ3.
+    t = 1.3
+    function prob_clock1(θ)
+        tw = TrackWatcher{Int,Float64}()
+        enable!(tw, 1, Weibull(θ[1], θ[2]), 0.0, 0.0, rng)
+        enable!(tw, 2, Exponential(1 / θ[3]), 0.0, 0.0, rng)
+        return stepconditionalprobability(tw, t)[1]
+    end
+
+    θ = [2.0, 1.5, 0.8]
+    g = ForwardDiff.gradient(prob_clock1, θ)
+
+    # Central finite differences as an independent check.
+    h = 1e-6
+    fd = similar(θ)
+    for i in eachindex(θ)
+        θp = copy(θ); θp[i] += h
+        θm = copy(θ); θm[i] -= h
+        fd[i] = (prob_clock1(θp) - prob_clock1(θm)) / (2h)
+    end
+    @test isapprox(g, fd; rtol=1e-6)
+end
+
+
+@safetestset track_stepconditionalprobability_simplex_gradient = "stepconditionalprobability probabilities sum to one with zero-sum gradient under duals" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: TrackWatcher, stepconditionalprobability
+    using ForwardDiff
+    using Random
+
+    rng = Xoshiro(9090909)
+
+    # The probabilities live on a simplex: their value parts sum to 1, and
+    # because Σ_k P[k] ≡ 1 regardless of θ, the gradient of that sum must vanish
+    # componentwise (∇1 = 0). That is the invariant certifying a probability.
+    t = 1.3
+    function probs_vec(θ)
+        tw = TrackWatcher{Int,Float64}()
+        enable!(tw, 1, Weibull(θ[1], θ[2]), 0.0, 0.0, rng)
+        enable!(tw, 2, Exponential(1 / θ[3]), 0.0, 0.0, rng)
+        p = stepconditionalprobability(tw, t)
+        return [p[1], p[2]]
+    end
+
+    θ = [2.0, 1.5, 0.8]
+    J = ForwardDiff.jacobian(probs_vec, θ)   # rows = clocks, cols = θ components
+
+    # Value parts sum to one.
+    @test sum(probs_vec(θ)) ≈ 1.0 atol=1e-10
+    # Gradient of the sum over clocks is zero for every θ component.
+    grad_of_sum = vec(sum(J; dims=1))
+    @test all(abs.(grad_of_sum) .< 1e-10)
+end
+
+
 @safetestset memory_sampler_fire_forwards = "MemorySampler fire! forwards to track and sampler" begin
     using CompetingClocks: CombinedNextReaction, MemorySampler, get_survival_zero
     using CompetingClocks: enable!, fire!, next, sampling_space

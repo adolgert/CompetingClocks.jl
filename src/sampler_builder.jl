@@ -30,6 +30,10 @@ struct SamplerBuilder{K,T}
     start_time::T
     likelihood_cnt::Int
     support_delayed::Bool   # NEW
+    # Number type of the likelihood-watcher accumulator. A non-Float64 value
+    # (e.g. a ForwardDiff.Dual eltype) makes the likelihood path differentiable
+    # while the sampler still runs on primal Float64 internals.
+    likelihood_eltype::DataType
 end
 
 """
@@ -43,6 +47,7 @@ end
         start_time::T,
         likelihood_cnt::Int,
         support_delayed=false,
+        likelihood_eltype=Float64,
         )
 
 A SamplerBuilder is responsible for recording a user's requirements and building
@@ -62,6 +67,12 @@ an initial sampler.
    distributions in `enable!` calls. This turns on `path_likelihood`.
  * `support_delayed` - If `true`, the internal sampler key type becomes
    `Tuple{K,Symbol}` to distinguish regular, initiation, and completion phases.
+ * `likelihood_eltype` - Number type of the likelihood-watcher accumulator.
+   Leave it `Float64` for ordinary use. Set it to a `ForwardDiff.Dual` eltype
+   (e.g. `eltype(θ)` inside a differentiated closure) to make
+   `pathloglikelihood`/`steploglikelihood` return derivatives while the sampler
+   keeps drawing at the primal (value-only) parameter point. Requires one of
+   `path_likelihood`, `step_likelihood`, or `likelihood_cnt>1`.
 """
 function SamplerBuilder(::Type{K}, ::Type{T};
     step_likelihood=false,
@@ -73,13 +84,21 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     start_time::T=zero(T),
     likelihood_cnt=1,
     support_delayed=false,
+    likelihood_eltype::DataType=Float64,
 ) where {K,T}
     group = SamplerBuilderGroup[]
     path_likelihood = path_likelihood || likelihood_cnt > 1
+    # A non-Float64 accumulator only means anything if some likelihood watcher is
+    # actually constructed; without one the setting would silently do nothing.
+    if likelihood_eltype != Float64 && !path_likelihood && !step_likelihood
+        throw(ArgumentError(
+            "likelihood_eltype=$likelihood_eltype only has meaning with a likelihood " *
+            "watcher. Set path_likelihood=true, step_likelihood=true, or likelihood_cnt>1."))
+    end
     builder = SamplerBuilder(
         K, T, step_likelihood, path_likelihood, debug, recording,
         common_random, group, start_time, likelihood_cnt,
-        support_delayed,
+        support_delayed, likelihood_eltype,
     )
     if !isnothing(method)
         add_group!(builder, :all => (x, d) -> true; method=method)
