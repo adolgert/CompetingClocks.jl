@@ -12,9 +12,16 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
+[weakdeps]
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+
+[extensions]
+CompetingClocksForwardDiffExt = "ForwardDiff"
+
 [compat]
 DataStructures = "^0.19"
 Distributions = "^0.25"
+ForwardDiff = "0.10, 1"
 Logging = "^1.0"
 Random = "^1.0"
 julia = "^1.10"

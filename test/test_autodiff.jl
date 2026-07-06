@@ -165,3 +165,261 @@ end
     @test TrajectoryWatcher{Symbol,Float64}() isa TrajectoryWatcher{Symbol,Float64,Float64}
     @test PathLikelihoods{Symbol,Float64}(2) isa PathLikelihoods{Symbol,Float64,Float64}
 end
+
+
+@safetestset autodiff_context_gradient_equals_watcher_and_analytic = "SamplingContext path-likelihood gradient equals the watcher and analytic score" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: TrajectoryWatcher
+    using ForwardDiff
+    using Random
+
+    trace = [(0.9, :a), (1.7, :b), (2.2, :a), (3.1, :a), (4.5, :b)]
+
+    # The user-facing path: the differentiable distributions reach the likelihood
+    # watcher while the sampler receives a primal (value-only) shadow. Using
+    # FirstToFireMethod matters: it draws a firing time into a Float64 heap at
+    # enable!, so the closure only runs at all if the primal boundary handed the
+    # sampler a plain-Float64 distribution.
+    function loglik_ctx(θ)
+        la, lb = θ[1], θ[2]
+        ctx = SamplingContext(SamplerBuilder(Symbol, Float64; path_likelihood=true,
+            likelihood_eltype=eltype(θ), method=FirstToFireMethod()), Xoshiro(1))
+        enable!(ctx, :a, Exponential(1 / la))
+        enable!(ctx, :b, Exponential(1 / lb))
+        for (t, k) in trace
+            fire!(ctx, k, t)               # advances ctx.time to t
+            d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
+            enable!(ctx, k, d)             # te defaults to now == t, matching the watcher
+        end
+        return pathloglikelihood(ctx, trace[end][1])
+    end
+
+    # The watcher-only path from the existing tests, for a direct comparison.
+    rng = Xoshiro(1)
+    function loglik_watcher(θ)
+        la, lb = θ[1], θ[2]
+        tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
+        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0, rng)
+        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        for (t, k) in trace
+            fire!(tw, k, t)
+            d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
+            enable!(tw, k, d, t, t, rng)
+        end
+        return pathloglikelihood(tw, trace[end][1])
+    end
+
+    θ = [0.7, 0.4]
+    g_ctx = ForwardDiff.gradient(loglik_ctx, θ)
+    analytic = [3 / 0.7 - 4.5, 2 / 0.4 - 4.5]
+    @test isapprox(g_ctx, analytic; rtol=1e-10, atol=1e-12)
+    @test isapprox(g_ctx, ForwardDiff.gradient(loglik_watcher, θ); rtol=1e-10, atol=1e-12)
+end
+
+
+@safetestset autodiff_context_weibull_matches_finite_difference = "SamplingContext Weibull-race gradient matches finite differences" begin
+    using Distributions
+    using CompetingClocks
+    using ForwardDiff
+    using Random
+
+    # A non-exponential clock exercises logpdf/logccdf derivatives through the
+    # context's primal boundary, where the sampler only ever sees Weibull{Float64}.
+    trace = [(0.5, :e), (1.2, :w), (2.0, :e)]
+
+    function loglik(θ)
+        shape, scale, rate = θ[1], θ[2], θ[3]
+        ctx = SamplingContext(SamplerBuilder(Symbol, Float64; path_likelihood=true,
+            likelihood_eltype=eltype(θ), method=FirstToFireMethod()), Xoshiro(1))
+        enable!(ctx, :w, Weibull(shape, scale))
+        enable!(ctx, :e, Exponential(1 / rate))
+        for (t, k) in trace
+            fire!(ctx, k, t)
+            d = k == :w ? Weibull(shape, scale) : Exponential(1 / rate)
+            enable!(ctx, k, d)
+        end
+        return pathloglikelihood(ctx, trace[end][1])
+    end
+
+    θ = [1.5, 2.0, 0.8]
+    g_ad = ForwardDiff.gradient(loglik, θ)
+
+    h = 1e-6
+    g_fd = similar(θ)
+    for i in eachindex(θ)
+        θp = copy(θ); θp[i] += h
+        θm = copy(θ); θm[i] -= h
+        g_fd[i] = (loglik(θp) - loglik(θm)) / (2h)
+    end
+
+    @test isapprox(g_ad, g_fd; rtol=1e-6, atol=1e-8)
+end
+
+
+@safetestset autodiff_context_hessian_equals_watcher_hessian = "SamplingContext path-likelihood Hessian equals the watcher Hessian" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: TrajectoryWatcher
+    using ForwardDiff
+    using Random
+
+    # Hessian differentiates a gradient, so the parameters arrive as Dual{Dual}.
+    # This proves primal_distribution strips NESTED duals down to Float64 before
+    # the sampler sees them.
+    trace = [(0.9, :a), (1.7, :b), (2.2, :a), (3.1, :a), (4.5, :b)]
+
+    function loglik_ctx(θ)
+        la, lb = θ[1], θ[2]
+        ctx = SamplingContext(SamplerBuilder(Symbol, Float64; path_likelihood=true,
+            likelihood_eltype=eltype(θ), method=FirstToFireMethod()), Xoshiro(1))
+        enable!(ctx, :a, Exponential(1 / la))
+        enable!(ctx, :b, Exponential(1 / lb))
+        for (t, k) in trace
+            fire!(ctx, k, t)
+            d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
+            enable!(ctx, k, d)
+        end
+        return pathloglikelihood(ctx, trace[end][1])
+    end
+
+    rng = Xoshiro(1)
+    function loglik_watcher(θ)
+        la, lb = θ[1], θ[2]
+        tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
+        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0, rng)
+        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        for (t, k) in trace
+            fire!(tw, k, t)
+            d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
+            enable!(tw, k, d, t, t, rng)
+        end
+        return pathloglikelihood(tw, trace[end][1])
+    end
+
+    θ = [0.7, 0.4]
+    H_ctx = ForwardDiff.hessian(loglik_ctx, θ)
+    @test all(isfinite, H_ctx)
+    @test isapprox(H_ctx, ForwardDiff.hessian(loglik_watcher, θ); rtol=1e-10, atol=1e-12)
+end
+
+
+@safetestset autodiff_context_walkup_then_sample_is_finite = "Sampling a continuation at the primal point composes with a dual score" begin
+    using Distributions
+    using CompetingClocks
+    using ForwardDiff
+    using Random
+
+    trace = [(0.9, :a), (1.7, :b), (2.2, :a), (3.1, :a), (4.5, :b)]
+
+    # Replay a prefix of the trace, then let the sampler DRAW the continuation.
+    # The sampler draws at the primal parameter point (a Float64 time), and that
+    # constant time then flows into a Dual-valued path score. The invariant is
+    # only that a real, finite gradient survives the round trip.
+    function loglik(θ)
+        la, lb = θ[1], θ[2]
+        ctx = SamplingContext(SamplerBuilder(Symbol, Float64; path_likelihood=true,
+            likelihood_eltype=eltype(θ), method=FirstToFireMethod()), Xoshiro(20250706))
+        enable!(ctx, :a, Exponential(1 / la))
+        enable!(ctx, :b, Exponential(1 / lb))
+        for (t, k) in trace[1:3]
+            fire!(ctx, k, t)
+            d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
+            enable!(ctx, k, d)
+        end
+        when, which = next(ctx)
+        fire!(ctx, which, when)
+        return pathloglikelihood(ctx, when)
+    end
+
+    θ = [0.7, 0.4]
+    g = ForwardDiff.gradient(loglik, θ)
+    @test all(isfinite, g)
+    @test any(!iszero, g)   # the drawn continuation still carries score information
+end
+
+
+@safetestset autodiff_step_likelihood_guard_forces_watcher = "step likelihood keeps derivatives even with a natively-capable sampler" begin
+    using Distributions
+    using CompetingClocks
+    using ForwardDiff
+    using Random
+
+    trace = [(0.9, :a), (1.7, :b), (2.2, :a), (3.1, :a), (4.5, :b)]
+
+    # NextReactionMethod builds a sampler that CAN compute steploglikelihood
+    # itself. Without the guard, the context would use that native path, which
+    # runs on the primal (value-only) distributions and returns an underived
+    # Float64 -> a zero gradient. The guard forces a TrackWatcher instead, which
+    # holds the Dual-parameterized distributions, so the gradient survives.
+    function loglik_step(θ)
+        la, lb = θ[1], θ[2]
+        ctx = SamplingContext(SamplerBuilder(Symbol, Float64; step_likelihood=true,
+            likelihood_eltype=eltype(θ), method=NextReactionMethod()), Xoshiro(1))
+        enable!(ctx, :a, Exponential(1 / la))
+        enable!(ctx, :b, Exponential(1 / lb))
+        total = zero(eltype(θ))
+        for (t, k) in trace
+            total += steploglikelihood(ctx, t, k)   # ctx.time is the previous fire time
+            fire!(ctx, k, t)
+            d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
+            enable!(ctx, k, d)
+        end
+        return total
+    end
+
+    θ = [0.7, 0.4]
+    g = ForwardDiff.gradient(loglik_step, θ)
+    # Summed step likelihoods over the whole trace equal the path likelihood,
+    # whose exponential-race score is n_k/λ_k - t_N.
+    analytic = [3 / 0.7 - 4.5, 2 / 0.4 - 4.5]
+    @test any(!iszero, g)   # a missing guard would zero this out
+    @test isapprox(g, analytic; rtol=1e-10, atol=1e-12)
+end
+
+
+@safetestset primal_distribution_strips_dual_parameters = "primal_distribution is identity on numbers and strips AD tracer parameters" begin
+    using Distributions
+    using CompetingClocks
+    using CompetingClocks: primal_distribution
+    using ForwardDiff
+
+    # For an ordinary number-typed distribution nothing changes: same object.
+    w = Weibull(1.5, 2.0)
+    @test primal_distribution(w) === w
+
+    # Dual parameters are stripped to their value parts, giving a Float64 family.
+    D = ForwardDiff.Dual
+    pw = primal_distribution(Weibull(D(1.5), D(2.0)))
+    @test pw isa Weibull{Float64}
+    @test params(pw) == (1.5, 2.0)
+
+    # Truncated is a wrapper type: the underlying distribution and any dual bounds
+    # are stripped, and open bounds pass through as `nothing`.
+    pt = primal_distribution(truncated(Exponential(D(2.0)); lower=D(0.5), upper=3.0))
+    @test pt isa Truncated
+    @test pt.untruncated isa Exponential{Float64}
+    @test pt.lower == 0.5 && pt.upper == 3.0
+
+    # Nested duals (as produced by ForwardDiff.hessian) collapse recursively.
+    d1 = ForwardDiff.Dual{:t1}(1.5, 1.0)
+    d2 = ForwardDiff.Dual{:t2}(d1, d1)
+    pn = primal_distribution(Weibull(d2, d2))
+    @test pn isa Weibull{Float64}
+end
+
+
+@safetestset builder_rejects_likelihood_eltype_without_watcher = "SamplerBuilder rejects a differentiable eltype when no likelihood is requested" begin
+    using CompetingClocks
+    using ForwardDiff
+
+    DualT = typeof(ForwardDiff.Dual(1.0, 1.0))
+
+    # A non-Float64 accumulator is meaningless without a likelihood watcher.
+    @test_throws ArgumentError SamplerBuilder(Symbol, Float64; likelihood_eltype=DualT)
+
+    # It is accepted with any of the likelihood options.
+    @test SamplerBuilder(Symbol, Float64; path_likelihood=true, likelihood_eltype=DualT) isa SamplerBuilder
+    @test SamplerBuilder(Symbol, Float64; step_likelihood=true, likelihood_eltype=DualT) isa SamplerBuilder
+    @test SamplerBuilder(Symbol, Float64; likelihood_cnt=2, likelihood_eltype=DualT) isa SamplerBuilder
+end
