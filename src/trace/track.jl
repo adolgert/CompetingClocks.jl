@@ -78,7 +78,12 @@ function copy_clocks!(dst::EnabledWatcher{K,T}, src::EnabledWatcher{K,T}) where 
     return dst
 end
 
-jitter!(ts::EnabledWatcher{K,T}, when::T, rng::AbstractRNG) where {K,T} = nothing
+jitter!(ts::EnabledWatcher{K,T}, when::T) where {K,T} = nothing
+
+# A pure watcher owns no randomness, so re-keying is a no-op. Samplers that
+# happen to subclass EnabledWatcher (FirstReaction, Petri) hold their own
+# KeyedStreams and override this.
+rekey_streams!(ts::EnabledWatcher{K,T}, seed) where {K,T} = ts
 
 Base.keys(ts::EnabledWatcher) = keys(ts.enabled)
 Base.getindex(ts::EnabledWatcher{K}, key::K) where {K} = getindex(ts.enabled, key)
@@ -98,7 +103,7 @@ function Base.length(ts::EnabledWatcher)
 end
 
 
-function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+function enable!(ts::EnabledWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T) where {K,T}
     haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = EnablingEntry{K,T}(clock, dist, te, when)
 end
@@ -241,13 +246,13 @@ function absolute_enabling(propagator::MemorySampler, clock)
     return absolute_enabling(propagator.track, clock)
 end
 
-function next(propagator::MemorySampler, when, rng)
-    next(propagator.sampler, when, rng)
+function next(propagator::MemorySampler, when)
+    next(propagator.sampler, when)
 end
 
-function enable!(propagator::MemorySampler{S,K,T}, clock::K, distribution::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {S,K,T}
-    enable!(propagator.track, clock, distribution, te, when, rng)
-    enable!(propagator.sampler, clock, distribution, te, when, rng)
+function enable!(propagator::MemorySampler{S,K,T}, clock::K, distribution::UnivariateDistribution, te::T, when::T) where {S,K,T}
+    enable!(propagator.track, clock, distribution, te, when)
+    enable!(propagator.sampler, clock, distribution, te, when)
 end
 
 function disable!(propagator::MemorySampler{S,K,T}, clock::K, when::T) where {S,K,T}

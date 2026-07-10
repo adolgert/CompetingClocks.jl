@@ -35,35 +35,47 @@ mutable struct DirectCall{K,T,P} <: SSA{K,T}
     now::T
     log_likelihood::Float64
     calculate_likelihood::Bool
+    streams::KeyedStreams{K}
 end
 
 
-function DirectCall{K,T}(; trajectory=false) where {K,T<:ContinuousTime}
+function DirectCall{K,T}(; trajectory=false, seed=_DEFAULT_STREAM_SEED) where {K,T<:ContinuousTime}
     prefix_tree = BinaryTreePrefixSearch{T}()
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
-    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory, KeyedStreams{K}(seed))
 end
 
 
 function DirectCallExplicit(
     ::Type{K}, ::Type{T}, ::Type{Keep}, ::Type{Prefix};
-    trajectory=false) where {K,T,Keep,Prefix}
+    trajectory=false, seed=_DEFAULT_STREAM_SEED) where {K,T,Keep,Prefix}
 
     prefix_tree = Prefix{T}()
     keyed_prefix_tree = Keep{K,typeof(prefix_tree)}(prefix_tree)
-    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory)
+    DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory, KeyedStreams{K}(seed))
 end
 
 
+# DirectCall keeps no per-clock draw — it draws the next time and the winner from
+# the race stream at each `next` — so a full-state clone is the clock table plus
+# the race generator's state. The clone continues the same race draws.
 function clone(dc::DirectCall{K,T,P}) where {K,T,P}
-    # Create new DirectCall with same settings but empty state
-    # Use the default constructor to properly initialize the prefix tree
-    DirectCall{K,T}(trajectory=dc.calculate_likelihood)
+    c = DirectCall{K,T}(trajectory=dc.calculate_likelihood, seed=dc.streams.seed)
+    copy!(c.prefix_tree, dc.prefix_tree)
+    c.now = dc.now
+    c.log_likelihood = dc.log_likelihood
+    c.streams = copy(dc.streams)
+    return c
 end
 
+similar_sampler(dc::DirectCall{K,T,P}) where {K,T,P} =
+    DirectCall{K,T}(trajectory=dc.calculate_likelihood, seed=dc.streams.seed)
 
-# Nothing to do to ensure a fresh draw.
-jitter!(dc::DirectCall{K,T,P}) where {K,T,P} = nothing
+rekey_streams!(dc::DirectCall, seed) = (rekey_streams!(dc.streams, seed); dc)
+
+
+# Nothing to resample: DirectCall draws afresh from the race stream at each next.
+jitter!(dc::DirectCall{K,T,P}, when::T) where {K,T,P} = nothing
 
 
 function reset!(dc::DirectCall{K,T,P}) where {K,T,P}
@@ -73,29 +85,33 @@ function reset!(dc::DirectCall{K,T,P}) where {K,T,P}
     nothing
 end
 
-copy_clocks!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P} = copy!(dst.prefix_tree, src.prefix_tree)
+function copy_clocks!(dst::DirectCall{K,T,P}, src::DirectCall{K,T,P}) where {K,T,P}
+    copy!(dst.prefix_tree, src.prefix_tree)
+    dst.streams = copy(src.streams)
+    return dst
+end
 
 
 """
-    enable!(dc::DirectCall, clock::T, distribution::Exponential, when, rng)
+    enable!(dc::DirectCall, clock::T, distribution::Exponential, te, when)
 
 Tell the `DirectCall` sampler to enable this clock. The `clock` argument is
 an identifier for the clock. The distribution is a univariate distribution
 in time. In Julia, distributions are always relative to time `t=0`, but ours
 start at some absolute enabling time, ``t_e``, so we provide that here.
 The `when` argument is the time at which this clock is enabled, which may be
-later than when it was first enabled. The `rng` is a random number generator.
+later than when it was first enabled.
 
 If a particular clock had one rate before an event and it has another rate
 after the event, call `enable!` to update the rate.
 """
 function enable!(dc::DirectCall{K,T,P}, clock::K, distribution::Exponential,
-    te::T, when::T, rng::AbstractRNG) where {K,T,P}
+    te::T, when::T) where {K,T,P}
     dc.prefix_tree[clock] = rate(distribution)
 end
 
 function enable!(dc::DirectCall{K,T,P}, clock::K, distribution::D,
-    te::T, when::T, rng::AbstractRNG) where {K,T,P,D<:UnivariateDistribution}
+    te::T, when::T) where {K,T,P,D<:UnivariateDistribution}
     error("DirectCall can only be used with Exponential type distributions")
 end
 
@@ -120,7 +136,7 @@ function fire!(dc::DirectCall{K,T,P}, clock::K, when::T) where {K,T,P}
 end
 
 """
-    next(dc::DirectCall, when::TimeType, rng::AbstractRNG)
+    next(dc::DirectCall, when::TimeType)
 
 Ask the sampler what clock will be the next to fire and at what time. This does
 not change the sampler. You can call this multiple times and get multiple
@@ -128,9 +144,10 @@ answers. Each answer is a tuple of `(when, which clock)`. If there is no clock
 to fire, then the response will be `(Inf, nothing)`. That's a good sign the
 simulation is done.
 """
-function next(dc::DirectCall{K,T,P}, when::T, rng::AbstractRNG) where {K,T,P}
+function next(dc::DirectCall{K,T,P}, when::T) where {K,T,P}
     total = sum!(dc.prefix_tree)
     if total > eps(when)
+        rng = race_stream(dc.streams)
         chosen, hazard_value = rand(rng, dc.prefix_tree)
         tau = when + rand(rng, Exponential(inv(total)))
         return (tau, chosen)

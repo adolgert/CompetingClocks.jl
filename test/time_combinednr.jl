@@ -9,7 +9,7 @@ using Random
 
 function sample_a_while(sampler, distribution, rng)
     for create_idx in 1:100
-        enable!(sampler, create_idx, distribution, 0.0, 0.0, rng)
+        enable!(sampler, create_idx, distribution, 0.0, 0.0)
     end
 
     @test haskey(sampler, 1)
@@ -18,9 +18,9 @@ function sample_a_while(sampler, distribution, rng)
 
     when = 0.0
     for select_idx in 1:10000
-        when, chosen = next(sampler, when, rng)
+        when, chosen = next(sampler, when)
         disable!(sampler, chosen, when)
-        enable!(sampler, chosen, distribution, when, when, rng)
+        enable!(sampler, chosen, distribution, when, when)
     end
     return when
 end

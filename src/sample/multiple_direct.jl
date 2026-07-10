@@ -22,11 +22,13 @@ mutable struct MultipleDirect{SamplerKey,K,Time,Chooser} <: SSA{K,Time}
     now::Time
     log_likelihood::Float64
     calculate_likelihood::Bool
+    streams::KeyedStreams{K}
 end
 
 function MultipleDirect{SamplerKey,K,Time}(
     chooser::Chooser;
-    trajectory=false
+    trajectory=false,
+    seed=_DEFAULT_STREAM_SEED,
 ) where {SamplerKey,K,Time,Chooser<:SamplerChoice{SamplerKey,K}}
     MultipleDirect{SamplerKey,K,Time,Chooser}(
         Vector{KeyedPrefixSearch}(),
@@ -36,16 +38,29 @@ function MultipleDirect{SamplerKey,K,Time}(
         Dict{SamplerKey,Int}(),
         zero(Time),
         zero(Float64),
-        trajectory
+        trajectory,
+        KeyedStreams{K}(seed),
     )
 end
 
 
-function clone(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
-    MultipleDirect{SamplerKey,K,Time}(md.chooser, trajectory=md.calculate_likelihood)
+# similar_sampler makes an empty copy; the caller (build_sampler) then re-adds
+# the prefix searches. clone below is the full-state coupled copy.
+function similar_sampler(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
+    MultipleDirect{SamplerKey,K,Time}(md.chooser, trajectory=md.calculate_likelihood, seed=md.streams.seed)
 end
 
-jitter!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time, rng::AbstractRNG)  where {SamplerKey,K,Time,Chooser} = nothing
+function clone(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
+    c = similar_sampler(md)
+    copy_clocks!(c, md)
+    c.now = md.now
+    c.log_likelihood = md.log_likelihood
+    return c
+end
+
+rekey_streams!(md::MultipleDirect, seed) = (rekey_streams!(md.streams, seed); md)
+
+jitter!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time)  where {SamplerKey,K,Time,Chooser} = nothing
 
 function reset!(md::MultipleDirect{SamplerKey,K,Time,Chooser}) where {SamplerKey,K,Time,Chooser}
     for prefix_search in md.scan
@@ -68,6 +83,7 @@ function copy_clocks!(
     dst.chooser = deepcopy(src.chooser)
     copy!(dst.chosen, src.chosen)
     copy!(dst.scanmap, src.scanmap)
+    dst.streams = copy(src.streams)
     return dst
 end
 
@@ -83,7 +99,7 @@ end
 
 
 function enable!(md::MultipleDirect{SamplerKey,K,Time,Chooser}, clock::K, distribution::Exponential,
-    te::Time, when::Time, rng::AbstractRNG) where {SamplerKey,K,Time,Chooser}
+    te::Time, when::Time) where {SamplerKey,K,Time,Chooser}
     if clock ∉ keys(md.chosen)
         which_prefix_search = choose_sampler(md.chooser, clock, distribution)
         scan_idx = md.scanmap[which_prefix_search]
@@ -131,7 +147,7 @@ end
 
 """
 
-    next(multiple_direct, when, rng)
+    next(multiple_direct, when)
 
 Selects the next transition to fire and when it fires.
 
@@ -144,12 +160,13 @@ it is possible that a random number generator will _never_ choose a particular
 value because there is no guarantee that a random number generator covers every
 combination of bits. Using more draws decreases the likelihood of this problem.
 """
-function next(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time, rng::AbstractRNG) where {SamplerKey,K,Time,Chooser}
+function next(md::MultipleDirect{SamplerKey,K,Time,Chooser}, when::Time) where {SamplerKey,K,Time,Chooser}
     for scan_idx in eachindex(md.scan)
         md.totals[scan_idx] = sum!(md.scan[scan_idx])
     end
     total = sum(md.totals)
     if total > eps(when)
+        rng = race_stream(md.streams)
         tau = when + rand(rng, Exponential(1 / total))
         md.totals /= total
         chosen_idx = rand(rng, Categorical(md.totals))

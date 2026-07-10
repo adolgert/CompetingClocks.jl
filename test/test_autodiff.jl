@@ -22,12 +22,12 @@ using SafeTestsets
     function loglik(θ)
         la, lb = θ[1], θ[2]
         tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
-        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0, rng)
-        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0)
+        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0)
         for (t, k) in trace
             fire!(tw, k, t)
             d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
-            enable!(tw, k, d, t, t, rng)
+            enable!(tw, k, d, t, t)
         end
         return pathloglikelihood(tw, trace[end][1])
     end
@@ -56,12 +56,12 @@ end
     function loglik_accum(θ)
         la, lb = θ[1], θ[2]
         tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
-        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0, rng)
-        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0)
+        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0)
         for (t, k) in trace
             fire!(tw, k, t)
             d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
-            enable!(tw, k, d, t, t, rng)
+            enable!(tw, k, d, t, t)
         end
         return pathloglikelihood(tw, trace[end][1])
     end
@@ -70,15 +70,15 @@ end
     function loglik_step(θ)
         la, lb = θ[1], θ[2]
         track = TrackWatcher{Symbol,Float64}()
-        enable!(track, :a, Exponential(1 / la), 0.0, 0.0, rng)
-        enable!(track, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        enable!(track, :a, Exponential(1 / la), 0.0, 0.0)
+        enable!(track, :b, Exponential(1 / lb), 0.0, 0.0)
         total = zero(eltype(θ))
         t0 = 0.0
         for (t, k) in trace
             total += steploglikelihood(track, t0, t, k)
             fire!(track, k, t)
             d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
-            enable!(track, k, d, t, t, rng)
+            enable!(track, k, d, t, t)
             t0 = t
         end
         return total
@@ -105,12 +105,12 @@ end
     function loglik(θ)
         shape, scale, rate = θ[1], θ[2], θ[3]
         tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
-        enable!(tw, :w, Weibull(shape, scale), 0.0, 0.0, rng)
-        enable!(tw, :e, Exponential(1 / rate), 0.0, 0.0, rng)
+        enable!(tw, :w, Weibull(shape, scale), 0.0, 0.0)
+        enable!(tw, :e, Exponential(1 / rate), 0.0, 0.0)
         for (t, k) in trace
             fire!(tw, k, t)
             d = k == :w ? Weibull(shape, scale) : Exponential(1 / rate)
-            enable!(tw, k, d, t, t, rng)
+            enable!(tw, k, d, t, t)
         end
         return pathloglikelihood(tw, trace[end][1])
     end
@@ -144,14 +144,14 @@ end
     function pl_component(θ, idx)
         pl = PathLikelihoods{Symbol,Float64,typeof(θ)}(2)
         dists = [Exponential(1 / θ), Exponential(1 / (2θ))]
-        enable!(pl, :a, dists, 0.0, 0.0, rng)
+        enable!(pl, :a, dists, 0.0, 0.0)
         fire!(pl, :a, 0.7)
         return pathloglikelihood(pl, 0.7)[idx]
     end
 
     function tw_value(θ)
         tw = TrajectoryWatcher{Symbol,Float64,typeof(θ)}()
-        enable!(tw, :a, Exponential(1 / θ), 0.0, 0.0, rng)
+        enable!(tw, :a, Exponential(1 / θ), 0.0, 0.0)
         fire!(tw, :a, 0.7)
         return pathloglikelihood(tw, 0.7)
     end
@@ -200,12 +200,12 @@ end
     function loglik_watcher(θ)
         la, lb = θ[1], θ[2]
         tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
-        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0, rng)
-        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0)
+        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0)
         for (t, k) in trace
             fire!(tw, k, t)
             d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
-            enable!(tw, k, d, t, t, rng)
+            enable!(tw, k, d, t, t)
         end
         return pathloglikelihood(tw, trace[end][1])
     end
@@ -287,12 +287,12 @@ end
     function loglik_watcher(θ)
         la, lb = θ[1], θ[2]
         tw = TrajectoryWatcher{Symbol,Float64,eltype(θ)}()
-        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0, rng)
-        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0, rng)
+        enable!(tw, :a, Exponential(1 / la), 0.0, 0.0)
+        enable!(tw, :b, Exponential(1 / lb), 0.0, 0.0)
         for (t, k) in trace
             fire!(tw, k, t)
             d = k == :a ? Exponential(1 / la) : Exponential(1 / lb)
-            enable!(tw, k, d, t, t, rng)
+            enable!(tw, k, d, t, t)
         end
         return pathloglikelihood(tw, trace[end][1])
     end

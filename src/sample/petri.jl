@@ -16,22 +16,36 @@ builder interface.
 mutable struct Petri{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
     time_duration::T
-    Petri{K,T}(dt=1.0) where {K,T} = new(Dict{K,EnablingEntry{K,T}}(), dt)
+    streams::KeyedStreams{K}
+    Petri{K,T}(dt=1.0; seed=_DEFAULT_STREAM_SEED) where {K,T} =
+        new(Dict{K,EnablingEntry{K,T}}(), dt, KeyedStreams{K}(seed))
 end
 
 
-clone(propagator::Petri{K,T}) where {K,T} = Petri{K,T}(propagator.time_duration)
+# The winner is picked by a single race-level draw (which enabled clock), so
+# Petri uses the reserved race stream rather than a per-clock stream.
+function clone(propagator::Petri{K,T}) where {K,T}
+    c = Petri{K,T}(propagator.time_duration; seed=propagator.streams.seed)
+    copy!(c.enabled, propagator.enabled)
+    c.streams = copy(propagator.streams)
+    return c
+end
 
+similar_sampler(propagator::Petri{K,T}) where {K,T} =
+    Petri{K,T}(propagator.time_duration; seed=propagator.streams.seed)
 
 function copy_clocks!(dst::Petri, src::Petri)
     copy!(dst.enabled, src.enabled)
     dst.time_duration = src.time_duration
+    dst.streams = copy(src.streams)
     return dst
 end
 
-function next(propagator::Petri{K,T}, when::T, rng::AbstractRNG) where {K,T}
+rekey_streams!(propagator::Petri, seed) = (rekey_streams!(propagator.streams, seed); propagator)
+
+function next(propagator::Petri{K,T}, when::T) where {K,T}
     kk = keys(propagator.enabled)
     isempty(kk) && return (typemax(T), nothing)
-    chosen = rand(rng, kk)
+    chosen = rand(race_stream(propagator.streams), kk)
     (when + propagator.time_duration, chosen)
 end

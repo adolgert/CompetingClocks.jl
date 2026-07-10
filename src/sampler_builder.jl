@@ -25,7 +25,6 @@ struct SamplerBuilder{K,T}
     path_likelihood::Bool
     debug::Bool
     recording::Bool
-    common_random::Bool
     group::Vector{SamplerBuilderGroup}
     start_time::T
     likelihood_cnt::Int
@@ -42,7 +41,6 @@ end
         path_likelihood=false,
         debug=false,
         recording=false,
-        common_random=false,
         method=nothing,
         start_time::T,
         likelihood_cnt::Int,
@@ -59,7 +57,6 @@ an initial sampler.
     at the end of a simulation run.
  * `debug` - Print log messages at the debug level.
  * `recording` - Store every enable and disable for later examination.
- * `common_random` - Use common random numbers during sampling.
  * `method` - If you want a single, particular sampler, put its `SamplerSpec` here.
    It will create a group called `:all` that has this sampling method.
  * `start_time` - Sometimes a simulation shouldn't start at zero.
@@ -79,7 +76,6 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     path_likelihood=false,
     debug=false,
     recording=false,
-    common_random=false,
     method::Union{SamplerSpec,Nothing}=nothing,    # Ask for specific sampler.
     start_time::T=zero(T),
     likelihood_cnt=1,
@@ -97,7 +93,7 @@ function SamplerBuilder(::Type{K}, ::Type{T};
     end
     builder = SamplerBuilder(
         K, T, step_likelihood, path_likelihood, debug, recording,
-        common_random, group, start_time, likelihood_cnt,
+        group, start_time, likelihood_cnt,
         support_delayed, likelihood_eltype,
     )
     if !isnothing(method)

@@ -35,11 +35,11 @@ function step!(model::ErlangLoss, sampler, which, when, rng)
     if which == (:arrival, 0)
         if length(model.busy) < model.c
             server_id = rand(rng, setdiff(1:model.c, model.busy))
-            enable!(sampler, (:server, server_id), Exponential(1 / model.μ), when, when, rng)
+            enable!(sampler, (:server, server_id), Exponential(1 / model.μ), when, when)
             push!(model.busy, server_id)
             # else let the arrival go.
         end
-        enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when, rng)
+        enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when)
     else
         delete!(model.busy, which[2])
     end
@@ -72,7 +72,7 @@ end
 function run_erlangloss(sampler, rng)
     model = BasicErlangLoss()
     observer = ErlangLossObserver(model)
-    enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when, rng)
+    enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when)
     for i in 1:100
         (when, which) = next(sampler)
         fire!(sampler, which, when)
@@ -129,13 +129,13 @@ function step!(model::ErlangLoss, samplers, which, when, rng, server_rng)
             server_id = available_servers[1+mod(server_rng, length(available_servers))]
             rate = model.μ + model.slope * server_id
             for sampler in samplers
-                enable!(sampler, (:server, server_id), Exponential(1 / rate), when, when, rng)
+                enable!(sampler, (:server, server_id), Exponential(1 / rate), when, when)
             end
             push!(model.busy, server_id)
             # else let the arrival go.
         end
         for sampler in samplers
-            enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when, rng)
+            enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when)
         end
     else
         delete!(model.busy, which[2])
@@ -169,7 +169,7 @@ end
 function run_erlangloss(sampler, rng)
     model = BasicErlangLoss()
     observer = ErlangLossObserver(model)
-    enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when, rng)
+    enable!(sampler, (:arrival, 0), Exponential(1 / model.λ), when, when)
     for i in 1:100
         (when, which) = next(sampler)
         fire!(sampler, which, when)

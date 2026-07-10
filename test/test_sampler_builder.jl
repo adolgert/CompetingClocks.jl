@@ -130,11 +130,11 @@ end
     sampler = build_sampler(builder)
 
     # Enable clocks - this exercises choose_sampler internally
-    enable!(sampler, :quick, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, :gradual, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, :quick, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, :gradual, Exponential(2.0), 0.0, 0.0)
 
     @test length(sampler) == 2
-    when, which = next(sampler, 0.0, rng)
+    when, which = next(sampler, 0.0)
     @test which in [:quick, :gradual]
 end
 

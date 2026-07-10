@@ -198,73 +198,63 @@ end
 end
 
 
-@testset "CRN + Delayed: exact replay of delayed reactions" begin
-    rng = Xoshiro(234243234)
-    builder = SamplerBuilder(Symbol, Float64;
-                             support_delayed=true,
-                             method=FirstToFireMethod(),
-                             common_random=true)
-    ctx = SamplingContext(builder, rng)
+# Common random numbers for delayed reactions, via the keyed-stream successor:
+# two contexts built from the SAME seed draw identically per (clock, phase) key,
+# so they reproduce each other's trajectory without any freeze/replay mode.
+@testset "CRN + Delayed: two same-seed contexts reproduce a delayed trajectory" begin
+    mkctx() = SamplingContext(
+        SamplerBuilder(Symbol, Float64; support_delayed=true, method=FirstToFireMethod()),
+        Xoshiro(234243234))
 
-    # Enable delayed reactions with stochastic durations
-    enable!(ctx, :recover_a, Exponential(0.1) => Exponential(2.0))
-    enable!(ctx, :recover_b, Exponential(0.2) => Exponential(1.5))
-
-    # Record the trajectory
+    ctx1 = mkctx()
+    enable!(ctx1, :recover_a, Exponential(0.1) => Exponential(2.0))
+    enable!(ctx1, :recover_b, Exponential(0.2) => Exponential(1.5))
     trace = Tuple{Float64,Symbol,Symbol}[]
     for _ in 1:4  # 2 initiations + 2 completions
-        when, which, phase = next_delayed(ctx)
+        when, which, phase = next_delayed(ctx1)
         push!(trace, (when, which, phase))
-        fire!(ctx, which, phase, when)
+        fire!(ctx1, which, phase, when)
     end
 
-    # Freeze CRN and replay
-    freeze_crn!(ctx)
-    enable!(ctx, :recover_a, Exponential(0.1) => Exponential(2.0))
-    enable!(ctx, :recover_b, Exponential(0.2) => Exponential(1.5))
-
-    # Replay should produce identical trajectory
+    ctx2 = mkctx()  # same seed
+    enable!(ctx2, :recover_a, Exponential(0.1) => Exponential(2.0))
+    enable!(ctx2, :recover_b, Exponential(0.2) => Exponential(1.5))
     total_diff = 0.0
     for i in 1:4
-        when, which, phase = next_delayed(ctx)
+        when, which, phase = next_delayed(ctx2)
         @test which === trace[i][2]
         @test phase === trace[i][3]
         total_diff += abs(when - trace[i][1])
-        fire!(ctx, which, phase, when)
+        fire!(ctx2, which, phase, when)
     end
-
     @test total_diff < 1e-10
 end
 
 
-@testset "CRN + Delayed: replay with additional clocks" begin
-    rng = Xoshiro(987654321)
-    builder = SamplerBuilder(Symbol, Float64;
-                             support_delayed=true,
-                             method=FirstToFireMethod(),
-                             common_random=true)
-    ctx = SamplingContext(builder, rng)
+@testset "CRN + Delayed: an extra clock does not perturb the shared clock's per-key draws" begin
+    mkctx() = SamplingContext(
+        SamplerBuilder(Symbol, Float64; support_delayed=true, method=FirstToFireMethod()),
+        Xoshiro(987654321))
 
-    # First run: single delayed reaction
-    enable!(ctx, :recover, Exponential(0.1) => Exponential(1.0))
-
+    # Baseline context: single delayed reaction.
+    ctx1 = mkctx()
+    enable!(ctx1, :recover, Exponential(0.1) => Exponential(1.0))
     trace = Tuple{Float64,Symbol,Symbol}[]
     for _ in 1:2  # initiation + completion
-        when, which, phase = next_delayed(ctx)
+        when, which, phase = next_delayed(ctx1)
         push!(trace, (when, which, phase))
-        fire!(ctx, which, phase, when)
+        fire!(ctx1, which, phase, when)
     end
 
-    # Freeze and replay with additional clock
-    freeze_crn!(ctx)
-    enable!(ctx, :recover, Exponential(0.1) => Exponential(1.0))
-    enable!(ctx, :extra, Exponential(0.5))  # Regular clock, not delayed
-
-    # The original delayed clock should replay exactly
+    # Same-seed context with an ADDITIONAL regular clock. :recover's draws are
+    # keyed to :recover, so the extra clock cannot change them.
+    ctx2 = mkctx()
+    enable!(ctx2, :recover, Exponential(0.1) => Exponential(1.0))
+    enable!(ctx2, :extra, Exponential(0.5))
     events_seen = 0
     total_diff = 0.0
     for _ in 1:3  # 2 delayed phases + 1 regular
-        when, which, phase = next_delayed(ctx)
+        when, which, phase = next_delayed(ctx2)
         if which === :recover
             events_seen += 1
             @test phase === trace[events_seen][3]
@@ -273,9 +263,8 @@ end
             @test which === :extra
             @test phase === :regular
         end
-        fire!(ctx, which, phase, when)
+        fire!(ctx2, which, phase, when)
     end
-
     @test events_seen == 2
     @test total_diff < 1e-10
 end

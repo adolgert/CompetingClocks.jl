@@ -9,17 +9,17 @@ using SafeTestsets
     using Base
     rng = Xoshiro(3242234)
     tw = TrackWatcher{Int,Float64}()
-    enable!(tw, 3, Exponential(), 0.0, 0.0, rng)
+    enable!(tw, 3, Exponential(), 0.0, 0.0)
     @test length(tw.enabled) == 1 && 3 ∈ keys(tw.enabled)
-    enable!(tw, 4, Exponential(), 0.0, 3.0, rng)
+    enable!(tw, 4, Exponential(), 0.0, 3.0)
     @test length(tw.enabled) == 2 && 4 ∈ keys(tw.enabled)
-    enable!(tw, 7, Exponential(), 5.0, 5.0, rng)
+    enable!(tw, 7, Exponential(), 5.0, 5.0)
     @test length(tw.enabled) == 3 && 7 ∈ keys(tw.enabled)
     disable!(tw, 4, 9.0)
     @test length(tw.enabled) == 2 && 4 ∉ keys(tw.enabled)
 
     dst = TrackWatcher{Int,Float64}()
-    enable!(dst, 11, Exponential(), 5.0, 5.0, rng)
+    enable!(dst, 11, Exponential(), 5.0, 5.0)
     copy_clocks!(dst, tw)
     @test length(tw.enabled) == 2 && 11 ∉ keys(tw.enabled)
 end
@@ -41,7 +41,7 @@ end
     relative_firing = [7.9, 12.3, 3.7, 1.3, 0.2]
     enabling_times = [0.0; cumsum(fill(0.01, 4), dims=1)]
     for i in eachindex(relative_firing)
-        enable!(propagator, clock_key[i], Dirac(relative_firing[i]), enabling_times[i], enabling_times[i], rng)
+        enable!(propagator, clock_key[i], Dirac(relative_firing[i]), enabling_times[i], enabling_times[i])
     end
 
     # test retrieving the enabling times
@@ -53,7 +53,7 @@ end
     clock_firing_order = sortperm(absolute_firing)
     last_fired = 0.0
     for i in eachindex(clock_firing_order)
-        (last_fired, which) = next(propagator, last_fired, rng)
+        (last_fired, which) = next(propagator, last_fired)
         @test last_fired ≈ absolute_firing[clock_firing_order[i]]
         disable!(propagator, which, last_fired)
         @test_throws KeyError absolute_enabling(propagator, clock_key[clock_firing_order[i]])
@@ -68,17 +68,17 @@ end
     using Random
     rng = Xoshiro(3242234)
     dw = DebugWatcher{Int,Float64}()
-    enable!(dw, 3, Exponential(), 0.0, 0.0, rng)
+    enable!(dw, 3, Exponential(), 0.0, 0.0)
     @test dw.enabled[1].clock == 3
-    enable!(dw, 4, Exponential(), 0.0, 3.0, rng)
+    enable!(dw, 4, Exponential(), 0.0, 3.0)
     @test dw.enabled[2].clock == 4
-    enable!(dw, 7, Exponential(), 5.0, 5.0, rng)
+    enable!(dw, 7, Exponential(), 5.0, 5.0)
     @test dw.enabled[3].clock == 7
     disable!(dw, 4, 9.0)
     @test dw.disabled[1].clock == 4
 
     dst = DebugWatcher{Int,Float64}()
-    enable!(dst, 11, Exponential(), 5.0, 5.0, rng)
+    enable!(dst, 11, Exponential(), 5.0, 5.0)
     copy_clocks!(dst, dw)
     @test length(dw.enabled) == 3 && length(dw.disabled) == 1
 end
@@ -95,8 +95,8 @@ end
 
     # Create and populate a DebugWatcher
     dw = DebugWatcher{Int,Float64}()
-    enable!(dw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(dw, 2, Gamma(2.0, 1.0), 1.0, 1.0, rng)
+    enable!(dw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(dw, 2, Gamma(2.0, 1.0), 1.0, 1.0)
     disable!(dw, 1, 2.0)
 
     # Clone should create an empty watcher with same type parameters
@@ -124,9 +124,9 @@ end
 
     # Create and populate a DebugWatcher
     dw = DebugWatcher{Int,Float64}()
-    enable!(dw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(dw, 2, Exponential(2.0), 0.5, 0.5, rng)
-    enable!(dw, 3, Exponential(3.0), 1.0, 1.0, rng)
+    enable!(dw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(dw, 2, Exponential(2.0), 0.5, 0.5)
+    enable!(dw, 3, Exponential(3.0), 1.0, 1.0)
     disable!(dw, 1, 1.5)
     disable!(dw, 2, 2.0)
 
@@ -139,7 +139,7 @@ end
     @test isempty(dw.disabled)
 
     # Should be able to use it again after reset
-    enable!(dw, 10, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dw, 10, Exponential(1.0), 0.0, 0.0)
     @test length(dw.enabled) == 1
     @test dw.enabled[1].clock == 10
 end
@@ -156,9 +156,9 @@ end
     dw = DebugWatcher{Int,Float64}()
 
     # Enable some clocks
-    enable!(dw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(dw, 2, Exponential(2.0), 0.0, 0.0, rng)
-    enable!(dw, 3, Exponential(3.0), 0.0, 0.0, rng)
+    enable!(dw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(dw, 2, Exponential(2.0), 0.0, 0.0)
+    enable!(dw, 3, Exponential(3.0), 0.0, 0.0)
 
     @test length(dw.enabled) == 3
     @test length(dw.disabled) == 0
@@ -195,7 +195,7 @@ end
     @test dw_nolog.log == false
 
     # Operations should work without logging
-    enable!(dw_nolog, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dw_nolog, 1, Exponential(1.0), 0.0, 0.0)
     disable!(dw_nolog, 1, 1.0)
     fire!(dw_nolog, 2, 2.0)
 
@@ -219,9 +219,9 @@ end
 
     # Create and populate a TrackWatcher
     tw = TrackWatcher{Int,Float64}()
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(tw, 2, Gamma(2.0, 1.0), 1.0, 1.0, rng)
-    enable!(tw, 3, Weibull(1.5, 2.0), 2.0, 2.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(tw, 2, Gamma(2.0, 1.0), 1.0, 1.0)
+    enable!(tw, 3, Weibull(1.5, 2.0), 2.0, 2.0)
 
     @test length(tw) == 3
 
@@ -247,9 +247,9 @@ end
 
     # jitter! on TrackWatcher should do nothing (returns nothing)
     tw = TrackWatcher{Int,Float64}()
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
 
-    result = jitter!(tw, 1.0, rng)
+    result = jitter!(tw, 1.0)
     @test result === nothing
     # The enabled clock should be unchanged
     @test length(tw) == 1
@@ -287,9 +287,9 @@ end
     rng = Xoshiro(7777777)
 
     # Enable some clocks
-    enable!(propagator, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(propagator, 2, Exponential(2.0), 0.0, 0.0, rng)
-    enable!(propagator, 3, Exponential(3.0), 0.0, 0.0, rng)
+    enable!(propagator, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(propagator, 2, Exponential(2.0), 0.0, 0.0)
+    enable!(propagator, 3, Exponential(3.0), 0.0, 0.0)
 
     # getindex should delegate to the underlying sampler
     # For FirstToFire, getindex returns the firing time
@@ -323,8 +323,8 @@ end
     @test isempty(enabled(tw))
 
     # Enable some clocks
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(tw, 2, Exponential(2.0), 0.5, 0.5, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(tw, 2, Exponential(2.0), 0.5, 0.5)
 
     @test isenabled(tw, 1)
     @test isenabled(tw, 2)
@@ -355,9 +355,9 @@ end
     rng = Xoshiro(9999999)
 
     tw = TrackWatcher{Int,Float64}()
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(tw, 2, Gamma(2.0, 1.0), 1.0, 1.0, rng)
-    enable!(tw, 3, Weibull(1.5, 2.0), 2.0, 2.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(tw, 2, Gamma(2.0, 1.0), 1.0, 1.0)
+    enable!(tw, 3, Weibull(1.5, 2.0), 2.0, 2.0)
 
     # Test iteration via for-loop (uses Base.iterate)
     clocks_seen = Int[]
@@ -382,7 +382,7 @@ end
     rng = Xoshiro(1010101)
 
     tw = TrackWatcher{Int,Float64}()
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
 
     # Disabling a clock that doesn't exist should not error
     disable!(tw, 999, 1.0)  # This clock was never enabled
@@ -402,14 +402,14 @@ end
     tw = TrackWatcher{Int,Float64}()
 
     # Enable clock 1 with one distribution
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
     @test tw[1].distribution isa Exponential
     @test tw[1].te == 0.0
     @test tw[1].when == 0.0
 
     # Enable clock 1 again with different distribution and times
     # This should replace the existing entry (after disabling it internally)
-    enable!(tw, 1, Gamma(2.0, 1.0), 5.0, 5.0, rng)
+    enable!(tw, 1, Gamma(2.0, 1.0), 5.0, 5.0)
     @test length(tw) == 1  # Still only one clock
     @test tw[1].distribution isa Gamma
     @test tw[1].te == 5.0
@@ -429,14 +429,14 @@ end
 
     # Case: t < te (firing time is before the enabling time offset)
     # This is the case where the clock hasn't "started" yet
-    enable!(tw, 1, Exponential(1.0), 5.0, 0.0, rng)  # te=5.0, when=0.0
+    enable!(tw, 1, Exponential(1.0), 5.0, 0.0)  # te=5.0, when=0.0
 
     # If t < te and this clock fires, should return -Inf
     ll_fires_early = steploglikelihood(tw, 0.0, 3.0, 1)
     @test ll_fires_early == -Inf
 
     # If t < te and a different clock fires, should return 0 for this clock's contribution
-    enable!(tw, 2, Exponential(1.0), 0.0, 0.0, rng)  # te=0.0
+    enable!(tw, 2, Exponential(1.0), 0.0, 0.0)  # te=0.0
     ll_other_fires = steploglikelihood(tw, 0.0, 3.0, 2)
     @test ll_other_fires < 0  # Should be finite since clock 2 can fire
     @test isfinite(ll_other_fires)
@@ -455,7 +455,7 @@ end
     tw = TrackWatcher{Int,Float64}()
 
     # Single exponential clock - cumulant should be between 0 and 1
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
 
     # Test at various times
     for t in [0.1, 0.5, 1.0, 2.0, 5.0]
@@ -469,7 +469,7 @@ end
 
     # Test with t < te (before distribution starts)
     tw2 = TrackWatcher{Int,Float64}()
-    enable!(tw2, 1, Exponential(1.0), 5.0, 0.0, rng)
+    enable!(tw2, 1, Exponential(1.0), 5.0, 0.0)
     c_early = stepcumulant(tw2, 0.0, 3.0)
     @test c_early ≈ 0.0 atol=1e-10
 end
@@ -487,8 +487,8 @@ end
     tw = TrackWatcher{Int,Float64}()
 
     # Two exponential clocks with same rate - should have equal probability
-    enable!(tw, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(tw, 2, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(tw, 2, Exponential(1.0), 0.0, 0.0)
 
     probs = stepconditionalprobability(tw, 1.0)
     @test length(probs) == 2
@@ -498,8 +498,8 @@ end
 
     # Different rates - higher rate should have higher probability
     tw2 = TrackWatcher{Int,Float64}()
-    enable!(tw2, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1
-    enable!(tw2, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2
+    enable!(tw2, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1
+    enable!(tw2, 2, Exponential(0.5), 0.0, 0.0)  # rate = 2
 
     probs2 = stepconditionalprobability(tw2, 1.0)
     @test probs2[2] > probs2[1]  # Clock 2 has higher rate
@@ -519,7 +519,7 @@ end
     tw = TrackWatcher{Int,Float64}()
 
     # Enable a clock with te in the future so hazard at current time is 0
-    enable!(tw, 1, Exponential(1.0), 10.0, 0.0, rng)
+    enable!(tw, 1, Exponential(1.0), 10.0, 0.0)
 
     # At t=5.0, the clock hasn't started (te=10.0), so hazard should be 0
     # When all hazards are zero, the function should return the dict with zeros
@@ -541,8 +541,8 @@ end
     # Genericizing the Dict value type must not disturb the ordinary Float64
     # path: plain distributions still produce a concrete Dict{K,Float64}.
     tw = TrackWatcher{Int,Float64}()
-    enable!(tw, 1, Weibull(2.0, 1.5), 0.0, 0.0, rng)
-    enable!(tw, 2, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Weibull(2.0, 1.5), 0.0, 0.0)
+    enable!(tw, 2, Exponential(1.0), 0.0, 0.0)
 
     probs = stepconditionalprobability(tw, 1.3)
     @test probs isa Dict{Int,Float64}
@@ -566,8 +566,8 @@ end
     t = 1.3
     function prob_clock1(θ)
         tw = TrackWatcher{Int,Float64}()
-        enable!(tw, 1, Weibull(θ[1], θ[2]), 0.0, 0.0, rng)
-        enable!(tw, 2, Exponential(1 / θ[3]), 0.0, 0.0, rng)
+        enable!(tw, 1, Weibull(θ[1], θ[2]), 0.0, 0.0)
+        enable!(tw, 2, Exponential(1 / θ[3]), 0.0, 0.0)
         return stepconditionalprobability(tw, t)[1]
     end
 
@@ -601,8 +601,8 @@ end
     t = 1.3
     function probs_vec(θ)
         tw = TrackWatcher{Int,Float64}()
-        enable!(tw, 1, Weibull(θ[1], θ[2]), 0.0, 0.0, rng)
-        enable!(tw, 2, Exponential(1 / θ[3]), 0.0, 0.0, rng)
+        enable!(tw, 1, Weibull(θ[1], θ[2]), 0.0, 0.0)
+        enable!(tw, 2, Exponential(1 / θ[3]), 0.0, 0.0)
         p = stepconditionalprobability(tw, t)
         return [p[1], p[2]]
     end
@@ -631,9 +631,9 @@ end
     rng = Xoshiro(2206)
     inner = CombinedNextReaction{Int,Float64}()
     ms = MemorySampler(inner)
-    enable!(ms, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
-    enable!(ms, 2, Weibull(1.5, 2.0), 0.0, 0.0, rng)
-    when, which = next(ms, 0.0, rng)
+    enable!(ms, 1, Weibull(2.0, 1.0), 0.0, 0.0)
+    enable!(ms, 2, Weibull(1.5, 2.0), 0.0, 0.0)
+    when, which = next(ms, 0.0)
 
     fire!(ms, which, when)
 

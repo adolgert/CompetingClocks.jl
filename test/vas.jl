@@ -144,13 +144,13 @@ function fire!(sampler, vas::VectorAdditionSystem, state, modify_state, now, rng
         if was_enabled && !now_enabled
             disable!(sampler, rate_idx, now)
         elseif !was_enabled && now_enabled
-            enable!(sampler, rate_idx, vas.rates[rate_idx](state), now, now, rng)
+            enable!(sampler, rate_idx, vas.rates[rate_idx](state), now, now)
         elseif was_enabled && now_enabled
             ratefunc = vas.rates[rate_idx]
             former_rate = ratefunc(former)
             current_rate = ratefunc(state)
             if former_rate != current_rate
-                enable!(sampler, rate_idx, current_rate, now, now, rng)
+                enable!(sampler, rate_idx, current_rate, now, now)
             end  # Else don't notify because rate is the same.
         end
     end
@@ -166,7 +166,7 @@ function simstep!(fsm::VectorAdditionFSM)
         fire!(fsm.sampler, fsm.vas, fsm.state.state, fsm.initializer, fsm.state.when, fsm.rng)
         fsm.is_initialized = true
     end
-    (when, what) = next(fsm.sampler, fsm.state.when, fsm.rng)
+    (when, what) = next(fsm.sampler, fsm.state.when)
     if when < Inf
         action = vas_delta(fsm.vas, what)
         fsm.state.when = when

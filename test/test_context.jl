@@ -270,26 +270,11 @@ end
 end
 
 
-@safetestset context_reset_crn = "SamplingContext reset_crn!" begin
-    using CompetingClocks: SamplingContext, SamplerBuilder, enable!, reset_crn!
-    using Random: Xoshiro
-    using Distributions: Exponential
-
-    rng = Xoshiro(123456)
-    builder = SamplerBuilder(Int64, Float64; common_random=true)
-    ctx = SamplingContext(builder, rng)
-
-    enable!(ctx, 1, Exponential(1.0))
-
-    # reset_crn! should work when common_random is enabled
-    reset_crn!(ctx)
-    @test time(ctx) == 0.0
-
-    # Without common_random, should error
-    builder2 = SamplerBuilder(Int64, Float64)
-    ctx2 = SamplingContext(builder2, rng)
-    @test_throws ErrorException reset_crn!(ctx2)
-end
+# The old common-random-numbers runtime (freeze_crn! / reset_crn! on a
+# common_random=true context) is retired. Common random numbers are now a
+# property of the sampler's keyed streams: build two contexts from the same seed
+# and they draw identically per clock. That successor is exercised in
+# test_crn_streams.jl.
 
 
 @safetestset context_likelihood_capability_probe = "SamplingContext likelihood capability probes" begin
@@ -350,7 +335,7 @@ end
         fires::Int
     end
     CountingWatcher() = CountingWatcher(0, 0, 0)
-    CompetingClocks.enable!(w::CountingWatcher, clock, dist, te, when, rng) = (w.enables += 1; nothing)
+    CompetingClocks.enable!(w::CountingWatcher, clock, dist, te, when) = (w.enables += 1; nothing)
     CompetingClocks.disable!(w::CountingWatcher, clock, when) = (w.disables += 1; nothing)
     CompetingClocks.fire!(w::CountingWatcher, clock, when) = (w.fires += 1; nothing)
     CompetingClocks.reset!(w::CountingWatcher) = (w.enables = w.disables = w.fires = 0; nothing)
@@ -361,8 +346,8 @@ end
     watcher = CountingWatcher()
     # The ONLY thing needed to support the new observer: put it in the tuple.
     ctx = SamplingContext{Int64,Float64,typeof(sampler),typeof(rng),
-                          Tuple{CountingWatcher},Nothing,Nothing}(
-        sampler, rng, (watcher,), nothing, 1.0, 0.0, 0.0, 1, nothing)
+                          Tuple{CountingWatcher},Nothing}(
+        sampler, rng, (watcher,), 1.0, 0.0, 0.0, 1, nothing)
 
     enable!(ctx, 1, Exponential(1.0))
     enable!(ctx, 2, Exponential(2.0))

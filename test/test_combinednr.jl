@@ -9,15 +9,15 @@ using SafeTestsets
     rng = MersenneTwister(349827)
     for i in 1:100
         sampler = CombinedNextReaction{String,Float64}()
-        @test next(sampler, 3.0, rng)[2] === nothing
-        enable!(sampler, "walk home", Exponential(1.5), 0.0, 0.0, rng)
-        @test next(sampler, 3.0, rng)[2] == "walk home"
-        enable!(sampler, "run", Gamma(1, 3), 0.0, 0.0, rng)
-        @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run"]
-        enable!(sampler, "walk to sandwich shop", Weibull(2, 1), 0.0, 0.0, rng)
-        @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run", "walk to sandwich shop"]
+        @test next(sampler, 3.0)[2] === nothing
+        enable!(sampler, "walk home", Exponential(1.5), 0.0, 0.0)
+        @test next(sampler, 3.0)[2] == "walk home"
+        enable!(sampler, "run", Gamma(1, 3), 0.0, 0.0)
+        @test next(sampler, 3.0)[2] ∈ ["walk home", "run"]
+        enable!(sampler, "walk to sandwich shop", Weibull(2, 1), 0.0, 0.0)
+        @test next(sampler, 3.0)[2] ∈ ["walk home", "run", "walk to sandwich shop"]
         disable!(sampler, "walk to sandwich shop", 1.7)
-        @test next(sampler, 3.0, rng)[2] ∈ ["walk home", "run"]
+        @test next(sampler, 3.0)[2] ∈ ["walk home", "run"]
         reset!(sampler)
     end
 end
@@ -37,7 +37,7 @@ end
     @test keytype(sampler) <: Int64
 
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
-        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0, rng)
+        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0)
     end
 
     @test length(sampler) == 5
@@ -75,7 +75,7 @@ end
     for (clock, when_fire) in [
         (:S => 1, 7.9), (:S => 2, 12.3), (:I => 3, 3.7), (:I => 4, 0.00013), (:S => 5, 0.2)
     ]
-        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0, rng)
+        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0)
     end
 
     @test length(sampler) == 5
@@ -102,20 +102,20 @@ end
     dst = clone(src)
     rng = Xoshiro(123)
 
-    enable!(src, 37, Exponential(), 0.0, 0.0, rng)
-    enable!(src, 38, Exponential(), 0.0, 0.0, rng)
-    enable!(dst, 29, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 37, Exponential(), 0.0, 0.0)
+    enable!(src, 38, Exponential(), 0.0, 0.0)
+    enable!(dst, 29, Exponential(), 0.0, 0.0)
     @test length(src) == 2
     @test length(dst) == 1
     copy_clocks!(dst, src)
     @test length(src) == 2
     @test length(dst) == 2
     # Changing src doesn't change dst.
-    enable!(src, 48, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 48, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 2
     # Changing dst doesn't change src.
-    enable!(dst, 49, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 49, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 3
 end
@@ -130,9 +130,9 @@ end
     src = CombinedNextReaction{Int64,Float64}()
     rng = Xoshiro(123)
 
-    enable!(src, 37, Exponential(), 0.0, 0.0, rng)
-    enable!(src, 38, Exponential(), 0.0, 0.0, rng)
-    enable!(src, 29, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 37, Exponential(), 0.0, 0.0)
+    enable!(src, 38, Exponential(), 0.0, 0.0)
+    enable!(src, 29, Exponential(), 0.0, 0.0)
     disable!(src, 37, 0.1)
 
     enabled_set = enabled(src)
@@ -242,17 +242,17 @@ end
     sampler = CombinedNextReaction{Int,Float64}()
 
     # Enable some clocks
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
 
     # Get current next event
-    t1, k1 = next(sampler, 0.0, rng)
+    t1, k1 = next(sampler, 0.0)
 
     # Jitter should resample all clocks
-    jitter!(sampler, 0.5, rng)
+    jitter!(sampler, 0.5)
 
     # Get new next event - times should be different after jitter
-    t2, k2 = next(sampler, 0.5, rng)
+    t2, k2 = next(sampler, 0.5)
     @test t2 >= 0.5  # Times are after the jitter point
 end
 
@@ -269,20 +269,20 @@ end
     # The distribution starts at te=0 but current time when=0.5
     # So the sampler uses truncated distribution conditioned on survival past 0.5
     sampler = CombinedNextReaction{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.5, rng)
-    t, k = next(sampler, 0.5, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.5)
+    t, k = next(sampler, 0.5)
     @test t >= 0.5  # Fire time must be >= current time (truncated dist guarantees this)
 
     # Test with LogSampling distribution (Gamma)
     sampler2 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.5, rng)
-    t2, k2 = next(sampler2, 0.5, rng)
+    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.5)
+    t2, k2 = next(sampler2, 0.5)
     @test t2 >= 0.5
 
     # Test with Weibull (also LogSampling)
     sampler3 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler3, 1, Weibull(2.0, 1.0), 0.0, 0.5, rng)
-    t3, k3 = next(sampler3, 0.5, rng)
+    enable!(sampler3, 1, Weibull(2.0, 1.0), 0.0, 0.5)
+    t3, k3 = next(sampler3, 0.5)
     @test t3 >= 0.5
 end
 
@@ -296,13 +296,13 @@ end
     sampler = CombinedNextReaction{Int,Float64}()
 
     # Enable and fire a clock
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    t, k = next(sampler, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    t, k = next(sampler, 0.0)
     fire!(sampler, 1, t)
 
     # Re-enable the same clock (should exercise heap_handle > 0 but survival == 0 branch)
-    enable!(sampler, 1, Exponential(1.0), t, t, rng)
-    t2, k2 = next(sampler, t, rng)
+    enable!(sampler, 1, Exponential(1.0), t, t)
+    t2, k2 = next(sampler, t)
     @test k2 == 1
     @test t2 >= t
 end
@@ -317,8 +317,8 @@ end
     sampler = CombinedNextReaction{Int,Float64}()
 
     # Enable a clock
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    t1, k1 = next(sampler, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    t1, k1 = next(sampler, 0.0)
 
     # Update the same clock with different distribution (exercises consume_survival).
     # The re-enable time must not step past the pending firing t1: next()'s time
@@ -330,18 +330,18 @@ end
     # re-enable time would consume survival past the firing, so we re-enable at a
     # time strictly before t1.
     when_re = t1 / 2
-    enable!(sampler, 1, Exponential(2.0), 0.0, when_re, rng)
-    t2, k2 = next(sampler, when_re, rng)
+    enable!(sampler, 1, Exponential(2.0), 0.0, when_re)
+    t2, k2 = next(sampler, when_re)
     @test t2 >= when_re
 
     # Update with a LogSampling distribution to exercise that branch, again
     # re-enabling in-contract (before the pending firing t3).
     sampler2 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.0, rng)
-    t3, k3 = next(sampler2, 0.0, rng)
+    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.0)
+    t3, k3 = next(sampler2, 0.0)
     when_re2 = t3 / 2
-    enable!(sampler2, 1, Gamma(3.0, 1.0), 0.0, when_re2, rng)
-    t4, k4 = next(sampler2, when_re2, rng)
+    enable!(sampler2, 1, Gamma(3.0, 1.0), 0.0, when_re2)
+    t4, k4 = next(sampler2, when_re2)
     @test t4 >= when_re2
 end
 
@@ -356,7 +356,7 @@ end
 
     @test !isenabled(sampler, 1)
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
     @test isenabled(sampler, 1)
     @test !isenabled(sampler, 2)
 
@@ -374,26 +374,26 @@ end
 
     # Test with Normal distribution (LinearSampling)
     sampler1 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler1, 1, truncated(Normal(5.0, 1.0), 0, Inf), 0.0, 0.0, rng)
-    t1, k1 = next(sampler1, 0.0, rng)
+    enable!(sampler1, 1, truncated(Normal(5.0, 1.0), 0, Inf), 0.0, 0.0)
+    t1, k1 = next(sampler1, 0.0)
     @test t1 > 0
 
     # Test with Uniform distribution
     sampler2 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler2, 1, Uniform(1.0, 5.0), 0.0, 0.0, rng)
-    t2, k2 = next(sampler2, 0.0, rng)
+    enable!(sampler2, 1, Uniform(1.0, 5.0), 0.0, 0.0)
+    t2, k2 = next(sampler2, 0.0)
     @test 1.0 <= t2 <= 5.0
 
     # Test with LogNormal
     sampler3 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler3, 1, LogNormal(0.0, 1.0), 0.0, 0.0, rng)
-    t3, k3 = next(sampler3, 0.0, rng)
+    enable!(sampler3, 1, LogNormal(0.0, 1.0), 0.0, 0.0)
+    t3, k3 = next(sampler3, 0.0)
     @test t3 > 0
 
     # Test with Pareto
     sampler4 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler4, 1, Pareto(1.0), 0.0, 0.0, rng)
-    t4, k4 = next(sampler4, 0.0, rng)
+    enable!(sampler4, 1, Pareto(1.0), 0.0, 0.0)
+    t4, k4 = next(sampler4, 0.0)
     @test t4 >= 1.0
 end
 
@@ -408,8 +408,8 @@ end
 
     # Enable with te > when (future enabling time)
     # This exercises the else branch in sample_shifted where te >= when
-    enable!(sampler, 1, Exponential(1.0), 2.0, 0.0, rng)
-    t, k = next(sampler, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 2.0, 0.0)
+    t, k = next(sampler, 0.0)
     @test t >= 2.0  # Fire time must be after the enabling time
 end
 
@@ -423,21 +423,21 @@ end
     sampler = CombinedNextReaction{Int,Float64}()
 
     # Enable, disable, then re-enable (should use remaining survival)
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
     disable!(sampler, 1, 0.3)
 
     # Re-enable the disabled clock (heap_handle == 0 but has remaining survival)
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.5, rng)
-    t, k = next(sampler, 0.5, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.5)
+    t, k = next(sampler, 0.5)
     @test k == 1
     @test t >= 0.5
 
     # Same test with LogSampling distribution
     sampler2 = CombinedNextReaction{Int,Float64}()
-    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.0)
     disable!(sampler2, 1, 0.3)
-    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.5, rng)
-    t2, k2 = next(sampler2, 0.5, rng)
+    enable!(sampler2, 1, Gamma(2.0, 1.0), 0.0, 0.5)
+    t2, k2 = next(sampler2, 0.5)
     @test k2 == 1
     @test t2 >= 0.5
 end
@@ -483,18 +483,21 @@ end
 
     rng = Xoshiro(11)
     sampler = CombinedNextReaction{Int,Float64}()
-    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0)
 
     # Snapshot the RNG, snapshot the sampler's internal state, then call next
     # several times with no intervening enable!/disable!/fire!.
-    rng_saved = copy(rng)
     entry1_before = sampler.transition_entry[1]
     entry2_before = sampler.transition_entry[2]
+    # The sampler owns its randomness now; a draw shows up as a bumped per-key
+    # occurrence count in its keyed streams, so we observe consumption there
+    # rather than by watching an externally-passed rng advance.
+    counts_before = copy(sampler.streams.counts)
 
-    r1 = next(sampler, 0.0, rng)
-    r2 = next(sampler, 0.0, rng)
-    r3 = next(sampler, 0.0, rng)
+    r1 = next(sampler, 0.0)
+    r2 = next(sampler, 0.0)
+    r3 = next(sampler, 0.0)
 
     # Purity: repeated next() returns an identical (when, key) reservation.
     @test r1 == r2
@@ -504,8 +507,8 @@ end
     @test sampler.transition_entry[1] == entry1_before
     @test sampler.transition_entry[2] == entry2_before
 
-    # next() consumed no random numbers: the RNG stream is unadvanced.
-    @test rand(rng) == rand(rng_saved)
+    # next() consumed no random numbers: no per-key stream advanced.
+    @test sampler.streams.counts == counts_before
 end
 
 
@@ -517,9 +520,9 @@ end
 
     rng = Xoshiro(22)
     sampler = CombinedNextReaction{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
-    when, which = next(sampler, 0.0, rng)
+    when, which = next(sampler, 0.0)
     @test which == 1
 
     fire!(sampler, 1, when)
@@ -529,10 +532,10 @@ end
     @test rec.survival == get_survival_zero(sampling_space(Exponential))
 
     # Re-enabling (with any distribution) must take the fresh-redraw branch,
-    # which draws a new random number.
-    rng_saved = copy(rng)
-    enable!(sampler, 1, Exponential(2.0), when, when, rng)
-    @test rand(rng) != rand(rng_saved)   # RNG advanced => fresh redraw
+    # which draws from clock 1's own keyed stream (bumping its occurrence count).
+    c0 = get(sampler.streams.counts, 1, 0)
+    enable!(sampler, 1, Exponential(2.0), when, when)
+    @test get(sampler.streams.counts, 1, 0) == c0 + 1   # stream advanced => fresh redraw
 end
 
 
@@ -549,10 +552,10 @@ end
 
     rng = Xoshiro(33)
     sampler = CombinedNextReaction{Int,Float64}()
-    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Weibull(1.5, 2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0)
+    enable!(sampler, 2, Weibull(1.5, 2.0), 0.0, 0.0)
 
-    when, loser = next(sampler, 0.0, rng)   # the returned (minimum) clock; do NOT fire it
+    when, loser = next(sampler, 0.0)   # the returned (minimum) clock; do NOT fire it
 
     # Re-enable that same, non-fired clock with a CHANGED distribution at a later
     # time, keeping te the same so we hit the consume_survival reuse branch.
@@ -568,12 +571,12 @@ end
     survival_remain = consume_survival(rec, rec.distribution, S, when_re)
     expected_tau = sample_by_inversion(newdist, S, te, when_re, survival_remain)
 
-    rng_saved = copy(rng)
-    enable!(sampler, loser, newdist, te, when_re, rng)
+    c0 = get(sampler.streams.counts, loser, 0)
+    enable!(sampler, loser, newdist, te, when_re)
 
-    # Reuse => no RNG consumed, and the stored firing time matches the analytic
-    # inversion of the recorded survival.
-    @test rand(rng) == rand(rng_saved)
+    # Reuse => no draw from the clock's stream, and the stored firing time matches
+    # the analytic inversion of the recorded survival.
+    @test get(sampler.streams.counts, loser, 0) == c0
     @test sampler[loser] ≈ expected_tau
 end
 
@@ -586,8 +589,8 @@ end
 
     rng = Xoshiro(44)
     sampler = CombinedNextReaction{Int,Float64}()
-    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
-    next(sampler, 0.0, rng)          # queried but not fired
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0)
+    next(sampler, 0.0)          # queried but not fired
     disable!(sampler, 1, 0.3)        # preserves remaining survival, heap_handle -> 0
 
     rec = sampler.transition_entry[1]
@@ -600,10 +603,10 @@ end
     # Disabled-branch reuse uses record.survival directly (no consume_survival).
     expected_tau = sample_by_inversion(newdist, S, rec.te, when_re, rec.survival)
 
-    rng_saved = copy(rng)
-    enable!(sampler, 1, newdist, rec.te, when_re, rng)
+    c0 = get(sampler.streams.counts, 1, 0)
+    enable!(sampler, 1, newdist, rec.te, when_re)
 
-    @test rand(rng) == rand(rng_saved)       # reuse => no RNG
+    @test get(sampler.streams.counts, 1, 0) == c0   # reuse => no draw
     @test sampler[1] ≈ expected_tau
 end
 
@@ -647,21 +650,21 @@ end
 
     rng = Xoshiro(55)
     sampler = CombinedNextReaction{Int,Float64}()
-    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0)
 
     t_before = sampler[1]
     rec_before = sampler.transition_entry[1]
-    rng_saved = copy(rng)
+    c0 = get(sampler.streams.counts, 1, 0)
 
     # Re-enabling an already-enabled clock with the identical distribution and
     # enabling time must change nothing and consume no randomness.
-    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0)
 
     @test sampler[1] == t_before
     rec_after = sampler.transition_entry[1]
     @test rec_after.survival == rec_before.survival
     @test rec_after.heap_handle == rec_before.heap_handle
-    @test rand(rng) == rand(rng_saved)
+    @test get(sampler.streams.counts, 1, 0) == c0
 end
 
 
@@ -681,8 +684,8 @@ end
     sampler = MultiSampler{Int64,Int64,Float64}(AllToOne())
     sampler[1] = CombinedNextReaction{Int64,Float64}()
 
-    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0, rng)
-    when, which = next(sampler, 0.0, rng)
+    enable!(sampler, 1, Weibull(2.0, 1.0), 0.0, 0.0)
+    when, which = next(sampler, 0.0)
     @test which == 1
 
     fire!(sampler, 1, when)
@@ -690,9 +693,10 @@ end
     sub = sampler.propagator[1]
     @test sub.transition_entry[1].survival == get_survival_zero(LogSampling)
 
-    rng_saved = copy(rng)
-    enable!(sampler, 1, Weibull(2.0, 1.0), when, when, rng)
-    @test rand(rng) != rand(rng_saved)   # fresh redraw => fire! reached the sub-sampler
+    c0 = get(sub.streams.counts, 1, 0)
+    enable!(sampler, 1, Weibull(2.0, 1.0), when, when)
+    # fresh redraw (a bumped stream count on the sub-sampler) => fire! reached it
+    @test get(sub.streams.counts, 1, 0) == c0 + 1
 end
 
 
@@ -710,8 +714,8 @@ end
     # Bare DirectCall reference.
     rng1 = Xoshiro(77)
     dc = DirectCall{Int64,Float64}(trajectory=true)
-    enable!(dc, 1, Exponential(1.0), 0.0, 0.0, rng1)
-    enable!(dc, 2, Exponential(2.0), 0.0, 0.0, rng1)
+    enable!(dc, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(dc, 2, Exponential(2.0), 0.0, 0.0)
     fire!(dc, 1, 0.5)
     bare_ll = dc.log_likelihood
 
@@ -719,8 +723,8 @@ end
     rng2 = Xoshiro(77)
     ms = MultiSampler{Int64,Int64,Float64}(AllToOne())
     ms[1] = DirectCall{Int64,Float64}(trajectory=true)
-    enable!(ms, 1, Exponential(1.0), 0.0, 0.0, rng2)
-    enable!(ms, 2, Exponential(2.0), 0.0, 0.0, rng2)
+    enable!(ms, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(ms, 2, Exponential(2.0), 0.0, 0.0)
     fire!(ms, 1, 0.5)
     ms_ll = ms.propagator[1].log_likelihood
 
@@ -749,8 +753,8 @@ end
     nr = CombinedNextReaction{Int,Float64}()
     tw = TrackWatcher{Int,Float64}()
     for dst in (nr, tw)
-        enable!(dst, 1, Exponential(1.0), 0.0, 0.0, rng)
-        enable!(dst, 2, Exponential(1.0), 0.0, 0.0, rng)
+        enable!(dst, 1, Exponential(1.0), 0.0, 0.0)
+        enable!(dst, 2, Exponential(1.0), 0.0, 0.0)
         fire!(dst, 1, 0.5)
     end
     @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ steploglikelihood(tw, 0.5, 1.0, 2)
@@ -762,16 +766,16 @@ end
     nr = CombinedNextReaction{Int,Float64}()
     tw = TrackWatcher{Int,Float64}()
     for dst in (nr, tw)
-        enable!(dst, 1, Exponential(1.0), 0.0, 0.0, rng)
-        enable!(dst, 2, Exponential(1.0), 0.0, 0.0, rng)
+        enable!(dst, 1, Exponential(1.0), 0.0, 0.0)
+        enable!(dst, 2, Exponential(1.0), 0.0, 0.0)
         disable!(dst, 1, 0.5)
     end
     @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ steploglikelihood(tw, 0.5, 1.0, 2)
     @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ analytic
 
     # --- Case 3: re-enabling clock 1 makes it participate again. ---
-    enable!(nr, 1, Exponential(1.0), 0.5, 0.5, rng)
-    enable!(tw, 1, Exponential(1.0), 0.5, 0.5, rng)
+    enable!(nr, 1, Exponential(1.0), 0.5, 0.5)
+    enable!(tw, 1, Exponential(1.0), 0.5, 0.5)
     @test steploglikelihood(nr, 0.5, 1.0, 2) ≈ steploglikelihood(tw, 0.5, 1.0, 2)
     # Now clock 1 contributes survival again, so the value drops below analytic.
     @test steploglikelihood(nr, 0.5, 1.0, 2) < analytic

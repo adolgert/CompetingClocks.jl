@@ -17,7 +17,7 @@ abstract type SSA{Key,Time} end
 
 
 """
-    enable!(sampler, clock, distribution, enablingtime, currenttime, RNG)
+    enable!(sampler, clock, distribution, enablingtime, currenttime)
 
 Tell the sampler to start a clock.
 
@@ -26,7 +26,12 @@ Tell the sampler to start a clock.
  * `distribution::Distributions.UnivariateDistribution`
  * `enablingtime::TimeType` - The zero time for the clock's distribution, in absolute time. Usually equal to `when`.
  * `when::TimeType` - The current time of the simulation.
- * `rng::AbstractRNG` - A random number generator.
+
+No random number generator is passed: the sampler OWNS its randomness as a
+family of per-clock keyed streams (see [`CompetingClocks.KeyedStreams`](@ref)),
+so a draw belongs to `clock`, not to a position in a global call sequence. Two
+samplers built from the same seed therefore draw identically for the same clock
+regardless of event order.
 
 These times are **absolute** since the start of the simulation. The current time
 should be `when`. If you want to shift the distribution so that this event cannot
@@ -34,9 +39,18 @@ happen for a little while then choose `enablingtime > when`. If you want to modi
 the distribution by shifting it left, then choose `enablingtime < when`. Usually,
 `enablingtime == when`. The `truncated()` function from Distributions.jl can make
 the left-shift conditioning explicit, but pair it with the shifted enabling time —
-`enable!(sampler, clock, truncated(dist; lower=age), when - age, when, rng)` —
+`enable!(sampler, clock, truncated(dist; lower=age), when - age, when)` —
 because a truncated distribution with `enablingtime == when` measures the
 truncated sample from now, pushing every firing at least `age` into the future.
+
+Calling `enable!` on a clock that is ALREADY enabled re-evaluates its
+distribution in place and keeps the clock's age. Which pathwise coupling that
+implements is chosen SILENTLY by the backend: `CombinedNextReaction` reuses the
+retained survival (deterministic carry), while `FirstToFire`, `FirstReaction`,
+and the exponential-only samplers redraw at the change. Both agree in law and
+differ only where pathwise (IPA) derivatives care. To make the choice EXPLICIT,
+call [`reenable!`](@ref)` (..., :carry | :redraw)` instead; this `enable!`
+re-enable path is retained for backward compatibility.
 """
 function enable!(
     sampler::SSA{K,T},
@@ -44,9 +58,71 @@ function enable!(
     distribution::UnivariateDistribution,
     te::T, # enabling time
     when::T, # current simulation time
-    rng::AbstractRNG
 ) where {K,T}
     error("Not implemented for $(typeof(sampler))")
+end
+
+"""
+    reenable!(sampler, clock, distribution, te, when, coupling::Symbol)
+
+Re-evaluate the distribution of a clock that is CURRENTLY ENABLED, keeping its
+age, and declare EXPLICITLY which pathwise coupling the change implements. This
+is the explicit form of what a plain [`enable!`](@ref) on an already-enabled key
+does implicitly — plain `enable!` picks the coupling silently per backend, while
+`reenable!` makes it a per-call choice so a pathwise (IPA) estimator can insist
+on carry and a redraw-at-change model can insist on redraw.
+
+`clock` must already be enabled in `sampler`. Its distribution becomes
+`distribution`; `te` is the (possibly shifted) enabling time of the new segment,
+carrying the same flexibility as `enable!` — pass the original enabling time to
+keep the clock's age, or a shifted one for re-anchoring. `coupling` is one of:
+
+  * `:redraw` — discard any retained draw/schedule and draw the remaining
+    lifetime fresh, conditioned on the clock's current age. This is the
+    redraw-at-change coupling; it is exactly what a plain `enable!` on an
+    already-enabled key does in `FirstToFire` and the exponential-only samplers.
+  * `:carry` — deterministic carry: consume NO randomness; map the retained draw
+    through the distribution change by matching conditional survival, so the new
+    firing age `a_f'` solves `H_new(a_f') = H_new(a) + H_old(a_f) − H_old(a)`
+    with `H = −log S` the integrated hazard, `a` the age at the change, and
+    `a_f` the old firing age. Only samplers with
+    [`supports_carry`](@ref)` == true` implement it; the others throw an
+    `ArgumentError`.
+
+This generic method serves every sampler whose plain `enable!`-on-enabled-key IS
+the redraw coupling (`FirstToFire`, the exponential-only backends, `Petri`): it
+forwards `:redraw` to `enable!` and rejects `:carry` unless the sampler opts in
+with `supports_carry`. `CombinedNextReaction` (whose historical `enable!`
+behavior IS carry) and `FirstToFire` (which adds a carry from its stored firing
+time) override it.
+"""
+function reenable!(
+    sampler::SSA{K,T},
+    clock::K,
+    distribution::UnivariateDistribution,
+    te::T,
+    when::T,
+    coupling::Symbol,
+) where {K,T}
+    if coupling === :redraw
+        # Plain enable! on an already-enabled key is the redraw-at-change
+        # coupling for every sampler that keeps no retained draw. Backends whose
+        # enable! instead carries (CombinedNextReaction) override reenable!.
+        enable!(sampler, clock, distribution, te, when)
+    elseif coupling === :carry
+        supports_carry(sampler) || throw(ArgumentError(
+            "reenable!(..., :carry) is not supported by $(typeof(sampler)); " *
+            "supports_carry(::$(typeof(sampler))) is false. This sampler keeps " *
+            "no in-flight draw to carry through a distribution change; use " *
+            ":redraw, or a sampler with supports_carry == true."))
+        # A carry-supporting sampler must override reenable!; reaching here means
+        # the trait was set true without a method.
+        error("supports_carry($(typeof(sampler))) is true but reenable! has no " *
+              ":carry method for it — this is a package bug.")
+    else
+        throw(ArgumentError(
+            "coupling must be :carry or :redraw, got :$coupling."))
+    end
 end
 
 """
@@ -77,9 +153,14 @@ end
 """
     clone(sampler)
 
-Given an existing sampler, make a copy that has the same type and same
-constructor options but has no data in it. Use this to initialize an array
-of samplers.
+Make a FULL-STATE deep copy of `sampler`: its clock state, distributions,
+schedules/heaps, AND its keyed random streams including every live generator's
+state and occurrence counts. Running the clone and the original forward produces
+IDENTICAL firing sequences (they are coupled) until one is `rekey_streams!`-ed.
+This is the primitive behind clone coupling and common random numbers.
+
+For an EMPTY same-type sampler (an initialized-but-unused copy, e.g. to fill an
+array of samplers), use [`similar_sampler`](@ref) instead.
 """
 function clone(sampler::SSA{K,T}) where {K,T}
     error("Clone not implemented for $(typeof(sampler))")
@@ -87,14 +168,45 @@ end
 
 
 """
-    jitter!(sampler, when, rng)
+    similar_sampler(sampler)
+
+Given an existing sampler, make a copy that has the same type and same
+constructor options but has no clock data in it. Use this to initialize an array
+of samplers or to start a fresh run. Its streams are fresh (empty of live
+generators); reseed with [`rekey_streams!`](@ref) if you need a different seed.
+This is the old empty-copy meaning of `clone`; `clone` now makes a full-state
+coupled copy.
+"""
+function similar_sampler(sampler::SSA{K,T}) where {K,T}
+    error("similar_sampler not implemented for $(typeof(sampler))")
+end
+
+
+"""
+    rekey_streams!(sampler, seed)
+
+Re-seed the sampler's keyed random streams to `seed`, forgetting every live
+per-key generator and count. After this the sampler draws a fresh, independent
+trajectory. Pairing `clone` (a coupled copy) with `rekey_streams!` decouples the
+copy; `split!` uses it to give each split copy its own randomness.
+"""
+function rekey_streams!(sampler::SSA{K,T}, seed) where {K,T}
+    error("rekey_streams! not implemented for $(typeof(sampler))")
+end
+
+
+"""
+    jitter!(sampler, when)
 
 Takes a sampler that is at a statistically-valid stopping time (this is a technical
 term) and resamples all clocks currently-enabled so that this copy of the sampler
 will yield different results from another copy of the sampler despite its internal
-cache of clock data.
+cache of clock data. The resample draws from the sampler's OWN keyed streams, so
+pairing `jitter!` with a preceding [`rekey_streams!`](@ref) is what makes the
+resample differ from the original (jittering off identical streams would
+reproduce the original draws).
 """
-function jitter!(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function jitter!(sampler::SSA{K,T}, when::T) where {K,T}
     error("jitter! not implemented for $(typeof(sampler))")
 end
 
@@ -134,10 +246,11 @@ fire!(sampler::SSA{K,T}, clock::K, when::T) where {K,T} =
 
 
 """
-    next(sampler, when, rng)
+    next(sampler, when)
 
 Ask the sampler for what happens next, in the form of
-`(when, which)::Tuple{TimeType,KeyType}`. `rng` is a random number generator.
+`(when, which)::Tuple{TimeType,KeyType}`. The sampler draws from its own keyed
+streams; no random number generator is passed.
 
 The returned `(when, which)` is a *reservation*, not a commitment. It is valid
 only until the next `enable!`, `disable!`, or `fire!` call changes the sampler's
@@ -161,7 +274,7 @@ legitimately disagree: `FirstReaction` re-conditions every clock on survival to
 Within it they agree, because every surviving clock's putative time is at least
 `when`.
 """
-function next(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function next(sampler::SSA{K,T}, when::T) where {K,T}
     error("Not implemented for $(typeof(sampler))")
 end
 

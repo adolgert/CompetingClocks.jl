@@ -10,13 +10,13 @@ using SafeTestsets
     rng = Xoshiro(90422342)
     enabled = Set{Int64}()
     for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
-        enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0, rng)
+        enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0)
         push!(enabled, clock_id)
     end
-    when, which = next(sampler, 0.0, rng)
+    when, which = next(sampler, 0.0)
     disable!(sampler, which, when)
     delete!(enabled, which)
-    when, which = next(sampler, when, rng)
+    when, which = next(sampler, when)
     @test when > 0.0
     @test 1 <= which
     @test which <= 5
@@ -40,7 +40,7 @@ end
     @test keytype(propagator) <: Int64
 
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
-        enable!(propagator, clock, Dirac(when_fire), 0.0, 0.0, rng)
+        enable!(propagator, clock, Dirac(when_fire), 0.0, 0.0)
     end
 
     @test length(propagator) == 5
@@ -67,33 +67,33 @@ end
     src = FirstToFire{Int,Float64}()
     dst = FirstToFire{Int,Float64}()
     rng = MersenneTwister(90422342)
-    enable!(src, 1, Exponential(), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(), 0.0, 0.0, rng)
-    enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(), 0.0, 0.0)
+    enable!(src, 2, Exponential(), 0.0, 0.0)
+    enable!(dst, 3, Exponential(), 0.0, 0.0)
     @test length(src) == 2
     @test length(dst) == 1
     copy_clocks!(dst, src)
     @test length(dst) == 2
-    enable!(src, 5, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 5, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 2
-    enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 6, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 3
 end
 
 
 @safetestset FirstToFire_clone = "FirstToFire clone" begin
-    using CompetingClocks: FirstToFire, enable!, clone
+    using CompetingClocks: FirstToFire, enable!, similar_sampler
     using Random: Xoshiro
     using Distributions: Exponential
 
     rng = Xoshiro(234567)
     sampler = FirstToFire{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
 
-    cloned = clone(sampler)
+    cloned = similar_sampler(sampler)
     @test length(cloned) == 0  # cloned is empty
     @test length(sampler) == 2  # original unchanged
 end
@@ -108,31 +108,31 @@ end
     sampler = FirstToFire{Int,Float64}()
 
     # Enable clocks
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Gamma(2.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Gamma(2.0, 1.0), 0.0, 0.0)
 
     # Get initial next event
-    t1, k1 = next(sampler, 0.0, rng)
+    t1, k1 = next(sampler, 0.0)
 
     # Jitter resamples all clocks - times should change
-    jitter!(sampler, 0.5, rng)
+    jitter!(sampler, 0.5)
 
     # Get new next event after jitter
-    t2, k2 = next(sampler, 0.5, rng)
+    t2, k2 = next(sampler, 0.5)
     @test t2 >= 0.5  # New times are after jitter time
 
     # Test jitter with te < when (truncated distribution branch)
     sampler2 = FirstToFire{Int,Float64}()
-    enable!(sampler2, 1, Exponential(1.0), 0.0, 0.0, rng)
-    jitter!(sampler2, 0.3, rng)  # when > te, so uses truncated distribution
-    t3, k3 = next(sampler2, 0.3, rng)
+    enable!(sampler2, 1, Exponential(1.0), 0.0, 0.0)
+    jitter!(sampler2, 0.3)  # when > te, so uses truncated distribution
+    t3, k3 = next(sampler2, 0.3)
     @test t3 >= 0.3
 
     # Test jitter with te >= when (non-truncated distribution branch)
     sampler3 = FirstToFire{Int,Float64}()
-    enable!(sampler3, 1, Exponential(1.0), 1.0, 1.0, rng)  # te = 1.0
-    jitter!(sampler3, 0.5, rng)  # when < te, so uses regular distribution
-    t4, k4 = next(sampler3, 0.5, rng)
+    enable!(sampler3, 1, Exponential(1.0), 1.0, 1.0)  # te = 1.0
+    jitter!(sampler3, 0.5)  # when < te, so uses regular distribution
+    t4, k4 = next(sampler3, 0.5)
     @test t4 >= 1.0  # Fire time should be >= te
 end
 
@@ -144,7 +144,7 @@ end
 
     rng = Xoshiro(456789)
     sampler = FirstToFire{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # haskey with correct type
     @test haskey(sampler, 1) == true

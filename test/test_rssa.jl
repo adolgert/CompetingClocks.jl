@@ -11,12 +11,12 @@ using SafeTestsets
     seen = Set{Int}()
     sample_time = 0.5
     for i in 1:100
-        sampler = RSSA{Int,Float64}()
-        enable!(sampler, 1, Exponential(1.7), 0.0, 0.0, rng)
-        enable!(sampler, 2, Exponential(4.5), 0.0, 0.0, rng)
-        enable!(sampler, 3, Exponential(2.0), 0.0, 0.0, rng)
+        sampler = RSSA{Int,Float64}(seed=i)
+        enable!(sampler, 1, Exponential(1.7), 0.0, 0.0)
+        enable!(sampler, 2, Exponential(4.5), 0.0, 0.0)
+        enable!(sampler, 3, Exponential(2.0), 0.0, 0.0)
         disable!(sampler, 2, sample_time)
-        when, which = next(sampler, sample_time, rng)
+        when, which = next(sampler, sample_time)
         push!(seen, which)
         @test when > sample_time
         min_when = min(min_when, when)
@@ -39,7 +39,7 @@ end
     @test keytype(sampler) <: Int64
 
     for (clock, rate) in [(1, 0.5), (2, 1.0), (3, 2.0), (4, 10.0), (5, 0.1)]
-        enable!(sampler, clock, Exponential(1/rate), 0.0, 0.0, rng)
+        enable!(sampler, clock, Exponential(1/rate), 0.0, 0.0)
     end
 
     @test length(sampler) == 5
@@ -66,22 +66,22 @@ end
 
     rng = MersenneTwister(90422342)
     sampler = RSSA{Int,Float64}()
-    when, which = next(sampler, 5.7, rng)
+    when, which = next(sampler, 5.7)
     @test when == Inf
     @test which === nothing
 end
 
 
 @safetestset rssa_clone = "RSSA clone" begin
-    using CompetingClocks: RSSA, enable!, clone
+    using CompetingClocks: RSSA, enable!, similar_sampler
     using Random: Xoshiro
     using Distributions: Exponential
 
     rng = Xoshiro(234567)
     sampler = RSSA{Int,Float64}(bound_factor=1.1)
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
-    cloned = clone(sampler)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
+    cloned = similar_sampler(sampler)
     @test cloned.bound_factor == 1.1
     @test length(cloned) == 0  # cloned is empty
     @test length(sampler) == 2  # original unchanged
@@ -96,18 +96,18 @@ end
     src = RSSA{Int,Float64}(bound_factor=1.2)
     dst = RSSA{Int,Float64}(bound_factor=1.3)
     rng = MersenneTwister(90422342)
-    enable!(src, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(dst, 3, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(src, 2, Exponential(1.0), 0.0, 0.0)
+    enable!(dst, 3, Exponential(1.0), 0.0, 0.0)
     @test length(src) == 2
     @test length(dst) == 1
     copy_clocks!(dst, src)
     @test length(dst) == 2
     @test dst.bound_factor == 1.2  # copied from src
-    enable!(src, 5, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(src, 5, Exponential(1.0), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 2
-    enable!(dst, 6, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dst, 6, Exponential(1.0), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 3
 end
@@ -121,7 +121,7 @@ end
     rng = Xoshiro(345678)
     sampler = RSSA{Int,Float64}(bound_factor=1.0)  # No inflation
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
     @test sampler.a[1] == 1.0
     @test sampler.abar[1] == 1.0  # bound_factor=1.0, so abar = rate
 
@@ -147,8 +147,8 @@ end
     rng = Xoshiro(456789)
     sampler = RSSA{Int,Float64}(bound_factor=1.0)
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
-    enable!(sampler, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
+    enable!(sampler, 2, Exponential(0.5), 0.0, 0.0)  # rate = 2.0
     @test sampler.abar[1] == 1.0
     @test sampler.abar[2] == 2.0
 
@@ -172,18 +172,18 @@ end
 
     rng = Xoshiro(567890)
     sampler = RSSA{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # Get next event to populate cache
-    t1, k1 = next(sampler, 0.0, rng)
+    t1, k1 = next(sampler, 0.0)
     @test sampler.cached_next !== nothing
 
     # Jitter invalidates cache
-    jitter!(sampler, 0.0, rng)
+    jitter!(sampler, 0.0)
     @test sampler.cached_next === nothing
 
     # Next call should give a new sample
-    t2, k2 = next(sampler, 0.0, rng)
+    t2, k2 = next(sampler, 0.0)
     @test sampler.cached_next !== nothing
 end
 
@@ -196,8 +196,8 @@ end
     rng = Xoshiro(678901)
     sampler = RSSA{Int,Float64}()
 
-    @test_throws ArgumentError enable!(sampler, 1, Gamma(1.0, 1.0), 0.0, 0.0, rng)
-    @test_throws ArgumentError enable!(sampler, 2, Weibull(1.0, 1.0), 0.0, 0.0, rng)
+    @test_throws ArgumentError enable!(sampler, 1, Gamma(1.0, 1.0), 0.0, 0.0)
+    @test_throws ArgumentError enable!(sampler, 2, Weibull(1.0, 1.0), 0.0, 0.0)
 end
 
 
@@ -210,17 +210,17 @@ end
     sampler = RSSA{Int,Float64}(bound_factor=1.0)
 
     # Enable with rate 1.0
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
     @test sampler.a[1] == 1.0
     @test sampler.abar[1] == 1.0
 
     # Update to higher rate - bound should increase
-    enable!(sampler, 1, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+    enable!(sampler, 1, Exponential(0.5), 0.0, 0.0)  # rate = 2.0
     @test sampler.a[1] == 2.0
     @test sampler.abar[1] == 2.0  # bound increases to match rate
 
     # Update to lower rate - bound stays at previous level
-    enable!(sampler, 1, Exponential(2.0), 0.0, 0.0, rng)  # rate = 0.5
+    enable!(sampler, 1, Exponential(2.0), 0.0, 0.0)  # rate = 0.5
     @test sampler.a[1] == 0.5
     @test sampler.abar[1] == 2.0  # bound doesn't decrease automatically
 end
@@ -233,19 +233,19 @@ end
 
     rng = Xoshiro(890123)
     sampler = RSSA{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # No cached_next yet - should throw KeyError
     @test_throws KeyError sampler[1]
 
     # After next(), cached_next is set
-    t, k = next(sampler, 0.0, rng)
+    t, k = next(sampler, 0.0)
     @test k == 1  # only one clock enabled
     @test sampler[1] == t
 
     # Add another clock, ask for non-cached clock
-    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)
-    t2, k2 = next(sampler, 0.0, rng)
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0)
+    t2, k2 = next(sampler, 0.0)
     # Only the cached clock should be accessible
     @test sampler[k2] == t2
     if k2 == 1
@@ -263,13 +263,13 @@ end
 
     rng = Xoshiro(901234)
     sampler = RSSA{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # First call sets the cache
-    t1, k1 = next(sampler, 0.0, rng)
+    t1, k1 = next(sampler, 0.0)
 
     # Second call returns same result (idempotent)
-    t2, k2 = next(sampler, 0.0, rng)
+    t2, k2 = next(sampler, 0.0)
     @test t1 == t2
     @test k1 == k2
 end
@@ -304,7 +304,7 @@ end
     @test_throws KeyError disable!(sampler, 1, 0.0)
 
     # Enable then disable
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
     disable!(sampler, 1, 0.0)
 
     # Disable already disabled clock
@@ -319,13 +319,13 @@ end
 
     rng = Xoshiro(23456)
     sampler = RSSA{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0)
 
     @test length(sampler) == 2
 
     # Get next event
-    t, k = next(sampler, 0.0, rng)
+    t, k = next(sampler, 0.0)
 
     # Fire removes the clock
     fire!(sampler, k, t)

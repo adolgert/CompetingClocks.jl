@@ -132,15 +132,31 @@ distributions are timed.
 mutable struct CombinedNextReaction{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}
     transition_entry::Dict{K,NRTransition{T}}
+    streams::KeyedStreams{K}
 end
 
 
-function CombinedNextReaction{K,T}() where {K,T<:ContinuousTime}
+function CombinedNextReaction{K,T}(seed=_DEFAULT_STREAM_SEED) where {K,T<:ContinuousTime}
     heap = MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}()
-    CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}())
+    CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}(), KeyedStreams{K}(seed))
 end
 
-clone(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}()
+# A full-state clone copies the firing queue, the retained-survival table, AND
+# the keyed streams (generator states, counts). Because this sampler REUSES a
+# clock's survival draw across enabling episodes, carrying the stream states is
+# what keeps the clone's future draws identical to the original's — the coupling
+# the CRN successor relies on.
+function clone(nr::CombinedNextReaction{K,T}) where {K,T}
+    c = CombinedNextReaction{K,T}(nr.streams.seed)
+    c.firing_queue = deepcopy(nr.firing_queue)
+    copy!(c.transition_entry, nr.transition_entry)
+    c.streams = copy(nr.streams)
+    return c
+end
+
+similar_sampler(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}(nr.streams.seed)
+
+rekey_streams!(nr::CombinedNextReaction, seed) = (rekey_streams!(nr.streams, seed); nr)
 
 function reset!(nr::CombinedNextReaction)
     empty!(nr.firing_queue)
@@ -152,14 +168,15 @@ end
 function copy_clocks!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
+    dst.streams = copy(src.streams)
     return dst
 end
 
 
 function _jitter_space(nr::CombinedNextReaction{K,T}, clock, record, ::Type{S}, when::T,
-        rng::AbstractRNG) where {K,T,S<:SamplingSpaceType}
+        ) where {K,T,S<:SamplingSpaceType}
     if record.heap_handle > 0
-        tau, shift_survival = sample_shifted(rng, record.distribution, S, record.te, when)
+        tau, shift_survival = sample_shifted(stream_for!(nr.streams, clock), record.distribution, S, record.te, when)
         sample = OrderedSample{K,T}(clock, tau)
         update!(nr.firing_queue, record.heap_handle, sample)
         nr.transition_entry[clock] = NRTransition{T}(
@@ -171,9 +188,9 @@ function _jitter_space(nr::CombinedNextReaction{K,T}, clock, record, ::Type{S}, 
 end
 
 
-function jitter!(nr::CombinedNextReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function jitter!(nr::CombinedNextReaction{K,T}, when::T) where {K,T}
     for (clock, record) in nr.transition_entry
-        _jitter_space(nr, clock, record, sampling_space(record.distribution), when, rng)
+        _jitter_space(nr, clock, record, sampling_space(record.distribution), when)
     end
 end
 
@@ -187,7 +204,7 @@ Repeated calls to next(), with no intervening enable!, disable!, or fire!,
 return the same cached reservation. Committing to a firing is done separately
 by calling fire!.
 """
-function next(nr::CombinedNextReaction{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function next(nr::CombinedNextReaction{K,T}, when::T) where {K,T}
     if !isempty(nr.firing_queue)
         least = first(nr.firing_queue)
         return (least.time, least.key)
@@ -287,15 +304,15 @@ end
 
 function enable!(
     nr::CombinedNextReaction{K,T}, clock::K, distribution::UnivariateDistribution,
-    te::T, when::T, rng::AbstractRNG) where {K,T}
-    enable!(nr, clock, distribution, sampling_space(distribution), te, when, rng)
+    te::T, when::T) where {K,T}
+    enable!(nr, clock, distribution, sampling_space(distribution), te, when)
     nothing
 end
 
 
 function enable!(
     nr::CombinedNextReaction{K,T}, clock::K, distribution::UnivariateDistribution, ::Type{S},
-    te::T, when::T, rng::AbstractRNG) where {K,T,S<:SamplingSpaceType}
+    te::T, when::T) where {K,T,S<:SamplingSpaceType}
 
     # Three cases: a) never been enabled b) currently enabled c) was disabled.
     record = get(
@@ -307,7 +324,7 @@ function enable!(
 
     # if the transition needs to be re-drawn.
     if record.survival <= get_survival_zero(S)
-        tau, shift_survival = sample_shifted(rng, distribution, S, te, when)
+        tau, shift_survival = sample_shifted(stream_for!(nr.streams, clock), distribution, S, te, when)
         sample = OrderedSample{K,T}(clock, tau)
         if record.heap_handle > 0
             update!(nr.firing_queue, record.heap_handle, sample)
@@ -482,3 +499,167 @@ function Base.haskey(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
 end
 
 Base.haskey(dc::CombinedNextReaction{K,T}, clock) where {K,T} = false
+
+
+# --- estimator-facing verbs -------------------------------------------------
+# CombinedNextReaction is the one sampler in this package that retains draw
+# randomness across state changes (the Anderson/Gibson-Bruck reuse property), so
+# it is the only one that supports `retained_draw`. It is a scheduling backend
+# with a per-clock enabling-time table, so it also supports `enabled_ages` and
+# `force_fire!`. Disabled and fired clocks are kept in `transition_entry` with
+# `heap_handle == 0` for draw reuse; every estimator verb here excludes them.
+
+supports_enabled_ages(::Type{<:CombinedNextReaction}) = true
+supports_force(::Type{<:CombinedNextReaction}) = true
+supports_retained_draw(::Type{<:CombinedNextReaction}) = true
+# CombinedNextReaction retains each clock's survival across state changes, so it
+# can carry a mid-flight distribution change deterministically — indeed its
+# historical enable!-on-enabled-key behavior ALREADY IS carry (see reenable!).
+supports_carry(::Type{<:CombinedNextReaction}) = true
+
+
+"""
+    reenable!(nr::CombinedNextReaction, clock, distribution, te, when, coupling)
+
+Re-evaluate `clock`'s distribution mid-flight under an explicit `coupling`.
+
+`:carry` reuses the retained survival: this is EXACTLY the already-enabled branch
+of [`enable!`](@ref) (`consume_survival` re-references the stored survival from
+its last reschedule to `when`, then `sample_by_inversion` maps it into the new
+distribution), so CombinedNextReaction's historical enable!-on-rate-change
+behavior has always been carry. Carry consumes no randomness and, for an
+identical distribution, leaves the schedule bit-for-bit unchanged.
+
+`:redraw` discards the retained survival and draws the remaining lifetime fresh
+from the clock's OWN keyed stream, conditioned on the current age (via
+`sample_shifted`, which truncates at `when - te`). This is the same fresh draw a
+plain first-enable would make, so under `:redraw` even an identical distribution
+generally moves the schedule.
+"""
+function reenable!(
+    nr::CombinedNextReaction{K,T}, clock::K, distribution::UnivariateDistribution,
+    te::T, when::T, coupling::Symbol) where {K,T}
+    haskey(nr, clock) || throw(ArgumentError(
+        "reenable! needs clock $clock currently enabled (heap_handle > 0); " *
+        "use enable! to start a clock that is not enabled."))
+    if coupling === :carry
+        # The already-enabled branch of enable! is the carry map.
+        enable!(nr, clock, distribution, te, when)
+    elseif coupling === :redraw
+        _reenable_redraw!(nr, clock, distribution, sampling_space(distribution), te, when)
+    else
+        throw(ArgumentError("coupling must be :carry or :redraw, got :$coupling."))
+    end
+    nothing
+end
+
+
+# Redraw coupling: the fresh-draw branch of enable! (sample_shifted from te at
+# the current time), taken unconditionally even when the distribution is
+# unchanged. The clock keeps its heap slot; only its scheduled time and stored
+# survival change, drawn from the clock's own keyed stream so a coupled clone
+# pair redraws identically.
+function _reenable_redraw!(
+    nr::CombinedNextReaction{K,T}, clock::K, distribution::UnivariateDistribution,
+    ::Type{S}, te::T, when::T) where {K,T,S<:SamplingSpaceType}
+    record = nr.transition_entry[clock]
+    tau, shift_survival = sample_shifted(stream_for!(nr.streams, clock), distribution, S, te, when)
+    update!(nr.firing_queue, record.heap_handle, OrderedSample{K,T}(clock, tau))
+    nr.transition_entry[clock] = NRTransition{T}(
+        record.heap_handle, shift_survival, distribution, te, when
+    )
+    nothing
+end
+
+# Only currently-enabled clocks (heap_handle > 0). A disabled or fired entry is
+# retained for draw reuse but is not part of the enabled set, so it must not
+# appear among the ages an estimator races.
+enabling_times(nr::CombinedNextReaction) =
+    ((clock, rec.te) for (clock, rec) in nr.transition_entry if rec.heap_handle > 0)
+
+
+# The log-survival coordinate of a stored survival value. CombinedNextReaction
+# keeps survival in one of two sampling spaces per distribution family (see
+# `sampling_space`): linear space stores the survival probability S_j itself,
+# log space stores the integrated hazard Λ_j = log S_j. Normalizing both to the
+# log coordinate is what lets `retained_draw` report one identity for every
+# family.
+_log_survival(::Type{LinearSampling}, survival) = log(survival)
+_log_survival(::Type{LogSampling}, survival) = survival
+
+
+"""
+    retained_draw(nr::CombinedNextReaction, clock) -> (te=te, u=u, logu=logu)
+
+Return the enabling time and the survival-space uniform behind `clock`'s current
+tentative firing time, satisfying `tentative == te + invlogccdf(dist, logu)`.
+
+CombinedNextReaction stores its per-clock survival in whichever sampling space
+(`LinearSampling` or `LogSampling`) suits the distribution family, and, for a
+left-shifted enabling (`te < t0`, where `t0` is the last (re)schedule time),
+that survival is measured within the distribution TRUNCATED at the age
+`t0 - te`. This normalizes both to the log-survival coordinate of the clock's
+TOTAL lifetime from `te`:
+
+    logu = _log_survival(space, survival) + (te < t0 ? logccdf(dist, t0 - te) : 0)
+
+so the same identity holds whatever the family or the enabling shift.
+"""
+function retained_draw(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
+    haskey(nr.transition_entry, clock) || throw(KeyError(clock))
+    rec = nr.transition_entry[clock]
+    rec.heap_handle > 0 || throw(ArgumentError(
+        "retained_draw needs clock $clock currently enabled (heap_handle > 0); " *
+        "a disabled or fired clock has no tentative firing time."))
+    S = sampling_space(rec.distribution)
+    shift = rec.te < rec.t0 ? logccdf(rec.distribution, rec.t0 - rec.te) : zero(T)
+    logu = _log_survival(S, rec.survival) + shift
+    return (te=rec.te, u=exp(logu), logu=logu)
+end
+
+
+"""
+    force_fire!(nr::CombinedNextReaction, clock, tstar)
+
+Fire `clock` at `tstar` regardless of the race. The fired clock is consumed
+exactly as `fire!` consumes it — its survival is zeroed so a later re-enable
+redraws fresh, NOT preserved as `disable!` would. Each surviving enabled clock
+is repaired with keep-if-later / redraw-if-passed: a stored schedule already
+past `tstar` is kept (conditioned on the race being decided at `tstar`, the
+unconditional draw that exceeds `tstar` is already survival-conditioned), while
+a schedule `≤ tstar` — a promise the force overran — is redrawn from the
+lifetime truncated past `tstar` via `sample_shifted`, drawing from that loser's
+OWN keyed stream so the redraw is identical across a coupled clone pair, and its
+stored survival and schedule updated so the retained-draw identity stays true.
+
+See the unbiasedness precondition on the generic `force_fire!`.
+"""
+function force_fire!(nr::CombinedNextReaction{K,T}, clock::K, tstar::T) where {K,T<:ContinuousTime}
+    haskey(nr, clock) || throw(KeyError(clock))  # haskey requires heap_handle > 0
+    fired = nr.transition_entry[clock]
+    Sfired = sampling_space(fired.distribution)
+    delete!(nr.firing_queue, fired.heap_handle)
+    # Consume the draw like fire!, not disable!: zero the survival so re-enabling
+    # takes the fresh-redraw branch.
+    nr.transition_entry[clock] = NRTransition{T}(
+        0, get_survival_zero(Sfired), fired.distribution, fired.te, tstar
+    )
+    # Repair survivors. Collect keys first so reassigning dict entries in the
+    # loop cannot disturb iteration.
+    for k in collect(keys(nr.transition_entry))
+        rec = nr.transition_entry[k]
+        rec.heap_handle > 0 || continue  # skip disabled/fired (incl. the just-fired clock)
+        scheduled = getfield(nr.firing_queue[rec.heap_handle], :time)
+        scheduled > tstar && continue    # keep-if-later
+        # Redraw-if-passed: fresh draw from the age-conditioned law past tstar.
+        # Storing t0 = tstar makes tstar the truncation reference, so the redrawn
+        # survival reconstructs through retained_draw exactly as an enable would.
+        S = sampling_space(rec.distribution)
+        tau, shift_survival = sample_shifted(stream_for!(nr.streams, k), rec.distribution, S, rec.te, tstar)
+        update!(nr.firing_queue, rec.heap_handle, OrderedSample{K,T}(k, tau))
+        nr.transition_entry[k] = NRTransition{T}(
+            rec.heap_handle, shift_survival, rec.distribution, rec.te, tstar
+        )
+    end
+    nothing
+end

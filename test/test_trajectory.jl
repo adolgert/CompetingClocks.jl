@@ -18,7 +18,7 @@ using SafeTestsets
         period_finish = Float64(step_idx)
         dist = Exponential(step_idx)
         λ = inv(dist.θ)
-        enable!(watcher, step_idx, dist, period_start, period_start, rng)
+        enable!(watcher, step_idx, dist, period_start, period_start)
         step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
         @test step_ll <= 0.0
         fire!(watcher, step_idx, period_finish)
@@ -47,7 +47,7 @@ end
         period_start = Float64(step_idx - 1)
         period_finish = Float64(step_idx)
         dist = Gamma(step_idx, 1.5)
-        enable!(watcher, step_idx, dist, period_start, period_start, rng)
+        enable!(watcher, step_idx, dist, period_start, period_start)
         step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
         @test step_ll <= 0.0
         fire!(watcher, step_idx, period_finish)
@@ -78,8 +78,8 @@ end
         period_start = Float64(step_idx - 1)
         period_finish = Float64(step_idx)
         dist = Gamma(step_idx, 1.5)
-        enable!(watcher, step_idx, dist, period_start, period_start, rng)
-        enable!(watcher, compete_idx, compete, period_start, period_start, rng)
+        enable!(watcher, step_idx, dist, period_start, period_start)
+        enable!(watcher, compete_idx, compete, period_start, period_start)
         step_ll = steploglikelihood(watcher, period_start, period_finish, step_idx)
         @test step_ll <= 0.0
         fire!(watcher, step_idx, period_finish)
@@ -104,8 +104,8 @@ end
     watcher = TrajectoryWatcher{Int64,Float64}()
 
     # Add some state
-    enable!(watcher, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(watcher, 2, Gamma(2.0, 1.5), 0.0, 0.0, rng)
+    enable!(watcher, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(watcher, 2, Gamma(2.0, 1.5), 0.0, 0.0)
     fire!(watcher, 1, 0.5)
 
     # Clone should create a fresh instance
@@ -123,12 +123,12 @@ end
     rng = Xoshiro(5678)
 
     src = TrajectoryWatcher{Int64,Float64}()
-    enable!(src, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(src, 2, Gamma(2.0, 1.5), 0.1, 0.1, rng)
+    enable!(src, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(src, 2, Gamma(2.0, 1.5), 0.1, 0.1)
     fire!(src, 1, 0.5)
 
     dst = TrajectoryWatcher{Int64,Float64}()
-    enable!(dst, 99, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(dst, 99, Exponential(2.0), 0.0, 0.0)
 
     CompetingClocks.copy_clocks!(dst, src)
 
@@ -149,8 +149,8 @@ end
     rng = Xoshiro(9012)
 
     watcher = TrajectoryWatcher{Int64,Float64}()
-    enable!(watcher, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(watcher, 2, Gamma(2.0, 1.5), 0.0, 0.0, rng)
+    enable!(watcher, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(watcher, 2, Gamma(2.0, 1.5), 0.0, 0.0)
     fire!(watcher, 1, 0.5)
 
     @test length(watcher) > 0
@@ -180,7 +180,7 @@ end
     curtime = zero(Float64)
     for initial_idx in 1:10
         dist = Gamma(6 + initial_idx * 0.2, 1.0)
-        enable!(watcher, initial_idx, dist, curtime, curtime, rng)
+        enable!(watcher, initial_idx, dist, curtime, curtime)
         push!(enabled, initial_idx)
     end
     max_idx = 10
@@ -209,7 +209,7 @@ end
         for i in 1:5
             dist = Gamma(5 + 0.2 * i - 0.1 * step_idx, 1.5)
             add_idx = max_idx + 1
-            enable!(watcher, add_idx, dist, curtime, curtime, rng)
+            enable!(watcher, add_idx, dist, curtime, curtime)
             push!(enabled, add_idx)
             max_idx = add_idx
         end
@@ -236,17 +236,17 @@ end
     @test pl.curtime == 0.0
 
     # Test enable! with single distribution
-    enable!(pl, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(pl, 1, Exponential(1.0), 0.0, 0.0)
     @test length(pl) == 1
     @test CompetingClocks.isenabled(pl, 1)
     @test 1 in CompetingClocks.enabled(pl)
 
     # Test enable! overwrites existing clock
-    enable!(pl, 1, Exponential(2.0), 0.1, 0.1, rng)
+    enable!(pl, 1, Exponential(2.0), 0.1, 0.1)
     @test length(pl) == 1
 
     # Add another clock
-    enable!(pl, 2, Gamma(2.0, 1.5), 0.0, 0.0, rng)
+    enable!(pl, 2, Gamma(2.0, 1.5), 0.0, 0.0)
     @test length(pl) == 2
 end
 
@@ -259,7 +259,7 @@ end
     rng = Xoshiro(5678)
 
     pl = PathLikelihoods{Int64,Float64}(4)
-    enable!(pl, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(pl, 1, Exponential(1.0), 0.0, 0.0)
     fire!(pl, 1, 0.5)
 
     cloned = CompetingClocks.clone(pl)
@@ -277,12 +277,12 @@ end
     rng = Xoshiro(9012)
 
     src = PathLikelihoods{Int64,Float64}(3)
-    enable!(src, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(src, 2, Gamma(2.0, 1.5), 0.1, 0.1, rng)
+    enable!(src, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(src, 2, Gamma(2.0, 1.5), 0.1, 0.1)
     fire!(src, 1, 0.5)
 
     dst = PathLikelihoods{Int64,Float64}(3)
-    enable!(dst, 99, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(dst, 99, Exponential(2.0), 0.0, 0.0)
 
     CompetingClocks.copy_clocks!(dst, src)
 
@@ -302,8 +302,8 @@ end
     rng = Xoshiro(3456)
 
     pl = PathLikelihoods{Int64,Float64}(3)
-    enable!(pl, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(pl, 2, Gamma(2.0, 1.5), 0.0, 0.0, rng)
+    enable!(pl, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(pl, 2, Gamma(2.0, 1.5), 0.0, 0.0)
     fire!(pl, 1, 0.5)
 
     @test length(pl) > 0
@@ -330,11 +330,11 @@ end
     pl = PathLikelihoods{Int64,Float64}(1)
 
     # Run the same sequence of operations
-    enable!(tw, 1, Exponential(2.0), 0.0, 0.0, rng)
-    enable!(pl, 1, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(tw, 1, Exponential(2.0), 0.0, 0.0)
+    enable!(pl, 1, Exponential(2.0), 0.0, 0.0)
 
-    enable!(tw, 2, Gamma(3.0, 1.0), 0.0, 0.0, rng)
-    enable!(pl, 2, Gamma(3.0, 1.0), 0.0, 0.0, rng)
+    enable!(tw, 2, Gamma(3.0, 1.0), 0.0, 0.0)
+    enable!(pl, 2, Gamma(3.0, 1.0), 0.0, 0.0)
 
     # Fire clock 1
     fire!(tw, 1, 0.5)
@@ -345,8 +345,8 @@ end
     disable!(pl, 2, 0.5)
 
     # Enable new clocks
-    enable!(tw, 3, Weibull(2.0, 1.5), 0.5, 0.5, rng)
-    enable!(pl, 3, Weibull(2.0, 1.5), 0.5, 0.5, rng)
+    enable!(tw, 3, Weibull(2.0, 1.5), 0.5, 0.5)
+    enable!(pl, 3, Weibull(2.0, 1.5), 0.5, 0.5)
 
     # Fire clock 3
     fire!(tw, 3, 1.0)
@@ -376,8 +376,8 @@ end
         period_start = Float64(step_idx - 1)
         period_finish = Float64(step_idx)
         dist = Exponential(step_idx)
-        enable!(tw, step_idx, dist, period_start, period_start, rng)
-        enable!(pl, step_idx, dist, period_start, period_start, rng)
+        enable!(tw, step_idx, dist, period_start, period_start)
+        enable!(pl, step_idx, dist, period_start, period_start)
         fire!(tw, step_idx, period_finish)
         fire!(pl, step_idx, period_finish)
     end
@@ -406,10 +406,10 @@ end
         period_start = Float64(step_idx - 1)
         period_finish = Float64(step_idx)
         dist = Gamma(step_idx, 1.5)
-        enable!(tw, step_idx, dist, period_start, period_start, rng)
-        enable!(pl, step_idx, dist, period_start, period_start, rng)
-        enable!(tw, compete_idx, compete, period_start, period_start, rng)
-        enable!(pl, compete_idx, compete, period_start, period_start, rng)
+        enable!(tw, step_idx, dist, period_start, period_start)
+        enable!(pl, step_idx, dist, period_start, period_start)
+        enable!(tw, compete_idx, compete, period_start, period_start)
+        enable!(pl, compete_idx, compete, period_start, period_start)
         fire!(tw, step_idx, period_finish)
         fire!(pl, step_idx, period_finish)
         disable!(tw, compete_idx, period_finish)
@@ -435,7 +435,7 @@ end
 
     # Enable with a vector of distributions (different parameters)
     dists = [Exponential(1.0), Exponential(2.0), Exponential(3.0)]
-    enable!(pl, 1, dists, 0.0, 0.0, rng)
+    enable!(pl, 1, dists, 0.0, 0.0)
 
     @test length(pl) == 1
 
@@ -470,7 +470,7 @@ end
 
     # Enable with vector of distributions
     dists = [Exponential(1.0), Exponential(2.0), Exponential(3.0)]
-    enable!(pl, 1, dists, 0.0, 0.0, rng)
+    enable!(pl, 1, dists, 0.0, 0.0)
 
     # Disable without firing
     disable!(pl, 1, 0.5)
@@ -498,11 +498,11 @@ end
     pl = PathLikelihoods{Int64,Float64}(3)
 
     # Enable clock 1 with single distribution (should broadcast to all 3)
-    enable!(pl, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(pl, 1, Exponential(1.0), 0.0, 0.0)
 
     # Enable clock 2 with vector of distributions
     dists = [Gamma(2.0, 1.0), Gamma(2.0, 1.5), Gamma(2.0, 2.0)]
-    enable!(pl, 2, dists, 0.0, 0.0, rng)
+    enable!(pl, 2, dists, 0.0, 0.0)
 
     @test length(pl) == 2
 
@@ -541,8 +541,8 @@ end
 
     # Enable with te=0.0 but when=0.5 (distribution started earlier)
     dist = Exponential(2.0)
-    enable!(tw, 1, dist, 0.0, 0.5, rng)
-    enable!(pl, 1, dist, 0.0, 0.5, rng)
+    enable!(tw, 1, dist, 0.0, 0.5)
+    enable!(pl, 1, dist, 0.0, 0.5)
 
     # Fire at time 1.0
     fire!(tw, 1, 1.0)
@@ -570,8 +570,8 @@ end
     # Test that pathloglikelihood properly handles clocks that haven't fired yet
     pl = PathLikelihoods{Int64,Float64}(1)
 
-    enable!(pl, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(pl, 2, Gamma(2.0, 1.5), 0.0, 0.0, rng)
+    enable!(pl, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(pl, 2, Gamma(2.0, 1.5), 0.0, 0.0)
 
     # Fire only clock 1, leave clock 2 enabled
     fire!(pl, 1, 0.5)
@@ -594,7 +594,7 @@ end
 
     pl = PathLikelihoods{Int64,Float64}(1)
 
-    enable!(pl, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(pl, 1, Exponential(1.0), 0.0, 0.0)
     fire!(pl, 1, 0.5)
 
     # curtime is now 0.5

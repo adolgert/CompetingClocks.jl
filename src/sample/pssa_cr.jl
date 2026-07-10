@@ -92,10 +92,11 @@ mutable struct PSSACR{K,T} <: SSA{K,T}
     total_rate::T                    # Σ_g group_sum[g]
     # Cached next event for idempotent `next`
     cached_next::Union{Nothing,OrderedSample{K,T}}
+    streams::KeyedStreams{K}
 end
 
 # Constructor
-function PSSACR{K,T}(; ngroups::Int=64) where {K,T}
+function PSSACR{K,T}(; ngroups::Int=64, seed=_DEFAULT_STREAM_SEED) where {K,T}
     groups = [Vector{K}() for _ in 1:ngroups]
     zerosT = zero(T)
     PSSACR{K,T}(
@@ -107,13 +108,23 @@ function PSSACR{K,T}(; ngroups::Int=64) where {K,T}
         fill(zerosT, ngroups),
         zerosT,
         nothing,
+        KeyedStreams{K}(seed),
     )
 end
 
-# Shallow clone of structure (no clocks), preserving ngroups
+# Empty same-type copy, preserving ngroups.
+similar_sampler(s::PSSACR{K,T}) where {K,T} = PSSACR{K,T}(ngroups=length(s.groups), seed=s.streams.seed)
+
+# PSSACR draws the next time and the winner from the race stream via
+# composition-rejection, retaining no per-clock draw, so a full-state clone is
+# the group tables plus the race generator's state.
 function clone(s::PSSACR{K,T}) where {K,T}
-    PSSACR{K,T}(ngroups=length(s.groups))
+    c = similar_sampler(s)
+    copy_clocks!(c, s)
+    return c
 end
+
+rekey_streams!(s::PSSACR, seed) = (rekey_streams!(s.streams, seed); s)
 
 # Reset all internal state
 function reset!(s::PSSACR{K,T}) where {K,T}
@@ -146,6 +157,7 @@ function copy_clocks!(dst::PSSACR{K,T}, src::PSSACR{K,T}) where {K,T}
     dst.total_rate = src.total_rate
     dst.cached_next = src.cached_next === nothing ? nothing :
         OrderedSample{K,T}(src.cached_next.key, src.cached_next.time)
+    dst.streams = copy(src.streams)
     return dst
 end
 
@@ -201,7 +213,7 @@ function _update_rate!(s::PSSACR{K,T}, clock::K, newλ::T) where {K,T}
 end
 
 # Required interface: jitter! → just invalidate the cached sample.
-function jitter!(s::PSSACR{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function jitter!(s::PSSACR{K,T}, when::T) where {K,T}
     _invalidate!(s)
 end
 
@@ -210,8 +222,7 @@ function enable!(s::PSSACR{K,T},
                  clock::K,
                  distribution::UnivariateDistribution,
                  te::T,
-                 when::T,
-                 rng::AbstractRNG) where {K,T}
+                 when::T) where {K,T}
     if !(distribution isa Exponential)
         throw(ArgumentError("PSSACR only supports Exponential distributions (got $(typeof(distribution)))."))
     end
@@ -266,7 +277,7 @@ function fire!(s::PSSACR{K,T}, clock::K, when::T) where {K,T}
 end
 
 # Required interface: compute (time, clock) of the next event WITHOUT removing it.
-function next(s::PSSACR{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function next(s::PSSACR{K,T}, when::T) where {K,T}
     # If cached, return it.
     if s.cached_next !== nothing
         t = s.cached_next.time
@@ -279,6 +290,7 @@ function next(s::PSSACR{K,T}, when::T, rng::AbstractRNG) where {K,T}
         return (typemax(T), nothing)
     end
 
+    rng = race_stream(s.streams)
     # Time increment
     Δt = rand(rng, Exponential(inv(s.total_rate)))
     tfire = when + Δt
