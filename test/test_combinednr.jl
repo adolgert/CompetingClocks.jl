@@ -780,3 +780,28 @@ end
     # Now clock 1 contributes survival again, so the value drops below analytic.
     @test steploglikelihood(nr, 0.5, 1.0, 2) < analytic
 end
+
+
+@safetestset combinednr_jitter_with_disabled_entry =
+    "combinednr: jitter! on a sampler holding a retained-disabled entry does not throw and extinguishes the banked survival so a re-enable draws fresh" begin
+    using CompetingClocks
+    using CompetingClocks: CombinedNextReaction, jitter!
+    using Distributions: Weibull
+
+    # A disabled (not fired) clock banks residual survival for reuse
+    # (heap_handle == 0 entry kept in the table). jitter!'s purpose is
+    # decorrelation, which must extinguish that bank too; NRTransition is
+    # immutable, so the old in-place assignment threw a setfield! error the
+    # moment any disabled entry existed.
+    nr = CombinedNextReaction{Int,Float64}(424242)
+    enable!(nr, 1, Weibull(1.7, 2.0), 0.0, 0.0)
+    enable!(nr, 2, Weibull(1.3, 1.5), 0.0, 0.0)
+    disable!(nr, 1, 0.4)                    # banks clock 1's residual survival
+    jitter!(nr, 0.4)                        # threw before the fix
+    # The bank is gone: re-enabling clock 1 draws a fresh schedule rather than
+    # reusing pre-jitter randomness, and the sampler stays fully operational.
+    enable!(nr, 1, Weibull(1.7, 2.0), 0.4, 0.4)
+    when, which = next(nr, 0.4)
+    @test which in (1, 2)
+    @test when > 0.4
+end

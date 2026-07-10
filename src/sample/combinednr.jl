@@ -183,7 +183,16 @@ function _jitter_space(nr::CombinedNextReaction{K,T}, clock, record, ::Type{S}, 
             record.heap_handle, shift_survival, record.distribution, record.te, when
         )
     else
-        record.survival = get_survival_zero(S)
+        # A retained-disabled entry (heap_handle == 0) banks residual survival
+        # for Anderson/Gibson-Bruck reuse; decorrelation must extinguish that
+        # bank too, or a re-enabled clock replays pre-jitter randomness.
+        # NRTransition is immutable, so REPLACE the entry — assigning through
+        # `record.survival = ...` threw whenever a disabled entry existed,
+        # which made jitter! unusable on any sampler that had ever disabled a
+        # clock (found by ClockGradients' branchable-world rekey sweep).
+        nr.transition_entry[clock] = NRTransition{T}(
+            0, get_survival_zero(S), record.distribution, record.te, record.t0
+        )
     end
 end
 
