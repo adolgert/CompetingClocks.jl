@@ -25,12 +25,15 @@ These features determine the type of the sampler.
  * `likelihood_cnt=1`---Applies when likelihoods are enabled and supports
    importance sampling. Specifies how
    many event distributions will be used to calculate a vector of likelihoods.
- * `common_random=false`---For variance reduction, turn on recording of
-   random number usage during sampling.
  * `start_time=0`---Sometimes you want a simulation to start at a different time.
  * `debug=false`---Whether to print debug messages using the `Logging` package.
  * `recording=false`---This will create a vector of every enable and disable
    event for test and debug.
+
+Common random numbers no longer need a builder flag: every sampler owns
+per-clock random streams seeded from the `rng` you pass, so building two
+contexts from the same seed couples their runs. See
+[Randomness Ownership](randomness.md).
 
 If you want to try a particular sampler instead of having the `SamplingContext`
 pick one for you, use the `method` parameter.
@@ -102,7 +105,7 @@ This example sends events with keys like `(:infect, 3)` tto the sampler called
 ```julia
 const KeyType = Tuple{Symbol,Integer}
 builder = SamplerBuilder(KeyType, Float64)
-add_group!(builder, :sparky => (x,d) -> x[1] == :recover, method=NextReaction())
+add_group!(builder, :sparky => (x,d) -> x[1] == :recover, method=NextReactionMethod())
 add_group!(builder, :forthright=>(x,d) -> x[1] == :infect)
 sampler = SamplingContext(builder, rng)
 ```

@@ -13,7 +13,9 @@ CurrentModule = CompetingClocks
 The main interface to the package is the [`SamplingContext`](@ref).
 The `SamplingContext` contains sampling algorithms and other helper classes. This describes the interface to underlying sampling algorithms, which differ slightly:
 
- * They don't hold a random number generator internally so it is passed as an argument.
+ * Each sampler owns its randomness as per-clock keyed streams selected by a
+   constructor seed, so no verb takes a random number generator. See
+   [Randomness Ownership](randomness.md).
  * All input times are absolute, so the enabling time of a distribution is given in absolute time.
 
 ## Common Interface to Low-level Samplers
@@ -25,10 +27,10 @@ which is documented in [Context Interface](@ref).
 
 ```@docs
 CompetingClocks.SSA{Key,Time}
-CompetingClocks.enable!(::SSA{K,T}, ::K, ::UnivariateDistribution, ::T, ::T, ::AbstractRNG) where {K,T}
+CompetingClocks.enable!(::SSA{K,T}, ::K, ::UnivariateDistribution, ::T, ::T) where {K,T}
 CompetingClocks.reset!(::SSA{K,T}) where {K,T}
 CompetingClocks.disable!(::SSA{K,T}, ::K, ::T) where {K,T}
-CompetingClocks.next(::SSA{K,T}, ::T, ::AbstractRNG) where {K,T}
+CompetingClocks.next(::SSA{K,T}, ::T) where {K,T}
 ```
 
 ### Query a Sampler
@@ -46,7 +48,7 @@ Base.keys(::SSA)
 ```@docs
 CompetingClocks.clone(sampler::SSA{K,T}) where {K,T}
 CompetingClocks.copy_clocks!(::SSA{K,T}) where {K,T}
-CompetingClocks.jitter!(sampler::SSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
+CompetingClocks.jitter!(sampler::SSA{K,T}, when::T) where {K,T}
 ```
 
 ## Individual Samplers

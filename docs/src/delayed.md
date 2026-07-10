@@ -19,8 +19,7 @@ Create a sampler to support delays by passing the `support_delayed=true` flag. F
 ```julia
 builder = SamplerBuilder(Symbol, Float64;
                          support_delayed=true,
-                         method=FirstToFireMethod(),
-                         common_random=true)
+                         method=FirstToFireMethod())
 sampler = SamplingContext(builder, rng)
 ```
 
@@ -55,7 +54,9 @@ The initial clock isn't hidden from the user because some simulations need to be
 
 ## Compatibility
 
- - Common random numbers and likelihoods are compatible with delayed clocks.
+ - Common random numbers (build two contexts from the same seed; see
+   [Randomness Ownership](randomness.md)) and likelihoods are compatible with
+   delayed clocks.
  - There isn't support for using arrays of distributions for vectorized importance sampling.
  - If you check for enabled clocks with `enabled`, each key is the public event identity `(clock, phase)`.
 
