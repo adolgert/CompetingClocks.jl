@@ -11,12 +11,12 @@ using SafeTestsets
     seen = Set{Int}()
     sample_time = 0.5
     for i in 1:100
-        sampler = FirstReaction{Int,Float64}()
-        enable!(sampler, 1, Exponential(1.7), 0.0, 0.0, rng)
-        enable!(sampler, 2, Gamma(9, 0.5), 0.0, 0.0, rng)
-        enable!(sampler, 3, Gamma(2, 2.0), 0.0, 0.0, rng)
+        sampler = FirstReaction{Int,Float64}(i)
+        enable!(sampler, 1, Exponential(1.7), 0.0, 0.0)
+        enable!(sampler, 2, Gamma(9, 0.5), 0.0, 0.0)
+        enable!(sampler, 3, Gamma(2, 2.0), 0.0, 0.0)
         disable!(sampler, 2, sample_time)
-        when, which = next(sampler, sample_time, rng)
+        when, which = next(sampler, sample_time)
         push!(seen, which)
         @test when > sample_time
         min_when = min(min_when, when)
@@ -40,7 +40,7 @@ end
     @test keytype(sampler) <: Int64
 
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
-        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0, rng)
+        enable!(sampler, clock, Dirac(when_fire), 0.0, 0.0)
     end
 
     @test length(sampler) == 5
@@ -64,7 +64,7 @@ end
 
     rng = MersenneTwister(90422342)
     sampler = FirstReaction{Int,Float64}()
-    when, which = next(sampler, 5.7, rng)
+    when, which = next(sampler, 5.7)
     @test when == Inf
     @test which === nothing
 end
@@ -103,8 +103,8 @@ end
     sampler = FirstReaction{Int,Float64}()
     dist = Weibull()
     sample_cnt = 1000
-    enable!(sampler, 1, dist, 0.0, 0.0, rng)
-    samples = [next(sampler, 0.0, rng)[1] for i in 1:sample_cnt]
+    enable!(sampler, 1, dist, 0.0, 0.0)
+    samples = [next(sampler, 0.0)[1] for i in 1:sample_cnt]
     @test all(isfinite(x) for x in samples)
     @test all(x > 0 for x in samples)
     ks_test = ExactOneSampleKSTest(samples, dist)
@@ -123,9 +123,9 @@ end
     sampler = FirstReaction{Int,Float64}()
     dist = Weibull()
     sample_cnt = 1000
-    enable!(sampler, 1, dist, 0.0, 0.0, rng)
+    enable!(sampler, 1, dist, 0.0, 0.0)
     later = 0.7
-    samples = [next(sampler, later, rng)[1] for i in 1:sample_cnt]
+    samples = [next(sampler, later)[1] for i in 1:sample_cnt]
     @test all(isfinite(x) for x in samples)
     @test all(x > 0 for x in samples)
     ks1_test = ExactOneSampleKSTest(samples, dist)
@@ -147,9 +147,9 @@ end
     dist = Weibull()
     future = 2.7
     sample_cnt = 1000
-    enable!(sampler, 1, dist, future, 0.0, rng)
+    enable!(sampler, 1, dist, future, 0.0)
     later = 0.7
-    samples = [next(sampler, later, rng)[1] for i in 1:sample_cnt]
+    samples = [next(sampler, later)[1] for i in 1:sample_cnt]
     @test all(isfinite(x) for x in samples)
     @test all(x > future for x in samples)
     ks1_test = ExactOneSampleKSTest(samples, dist)
@@ -169,17 +169,17 @@ end
     src = FirstReaction{Int,Float64}()
     dst = FirstReaction{Int,Float64}()
     rng = MersenneTwister(90422342)
-    enable!(src, 1, Exponential(), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(), 0.0, 0.0, rng)
-    enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(), 0.0, 0.0)
+    enable!(src, 2, Exponential(), 0.0, 0.0)
+    enable!(dst, 3, Exponential(), 0.0, 0.0)
     @test length(src) == 2
     @test length(dst) == 1
     copy_clocks!(dst, src)
     @test length(dst) == 2
-    enable!(src, 5, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 5, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 2
-    enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 6, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 3
 end

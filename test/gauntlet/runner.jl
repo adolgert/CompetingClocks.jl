@@ -222,6 +222,9 @@ function doob_meyer_stepcumulant(
     model_builder = default_model_builder,
 )
     sampler = sampler_spec(Int, Float64)
+    # Seed the sampler's own streams from the passed rng so this trajectory is
+    # a genuine random draw rather than the default-seed one.
+    CompetingClocks.rekey_streams!(sampler, rand(rng, UInt64))
     model = model_builder(state_cnt, config, rng)
     tracker = CompetingClocks.TrackWatcher{Int64,Float64}()
     observer = ScoreEvents(tracker, rng)
@@ -254,7 +257,7 @@ whose final event was at `t_final` and whose surviving clocks are `enabled`
 enabling time `te <= t_final`).
 
 CONTRACT NOTE (see the `next` docstring in `src/sample/interface.jl`): the
-`when` argument of `next(sampler, when, rng)` must never decrease and must
+`when` argument of `next(sampler, when)` must never decrease and must
 never advance past a pending firing time without that event being fired; the
 time of the most recently fired event is always a safe choice. Outside that
 invariant samplers legitimately disagree (FirstReaction re-conditions on
@@ -266,7 +269,7 @@ advances the clock past them without firing them. So instead we condense the
 history into its final enabled set and, for each replica, call
 `enable!(sampler, clock, dist, te, t_final, rng)` with the ORIGINAL enabling
 time `te` (possibly in the past) at the CURRENT time `t_final`, then query
-`next(sampler, t_final, rng)`. Now `t_final` is exactly the time of the most
+`next(sampler, t_final)`. Now `t_final` is exactly the time of the most
 recent state change, no pending event predates it, and conditioning on survival
 through the history is handled uniformly inside `enable!` (both samplers
 truncate to `t_final - te` when `te < t_final`). This measures what the plan's
@@ -280,10 +283,14 @@ function conditional_next_draws(
     draws = Vector{ClockDraw}(undef, n_replications)
     for rep in 1:n_replications
         sampler = sampler_spec(Int, Float64)
+        # The sampler owns its randomness; give each replication its own seed
+        # (drawn from the passed rng) so the reps are independent draws of the
+        # conditional next-event rather than identical repeats.
+        CompetingClocks.rekey_streams!(sampler, rand(rng, UInt64))
         for (clock, ds) in enabled
-            enable!(sampler, clock, ds.d, ds.enabling_time, t_final, rng)
+            enable!(sampler, clock, ds.d, ds.enabling_time, t_final)
         end
-        when, which = next(sampler, t_final, rng)
+        when, which = next(sampler, t_final)
         @assert which !== nothing
         @assert when >= t_final
         draws[rep] = (which, when)

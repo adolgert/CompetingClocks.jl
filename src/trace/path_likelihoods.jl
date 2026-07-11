@@ -83,14 +83,14 @@ function reset!(tw::PathLikelihoods)
 end
 
 
-function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T) where {K,T}
     @debug "PathLikelihood enable! $clock $dist $te $when"
     haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = PathEntry{K,T}(clock, UnivariateDistribution[dist], te, when)
 end
 
 
-function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::Vector, te::T, when::T, rng::AbstractRNG) where {K,T}
+function enable!(ts::PathLikelihoods{K,T}, clock::K, dist::Vector, te::T, when::T) where {K,T}
     @debug "PathLikelihood enable! $clock $dist $te $when"
     haskey(ts.enabled, clock) && disable!(ts, clock, when)
     ts.enabled[clock] = PathEntry{K,T}(clock, copy(dist), te, when)

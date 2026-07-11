@@ -10,6 +10,7 @@ include("distributions/lefttrunc.jl")
 include("distributions/hazard.jl")
 include("distributions/primal.jl")
 include("sample/interface.jl")
+include("sample/keyed_streams.jl")
 include("sample/sampler.jl")
 include("distributions/neverdist.jl")
 include("trace/track.jl")
@@ -17,6 +18,7 @@ include("trace/trajectory.jl")
 include("trace/path_likelihoods.jl")
 include("trace/debug.jl")
 include("sample/nrtransition.jl")
+include("sample/capabilities.jl")
 include("sample/firstreaction.jl")
 include("sample/firsttofire.jl")
 # include("sample/fixeddirect.jl")
@@ -25,12 +27,12 @@ include("sample/multiple_direct.jl")
 include("sample/combinednr.jl")
 include("sample/pssa_cr.jl")
 include("sample/rssa.jl")
-include("variance/with_common_random.jl")
 include("sample/petri.jl")
 include("samplerspec.jl")
 include("delayed_state.jl")
 include("sampler_builder.jl")
 include("context.jl")
+include("trace/recorder.jl")
 
 # ---------------------------------------------------------------------------
 # Consolidated public API. ALL exports for the package live here; do not add
@@ -48,7 +50,7 @@ include("context.jl")
 # Context layer (the mainstream high-level entry point)
 export SamplingContext, enable!, disable!, fire!, next, next_delayed, reset!
 export isenabled, enabled, steploglikelihood, pathloglikelihood
-export sample_from_distribution!, freeze_crn!, reset_crn!
+export sample_from_distribution!
 export enabled_history, disabled_history, clone, copy_clocks!, keytype, timetype
 
 # Builder & sampler specs (user-facing way to choose a sampler)
@@ -75,9 +77,14 @@ const _PUBLIC_NAMES = (
     :sampling_space, :set_bound!, :set_global_bound_factor!,
     :TrackWatcher, :DebugWatcher, :TrajectoryWatcher, :MemorySampler,
     :PathLikelihoods, :absolute_enabling,
-    :CommonRandom, :misses, :misscount,
+    :TrajectoryRecorder, :ClockFiredRecord, :with_recorder, :attach_watcher,
+    :close_record!, :recorded_firings, :isclosed, :horizon,
+    :KeyedStreams, :stream_for!, :race_stream, :rekey_streams!, :similar_sampler,
     :DelayedState, :SetOfSets, :build_sampler,
     :split!, :jitter!,
+    :supports_enabled_ages, :supports_force, :supports_retained_draw,
+    :supports_carry, :enabling_times, :enabled_ages, :retained_draw,
+    :force_fire!, :reenable!, :coupling, :validate_coupling,
 )
 
 @static if VERSION >= v"1.11"

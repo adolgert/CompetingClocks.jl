@@ -93,6 +93,7 @@ makedocs(;
             "samplingcontext.md",
             "mainloop.md",
             "choosing_sampler.md",
+            "Migration: 0.3 to 0.4" => "migration_04.md",
         ],
         "Concepts" => [
             "background.md",
@@ -136,9 +137,16 @@ makedocs(;
             "gen/turing_dist.md",
             "gen/survival_snippet.md",
         ],
+        "Derivative Estimation" => [
+            "Recording Trajectories" => "recording.md",
+            "Estimator-Facing Verbs" => "estimator_verbs.md",
+            "Randomness Ownership" => "randomness.md",
+            "Re-evaluation and the Sampler's Coupling" => "reenable.md",
+        ],
         "API Reference" => [
             "contextinterface.md",
             "reference.md",
+            "Contract and Invariants" => "contract.md",
             "algorithms.md",
         ],
     ],

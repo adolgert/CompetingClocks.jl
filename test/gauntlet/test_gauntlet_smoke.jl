@@ -95,8 +95,8 @@ using SafeTestsets
         # The chooser must actually route clocks to both groups.
         ms = multisampler_mixed_spec()(Int, Float64)
         rng = Xoshiro(1)
-        enable!(ms, 1, Exponential(1.0), 0.0, 0.0, rng)
-        enable!(ms, 2, Exponential(1.0), 0.0, 0.0, rng)
+        enable!(ms, 1, Exponential(1.0), 0.0, 0.0)
+        enable!(ms, 2, Exponential(1.0), 0.0, 0.0)
         @test ms.chosen[1] == :odd
         @test ms.chosen[2] == :even
         @test ms.propagator[:even] isa CompetingClocks.CombinedNextReaction

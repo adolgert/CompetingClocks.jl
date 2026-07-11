@@ -3,7 +3,7 @@ using Base.Threads: @threads
 function replay_commands(commands, sampler, rng)
     for command in commands
         if command[1] == :enable
-            enable!(sampler, command[2:end]..., rng)
+            enable!(sampler, command[2:end]...)
         elseif command[1] == :fire
             fire!(sampler, command[2:end]...)
         elseif command[1] == :disable
@@ -90,7 +90,7 @@ function sample_samplers(samplers, when, rng::Vector{T}) where {T<:AbstractRNG}
     data = similar(samplers, ClockDraw)
     @threads for run_idx in eachindex(samplers)
         tid = Threads.threadid()
-        next_when, which = next(samplers[run_idx], when, rng[tid])
+        next_when, which = next(samplers[run_idx], when)
         data[run_idx] = (which, next_when)
     end
     return data

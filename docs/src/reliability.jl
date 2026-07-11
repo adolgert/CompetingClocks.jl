@@ -174,7 +174,7 @@ function handle_event(when, (who, transition), experiment, sampler)
         disable!(sampler, (who, :break), when)
         if need_workers
             rate = Uniform(next_work_time(when, max_hour)...)
-            enable!(sampler, (who, :work), rate, when, when, experiment.rng)
+            enable!(sampler, (who, :work), rate, when, when)
             @debug "schedule $who for $rate"
         end
 
@@ -183,7 +183,7 @@ function handle_event(when, (who, transition), experiment, sampler)
     elseif transition == :repair
         if need_workers
             rate = Uniform(next_work_time(when, max_hour)...)
-            enable!(sampler, (who, :work), rate, when, when, experiment.rng)
+            enable!(sampler, (who, :work), rate, when, when)
             @debug "schedule $who for $rate"
         end
 
@@ -193,11 +193,11 @@ function handle_event(when, (who, transition), experiment, sampler)
     ## "memory." It remembers how long it was previously enabled
     elseif transition == :work
         ## enable :done and :break
-        enable!(sampler, (who, :done), individual.done_dist, when, when, experiment.rng)
+        enable!(sampler, (who, :done), individual.done_dist, when, when)
         ## Time shift this distribution to the left because it remembers
         ## the time already worked.
         past_work = when - individual.work_age
-        enable!(sampler, (who, :break), individual.fail_dist, past_work, when, experiment.rng)
+        enable!(sampler, (who, :break), individual.fail_dist, past_work, when)
         @debug "schedule $who for done or break"
 
     ## When a vehicle breaks, the only option is to repair it. This resets the work age.
@@ -205,7 +205,7 @@ function handle_event(when, (who, transition), experiment, sampler)
         ## If you broke, you don't get to finish your work.
         disable!(sampler, (who, :done), when)
         individual.work_age = zero(Float64)
-        enable!(sampler, (who, :repair), individual.repair_dist, when, when, experiment.rng)
+        enable!(sampler, (who, :repair), individual.repair_dist, when, when)
         @debug "schedule $who for repair"
 
     else
@@ -237,7 +237,7 @@ function handle_event(when, (who, transition), experiment, sampler)
         upnext = Int[]
         for next_chance in [widx for (widx, w) in enumerate(experiment.group) if w.state == ready]
             if next_chance != who
-                enable!(sampler, (next_chance, :work), rate, when, when, experiment.rng)        
+                enable!(sampler, (next_chance, :work), rate, when, when)
                 push!(upnext, next_chance)
             end
         end
@@ -275,19 +275,20 @@ show_distributions()
 # transition will be `nothing`.
 #
 function run(experiment::Experiment, observation, days)
-    sampler = FirstToFire{key_type(experiment),Float64}()
-    rng = experiment.rng
+    ## The sampler owns its randomness as per-clock streams; the experiment's
+    ## rng chooses the stream seed, so experiments stay reproducible.
+    sampler = FirstToFire{key_type(experiment),Float64}(rand(experiment.rng, UInt64))
     rate = Uniform(next_work_time(0.0, experiment.start_time)...)
     for initial in 1:length(experiment.group)
-        enable!(sampler, (initial, :work), rate, 0.0, 0.0, rng)
+        enable!(sampler, (initial, :work), rate, 0.0, 0.0)
     end
-    when, which = next(sampler, experiment.time, rng)
+    when, which = next(sampler, experiment.time)
     while isfinite(when) && when < days
         ## We use different observers to record the simulation.
         observe(experiment, observation, when, which)
         @debug "$when $which"
         handle_event(when, which, experiment, sampler)
-        when, which = next(sampler, experiment.time, rng)
+        when, which = next(sampler, experiment.time)
     end
 end
 #

@@ -71,15 +71,15 @@ function test_exponential_binomial(sampler, rng)
     # that the marginal probability of a low vs a high is 1 / (1 + 1.5) = 3/5.
     # Check that we get the correct marginal probability.
     for i in 1:10
-        enable!(sampler, i, Exponential(1), 0.0, 0.0, rng)
+        enable!(sampler, i, Exponential(1), 0.0, 0.0)
     end
     for i in 11:20
-        enable!(sampler, i, Exponential(1.5), 0.0, 0.0, rng)
+        enable!(sampler, i, Exponential(1.5), 0.0, 0.0)
     end
     hilo = zeros(Int, 2)
     curtime = 20.3
     for i in 1:10000
-        when, which = next(sampler, curtime, rng)
+        when, which = next(sampler, curtime)
         hilo[(which - 1) ÷ 10 + 1] += 1
     end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
@@ -88,15 +88,15 @@ end
 
 function test_weibull_binomial(sampler, rng)
     for i in 1:10
-        enable!(sampler, i, Weibull(1, 1), 0.0, 0.0, rng)
+        enable!(sampler, i, Weibull(1, 1), 0.0, 0.0)
     end
     for i in 11:20
-        enable!(sampler, i, Weibull(1, 1.5), 0.0, 0.0, rng)
+        enable!(sampler, i, Weibull(1, 1.5), 0.0, 0.0)
     end
     hilo = zeros(Int, 2)
     curtime = 20.3
     for i in 1:10000
-        when, which = next(sampler, curtime, rng)
+        when, which = next(sampler, curtime)
         hilo[(which - 1) ÷ 10 + 1] += 1
     end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))

@@ -4,7 +4,7 @@
 abstract type SamplerSpec end
 
 """
-    NextReactionMethod()
+    NextReactionMethod(; coupling=:carry)
 
 Uses Anderson's Modified Next Reaction method for distributions in an
 Exponential class (Exponential, Weibull, Erlang) and the Next Reaction method
@@ -13,10 +13,20 @@ Julia's holy traits pattern makes it efficient to use the fastest sampler on
 a distribution-by-distribution basis. Because it reuses draws, this is the best choice if
 you want to do variance reduction with Common Random Numbers.
 
-See [`CombinedNextReaction`](@ref).
+The `coupling` keyword (default `:carry`) is forwarded to the sampler's
+constructor and fixes how a mid-flight `reenable!` re-evaluation is realized:
+`:carry` maps the retained draw through the change deterministically, `:redraw`
+draws the remaining lifetime fresh, conditioned on age. See
+[`CombinedNextReaction`](@ref).
 """
-struct NextReactionMethod <: SamplerSpec end
-(::NextReactionMethod)(K, T) = CombinedNextReaction{K,T}()
+struct NextReactionMethod <: SamplerSpec
+    coupling::Symbol
+    function NextReactionMethod(; coupling::Symbol=:carry)
+        validate_coupling(CombinedNextReaction, coupling)
+        new(coupling)
+    end
+end
+(nrm::NextReactionMethod)(K, T) = CombinedNextReaction{K,T}(; coupling=nrm.coupling)
 
 
 """
@@ -84,15 +94,25 @@ struct FirstReactionMethod <: SamplerSpec end
 
 
 """
-    FirstToFireMethod()
+    FirstToFireMethod(; coupling=:carry)
 
 The simplest and fastest sampler. When you `enable!()` a clock, this draws the
 firing time and saves it in a queue.
 
-See [`FirstToFire`](@ref).
+The `coupling` keyword (default `:carry`) is forwarded to the sampler's
+constructor and fixes how a mid-flight `reenable!` re-evaluation is realized:
+`:carry` rebases the stored firing time through the change deterministically,
+`:redraw` draws the remaining lifetime fresh, conditioned on age. See
+[`FirstToFire`](@ref).
 """
-struct FirstToFireMethod <: SamplerSpec end
-(::FirstToFireMethod)(K, T) = FirstToFire{K,T}()
+struct FirstToFireMethod <: SamplerSpec
+    coupling::Symbol
+    function FirstToFireMethod(; coupling::Symbol=:carry)
+        validate_coupling(FirstToFire, coupling)
+        new(coupling)
+    end
+end
+(ftfm::FirstToFireMethod)(K, T) = FirstToFire{K,T}(; coupling=ftfm.coupling)
 
 
 """

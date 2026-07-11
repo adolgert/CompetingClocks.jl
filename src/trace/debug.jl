@@ -52,7 +52,7 @@ function copy_clocks!(dst::DebugWatcher{K,T}, src::DebugWatcher{K,T}) where {K,T
 end
 
 
-function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T, rng::AbstractRNG) where {K,T}
+function enable!(ts::DebugWatcher{K,T}, clock::K, dist::UnivariateDistribution, te::T, when::T) where {K,T}
     ts.log && @debug "enable! $(clock) $(dist) $(te) $(when)"
     push!(ts.enabled, EnablingEntry(clock, dist, te, when))
 end

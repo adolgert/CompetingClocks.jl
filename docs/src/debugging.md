@@ -18,21 +18,21 @@ using Random
 
 K = Int
 T = Float64
-rng = Xoshiro(90210)
-petri_sampler = CompetingClocks.Petri{K,T}()
+petri_sampler = CompetingClocks.Petri{K,T}(seed=90210)
 
 now = 0.0
-enable!(petri_sampler, 3, Exponential(100.0), now, now, rng)
-when, what = next(petri_sampler, now, rng)
+enable!(petri_sampler, 3, Exponential(100.0), now, now)
+when, what = next(petri_sampler, now)
 @assert what == 3
 @assert abs(when - now - 1) <= 1e-9
 ```
 
 The Petri sampler is a low-level sampler, so it is reached through a qualified
 name, `CompetingClocks.Petri`, and called with the low-level `(sampler, clock,
-distribution, enabling_time, when, rng)` form of `enable!`. Because it ignores
-each clock's distribution, the time it returns is simply one plus the current
-time.
+distribution, enabling_time, when)` form of `enable!`. The sampler owns its own
+random streams, selected by the seed, so no random number generator is passed.
+Because it ignores each clock's distribution, the time it returns is simply one
+plus the current time.
 
 
 ## Keep History of Enabling and Disabling

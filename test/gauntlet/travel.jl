@@ -198,7 +198,7 @@ record!(r::VectorRecord, cmd) = push!(r.commands, cmd)
 
 function record!(r::SamplerRecord, cmd)
     if cmd[1] == :enable
-        enable!(r.sampler, cmd[2:end]..., r.rng)
+        enable!(r.sampler, cmd[2:end]...)
     elseif cmd[1] == :disable
         disable!(r.sampler, cmd[2:end]...)
     elseif cmd[1] == :fire
@@ -215,10 +215,10 @@ function travel_run(step_cnt, sampler::SSA, travel_model, observe, recorder::Com
     enabled_clocks = travel_enabled(travel_model, system_state)
     for clock in enabled_clocks
         dist, offset = travel_model.rates[(system_state, clock)]
-        enable!(sampler, clock, dist, offset, system_time, rng)
+        enable!(sampler, clock, dist, offset, system_time)
         record!(recorder, (:enable, clock, dist, offset, system_time))
     end
-    when, which = next(sampler, system_time, rng)
+    when, which = next(sampler, system_time)
     for _ in 1:step_cnt
         @assert isfinite(when)
         @assert when > system_time
@@ -244,7 +244,7 @@ function travel_run(step_cnt, sampler::SSA, travel_model, observe, recorder::Com
             if travel_model.remember == TravelMemory.remember
                 offset -= travel_model.memory[en_idx]
             end
-            enable!(sampler, en_idx, en_rate, when + offset, when, rng)
+            enable!(sampler, en_idx, en_rate, when + offset, when)
             record!(recorder, (:enable, en_idx, en_rate, when + offset, when))
         end
         for un_idx in intersect(enabled_clocks, next_enabled)
@@ -259,10 +259,10 @@ function travel_run(step_cnt, sampler::SSA, travel_model, observe, recorder::Com
                 if rand(rng, Bool)
                     disable!(sampler, un_idx, when)
                     record!(recorder, (:disable, un_idx, when))
-                    enable!(sampler, un_idx, current_rate, when + current_offset, when, rng)
+                    enable!(sampler, un_idx, current_rate, when + current_offset, when)
                     record!(recorder, (:enable, un_idx, current_rate, when + current_offset, when))
                 else
-                    enable!(sampler, un_idx, current_rate, when + current_offset, when, rng)
+                    enable!(sampler, un_idx, current_rate, when + current_offset, when)
                     record!(recorder, (:enable, un_idx, current_rate, when + current_offset, when))
                 end
             end
@@ -270,7 +270,7 @@ function travel_run(step_cnt, sampler::SSA, travel_model, observe, recorder::Com
         enabled_clocks = next_enabled
         system_time = when
         system_state = which
-        when, which = next(sampler, system_time, rng)
+        when, which = next(sampler, system_time)
     end
 end
 

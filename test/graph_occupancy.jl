@@ -193,7 +193,7 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
     KeyType = keyspace(GraphOccupancy)
     observations = Dict{KeyType,TransitionObserver}()
 
-    when, which = next(sampler, groc.when, rng)
+    when, which = next(sampler, groc.when)
     while which !== nothing && when < finish_time
         resident_node, duration = step!(groc, sampler, when, which, rng)
 
@@ -212,7 +212,7 @@ function run_graph_occupancy(groc::GraphOccupancy, finish_time, sampler, rng)
         observations[which].max_duration = max(duration, observations[which].max_duration)
         observations[which].call_cnt += 1
 
-        when, which = next(sampler, groc.when, rng)
+        when, which = next(sampler, groc.when)
     end
     for transobv in values(observations)
         transobv.mean_duration = transobv.total_duration / transobv.call_cnt

@@ -38,9 +38,13 @@ mutable struct RSSA{K,T} <: SSA{K,T}
     Abar::T                       # sum(abar) of enabled indices
     cached_next::Union{Nothing,OrderedSample{K,T}}
     bound_factor::T               # default multiplicative bound factor (≥1)
+    streams::KeyedStreams{K}
 end
 
-function RSSA{K,T}(; bound_factor=1.05) where {K,T}
+function RSSA{K,T}(; bound_factor=1.05, seed=_DEFAULT_STREAM_SEED, coupling::Symbol=:redraw) where {K,T}
+    # Validated but not stored: a memoryless sampler can only redraw, so the
+    # keyword exists to reject coupling=:carry at construction.
+    validate_coupling(RSSA, coupling)
     bf = convert(T, bound_factor)
     bf < one(T) && (bf = one(T))
     RSSA{K,T}(
@@ -53,11 +57,23 @@ function RSSA{K,T}(; bound_factor=1.05) where {K,T}
         zero(T),
         nothing,
         bf,
+        KeyedStreams{K}(seed),
     )
 end
 
-# Clone with empty state
-clone(s::RSSA{K,T}) where {K,T} = RSSA{K,T}(; bound_factor=s.bound_factor)
+# Empty same-type copy.
+similar_sampler(s::RSSA{K,T}) where {K,T} = RSSA{K,T}(; bound_factor=s.bound_factor, seed=s.streams.seed)
+
+# RSSA thins a Poisson process on the race stream (candidate time, candidate
+# clock, accept/reject), retaining no per-clock draw, so a full-state clone is
+# the clock tables plus the race generator's state.
+function clone(s::RSSA{K,T}) where {K,T}
+    c = similar_sampler(s)
+    copy_clocks!(c, s)
+    return c
+end
+
+rekey_streams!(s::RSSA, seed) = (rekey_streams!(s.streams, seed); s)
 
 # Reset everything
 function reset!(s::RSSA{K,T}) where {K,T}
@@ -84,6 +100,7 @@ function copy_clocks!(dst::RSSA{K,T}, src::RSSA{K,T}) where {K,T}
     dst.cached_next = src.cached_next === nothing ? nothing :
         OrderedSample{K,T}(getfield(src.cached_next, :key), getfield(src.cached_next, :time))
     dst.bound_factor = src.bound_factor
+    dst.streams = copy(src.streams)
     return dst
 end
 
@@ -205,7 +222,7 @@ end
 # ---- interface methods ----
 
 # No scheduled times to perturb; just drop cached sample.
-function jitter!(s::RSSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function jitter!(s::RSSA{K,T}, when::T) where {K,T}
     _invalidate!(s)
 end
 
@@ -214,8 +231,7 @@ function enable!(s::RSSA{K,T},
                  key::K,
                  distribution::UnivariateDistribution,
                  te::T,
-                 when::T,
-                 rng::AbstractRNG) where {K,T}
+                 when::T) where {K,T}
     if distribution isa Exponential
         λ = convert(T, rate(distribution))  # Distributions.jl: rate = 1/θ
     else
@@ -281,7 +297,7 @@ function fire!(s::RSSA{K,T}, key::K, when::T) where {K,T}
 end
 
 # Idempotent: caches a single next (time,key) until invalidated by fire!/enable!/disable!/jitter!
-function next(s::RSSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function next(s::RSSA{K,T}, when::T) where {K,T}
     if s.cached_next !== nothing
         ev = s.cached_next
         return (getfield(ev, :time), getfield(ev, :key))
@@ -291,6 +307,7 @@ function next(s::RSSA{K,T}, when::T, rng::AbstractRNG) where {K,T}
         return (typemax(T), nothing)
     end
 
+    rng = race_stream(s.streams)
     t = when
     iteration = 0
     while true

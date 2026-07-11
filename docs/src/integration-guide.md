@@ -128,47 +128,30 @@ The resulting value is the likelihood of a single trajectory of the system.
 The `pathloglikelihood` is a regular function and can be differentiated.
 
 ## Variance reduction
-Construct the sampler with the `common_random` option.
-```julia
-builder = SamplerBuilder(KeyType, Float64; common_random=true)
-sampler = SamplingContext(builder, rng)
-```
-Run the simulation a bunch of times, calling `reset!()` between runs to
-clear the sampler's memory of the previous run but save the common random
-numbers. Each run will pin more random draws. Then use
-`freeze_crn!` to stop collecting random draws.
-```julia
-for i in 1:warm_up
-    reset!(sampler)
-    results1 = run_simulation(model, sampler)
-end
-freeze_crn!(sampler)  # Lock random draws
-```
-Replay with different parameters.
-```julia
-for i in 1:draw_cnt
-    reset!(sampler) # Do this before each run with same sampler.
-    results2 = run_simulation(model, sampler)  # Uses same random draws
-end
-```
-Each simulation copy also needs a copy of the state.
 
-If you want to run these multithreaded, you can use `clone()` to copy the
-sampler to a vector and then use `copy_clocks!` to initialize all the samplers
-in the vector with the common random numbers that were just collected.
+Common random numbers (CRN) need no builder flag and no warm-up phase: every
+sampler owns per-clock keyed random streams, and two contexts built from the
+same seed consume identical randomness per clock. To compare a baseline model
+against a perturbed one, build both contexts from equal-seeded rngs:
+
 ```julia
-master_seed = (0x3a97a224, 0x65ff9227)
-common_samplers = Vector{typeof(sampler)}(undef, clone_cnt)
-for i in 1:clone_cnt
-    rng = Philox4x((0, 0, 0, init_idx), master_seed)
-    common_samplers[init_idx] = clone(sampler, rng)
-end
-# Run warm-up of common random numbers here, and freeze them.
-for i in 1:clone_cnt
-    copy_clocks!(common_samplers[i], sampler)
+for trial in 1:trial_cnt
+    base_ctx = SamplingContext(SamplerBuilder(KeyType, Float64), Xoshiro(trial))
+    pert_ctx = SamplingContext(SamplerBuilder(KeyType, Float64), Xoshiro(trial))
+    baseline[trial]  = run_simulation(model, base_ctx)
+    perturbed[trial] = run_simulation(perturbed_model, pert_ctx)
 end
 ```
-Then run tasks on the clones of the frozen sampler.
+
+The paired difference `perturbed .- baseline` has far smaller variance than
+independent seeds would give, because each clock's draws are shared between
+the pair even when the two runs fire events in different orders. Each
+simulation copy still needs its own copy of the model state. For the
+lower-level primitives — a full-state `clone` for a coupled continuation and
+`rekey_streams!` to decouple it — see [Randomness Ownership](randomness.md)
+and the [Common Random Numbers](commonrandom.md) example. If you migrated
+from 0.3's `common_random=true` recorder, the [Migration Guide](migration_04.md)
+maps each removed function to its replacement.
 
 ### Path splitting for rare events
 

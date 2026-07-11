@@ -9,17 +9,17 @@
     tw = Petri{Int,Float64}()
     # Show that distributions with very different rates
     # are all sampled equally by Petri.
-    enable!(tw, 3, Exponential(100.0), 0.0, 0.0, rng)
+    enable!(tw, 3, Exponential(100.0), 0.0, 0.0)
     @test length(tw) == 1 && 3 ∈ keys(tw)
-    enable!(tw, 4, Exponential(0.001), 0.0, 3.0, rng)
+    enable!(tw, 4, Exponential(0.001), 0.0, 3.0)
     @test length(tw) == 2 && 4 ∈ keys(tw)
-    enable!(tw, 7, Exponential(0.001), 5.0, 5.0, rng)
+    enable!(tw, 7, Exponential(0.001), 5.0, 5.0)
     @test length(tw) == 3 && 7 ∈ keys(tw)
 
     counts = Dict{Int,Int}(3 => 0, 4 => 0, 7 => 0)
     for i in 1:1000
         when = 100 * rand(rng)
-        time_out, which = next(tw, when, rng)
+        time_out, which = next(tw, when)
         counts[which] += 1
         @assert abs(time_out - when - 1) < 1e-9
     end
@@ -30,7 +30,7 @@
     @test length(tw) == 2 && 4 ∉ keys(tw)
 
     dst = Petri{Int,Float64}()
-    enable!(dst, 11, Exponential(), 5.0, 5.0, rng)
+    enable!(dst, 11, Exponential(), 5.0, 5.0)
     copy_clocks!(dst, tw)
     @test length(tw) == 2 && 11 ∉ keys(tw)
 end
@@ -46,7 +46,7 @@ end
     tw = Petri{Int,Float64}()
     # Show that distributions with very different rates
     # are all sampled equally by Petri.
-    enable!(tw, 3, Exponential(100.0), 0.0, 0.0, rng)
+    enable!(tw, 3, Exponential(100.0), 0.0, 0.0)
     @test tw[3].clock == 3
     @test tw[3].distribution == Exponential(100.0)
     @test haskey(tw, 3)
@@ -56,15 +56,15 @@ end
 
 @safetestset track_Petri_clone = "Petri clone" begin
     using Distributions: Exponential
-    using CompetingClocks: Petri, enable!, clone
+    using CompetingClocks: Petri, enable!, similar_sampler
     using Random: Xoshiro
 
     rng = Xoshiro(234567)
     sampler = Petri{Int,Float64}(2.5)  # custom time_duration
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
 
-    cloned = clone(sampler)
+    cloned = similar_sampler(sampler)
     @test length(cloned) == 0  # cloned is empty
     @test cloned.time_duration == 2.5  # time_duration is preserved
     @test length(sampler) == 2  # original unchanged
@@ -80,9 +80,9 @@ end
     # fallback and acts as disable!. This pins that the fallback reaches it.
     rng = Xoshiro(979697)
     petri = Petri{Int,Float64}(1.0)
-    enable!(petri, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(petri, 2, Exponential(1.0), 0.0, 0.0, rng)
-    when, which = next(petri, 0.0, rng)
+    enable!(petri, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(petri, 2, Exponential(1.0), 0.0, 0.0)
+    when, which = next(petri, 0.0)
     fire!(petri, which, when)
     @test !isenabled(petri, which)
     @test isenabled(petri, which == 1 ? 2 : 1)

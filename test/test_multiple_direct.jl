@@ -42,17 +42,17 @@ end
     md[:fast] = keep_prefix_tree
 
     when = 0.0
-    enable!(md, "moveleft", Exponential(0.35), 0.0, when, rng)
+    enable!(md, "moveleft", Exponential(0.35), 0.0, when)
     @test length(keyed_prefix_tree) == 1
     @test length(keep_prefix_tree) == 0
 
-    enable!(md, "fastlighton", Exponential(1.0), 0.0, when, rng)
+    enable!(md, "fastlighton", Exponential(1.0), 0.0, when)
     @test length(keyed_prefix_tree) == 1
     @test length(keep_prefix_tree) == 1
 
     seen = Set{String}()
     for sample_idx in 1:100
-        when, which = next(md, 0.0, rng)
+        when, which = next(md, 0.0)
         push!(seen, which)
     end
     @test "moveleft" ∈ seen
@@ -88,9 +88,9 @@ end
     keyed_prefix_tree = CompetingClocks.KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
     md[:slow] = keyed_prefix_tree
 
-    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0, rng)
+    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0)
 
-    cloned = clone(md)
+    cloned = CompetingClocks.similar_sampler(md)
     # Cloned has empty scan/totals/chosen/scanmap vectors
     @test length(cloned.scan) == 0
     @test length(cloned.chosen) == 0
@@ -116,10 +116,10 @@ end
     keyed_prefix_tree = CompetingClocks.KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
     md[:slow] = keyed_prefix_tree
 
-    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0, rng)
+    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0)
 
     # jitter! does nothing for MultipleDirect (returns nothing)
-    result = jitter!(md, 0.5, rng)
+    result = jitter!(md, 0.5)
     @test result === nothing
 end
 
@@ -145,8 +145,8 @@ end
     src_fast_keyed = CompetingClocks.KeyedKeepPrefixSearch{K,typeof(src_fast_prefix)}(src_fast_prefix)
     src[:fast] = src_fast_keyed
 
-    enable!(src, "moveleft", Exponential(0.35), 0.0, 0.0, rng)
-    enable!(src, "fastaction", Exponential(1.0), 0.0, 0.0, rng)
+    enable!(src, "moveleft", Exponential(0.35), 0.0, 0.0)
+    enable!(src, "fastaction", Exponential(1.0), 0.0, 0.0)
 
     # Create destination with same structure
     dst = MultipleDirect{SamplerKey,K,Time}(ByName())
@@ -183,11 +183,11 @@ end
     md[:slow] = keyed_prefix_tree
 
     # Enable a clock
-    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0, rng)
+    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0)
     @test length(enabled(md)) == 1
 
     # Re-enable the same clock with different rate (exercises line 95)
-    enable!(md, "moveleft", Exponential(0.5), 0.0, 0.1, rng)
+    enable!(md, "moveleft", Exponential(0.5), 0.0, 0.1)
     @test length(enabled(md)) == 1  # Still just one clock
 end
 
@@ -212,12 +212,12 @@ end
     fast_keyed = CompetingClocks.KeyedKeepPrefixSearch{K,typeof(fast_prefix)}(fast_prefix)
     md[:fast] = fast_keyed
 
-    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0, rng)
-    enable!(md, "fastaction", Exponential(1.0), 0.0, 0.0, rng)
+    enable!(md, "moveleft", Exponential(0.35), 0.0, 0.0)
+    enable!(md, "fastaction", Exponential(1.0), 0.0, 0.0)
     @test length(enabled(md)) == 2
 
     # Get next event and fire it
-    when, which = next(md, 0.0, rng)
+    when, which = next(md, 0.0)
     fire!(md, which, when)
 
     # One clock should be removed (the slow one if it was chosen)
@@ -245,8 +245,8 @@ end
     keyed_prefix_tree = CompetingClocks.KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
     md[:slow] = keyed_prefix_tree
 
-    enable!(md, "moveleft", Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
-    enable!(md, "moveright", Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(md, "moveleft", Exponential(0.5), 0.0, 0.0)  # rate = 2.0
+    enable!(md, "moveright", Exponential(1.0), 0.0, 0.0)  # rate = 1.0
 
     # Test steploglikelihood
     now = 0.0
@@ -295,8 +295,8 @@ end
     @test md.scanmap[:slow] isa Int
     @test md.scanmap[:fast] isa Int
 
-    enable!(md, "moveslow", Exponential(0.35), 0.0, 0.0, rng)
-    enable!(md, "fastaction", Exponential(1.0), 0.0, 0.0, rng)
+    enable!(md, "moveslow", Exponential(0.35), 0.0, 0.0)
+    enable!(md, "fastaction", Exponential(1.0), 0.0, 0.0)
 
     # `chosen` maps clock key -> integer scan index (not the SamplerKey).
     @test md.chosen isa Dict{String,Int}
@@ -307,7 +307,7 @@ end
 
     seen = Set{String}()
     for _ in 1:100
-        _, which = next(md, 0.0, rng)
+        _, which = next(md, 0.0)
         push!(seen, which)
     end
     @test "moveslow" ∈ seen

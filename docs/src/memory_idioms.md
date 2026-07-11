@@ -17,7 +17,7 @@ sets the clock's zero-time to `te = time(ctx) + relative_te`. The underlying
 sampler works in absolute time, where the same call is
 
 ```julia
-enable!(sampler, clock, distribution, enablingtime, when, rng)
+enable!(sampler, clock, distribution, enablingtime, when)
 ```
 
 with `enablingtime` the absolute zero-time of `distribution` and `when` the
@@ -90,7 +90,7 @@ clock that is already `age` old.
     change of state should reset a clock or let it keep aging.
 
 The `enable!` docstring spells out the sign convention: with the low-level
-signature `enable!(sampler, clock, distribution, enablingtime, when, rng)`,
+signature `enable!(sampler, clock, distribution, enablingtime, when)`,
 choosing `enablingtime > when` delays the event, `enablingtime < when` shifts it
 left (memory), and `enablingtime == when` starts it fresh. At the context layer
 the same three cases are `relative_te > 0`, `relative_te < 0`, and

@@ -41,7 +41,7 @@ mutable struct WhenRecorder{K,T} <: CompetingClocks.SSA{K,T}
     fire_key::K
 end
 
-function CompetingClocks.next(s::WhenRecorder{K,T}, when::T, rng::AbstractRNG) where {K,T}
+function CompetingClocks.next(s::WhenRecorder{K,T}, when::T) where {K,T}
     s.recorded = when
     return (s.fire_time, s.fire_key)
 end
@@ -62,9 +62,9 @@ end
     for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
         @debug "Calling enable on $clock_id"
         if clock_id < 3
-            enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0, rng)
+            enable!(sampler, clock_id, Exponential(propensity), 0.0, 0.0)
         else
-            enable!(sampler, clock_id, Gamma(propensity), 0.0, 0.0, rng)
+            enable!(sampler, clock_id, Gamma(propensity), 0.0, 0.0)
         end
         push!(enabled, clock_id)
     end
@@ -76,7 +76,7 @@ end
     @test !haskey(sampler, 1_000)
     @test !haskey(sampler, "1")
 
-    when, which = next(sampler, 0.0, rng)
+    when, which = next(sampler, 0.0)
     @test which !== nothing
     disable!(sampler, which, when)
     delete!(enabled, which)
@@ -84,11 +84,11 @@ end
     todisable = pop!(enabled)
     disable!(sampler, todisable, when)
     @test enabled == Set(keys(sampler))
-    enable!(sampler, 35, Exponential(), when, when, rng)
+    enable!(sampler, 35, Exponential(), when, when)
     push!(enabled, 35)
-    when, which = next(sampler, when, rng)
+    when, which = next(sampler, when)
     @test which ∈ enabled
-    when, which = next(sampler, when, rng)
+    when, which = next(sampler, when)
     @test which ∈ enabled
     reset!(sampler)
 end
@@ -116,24 +116,24 @@ end
     for (clock_id, propensity) in enumerate([0.3, 0.2, 0.7, 0.001, 0.25])
         @debug "Calling enable on $clock_id"
         if clock_id < 3
-            enable!(highest, clock_id, Exponential(propensity), 0.0, 0.0, rng)
+            enable!(highest, clock_id, Exponential(propensity), 0.0, 0.0)
         else
-            enable!(highest, clock_id, Gamma(propensity), 0.0, 0.0, rng)
+            enable!(highest, clock_id, Gamma(propensity), 0.0, 0.0)
         end
         push!(enabled_set, clock_id)
     end
     @test length(enabled(sampler)) == 5
     @test 3 in enabled(sampler)
     @test 149 ∉ enabled(sampler)
-    enable!(highest, 53, Exponential(10.0), 0.0, 0.0, rng)
+    enable!(highest, 53, Exponential(10.0), 0.0, 0.0)
     push!(enabled_set, 53)
-    enable!(highest, 57, Exponential(10.0), 0.0, 0.0, rng)
+    enable!(highest, 57, Exponential(10.0), 0.0, 0.0)
     push!(enabled_set, 57)
     @test 1 ∈ keys(highest.propagator["slow"].propagator[1])
     @test 2 ∈ keys(highest.propagator["slow"].propagator[1])
     @test 3 ∈ keys(highest.propagator["slow"].propagator[2])
     @test 53 ∈ keys(highest.propagator["fast"])
-    when, which = next(highest, 0.0, rng)
+    when, which = next(highest, 0.0)
     @test which !== nothing
     disable!(highest, which, when)
     delete!(enabled_set, which)
@@ -141,11 +141,11 @@ end
     todisable = pop!(enabled_set)
     disable!(highest, todisable, when)
     @test enabled_set == Set(keys(highest))
-    enable!(highest, 35, Exponential(), when, when, rng)
+    enable!(highest, 35, Exponential(), when, when)
     push!(enabled_set, 35)
-    when, which = next(highest, when, rng)
+    when, which = next(highest, when)
     @test which ∈ enabled_set
-    when, which = next(highest, when, rng)
+    when, which = next(highest, when)
     @test which ∈ enabled_set
     reset!(highest)
 end
@@ -153,7 +153,7 @@ end
 
 @safetestset multisampler_clone = "MultiSampler clone" begin
     using Random: Xoshiro
-    using CompetingClocks: FirstToFire, MultiSampler, enable!, clone
+    using CompetingClocks: FirstToFire, MultiSampler, enable!, similar_sampler
     using ..MultiSamplerHelp: ByDistribution
     using Distributions: Exponential
 
@@ -162,10 +162,10 @@ end
     sampler[1] = FirstToFire{Int64,Float64}()
     sampler[2] = FirstToFire{Int64,Float64}()
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
 
-    cloned = clone(sampler)
+    cloned = similar_sampler(sampler)
     @test length(cloned.propagator) == 2  # same structure
     @test haskey(cloned.propagator, 1)
     @test haskey(cloned.propagator, 2)
@@ -185,8 +185,8 @@ end
     src = MultiSampler{Int64,Int64,Float64}(ByDistribution())
     src[1] = FirstToFire{Int64,Float64}()
     src[2] = FirstToFire{Int64,Float64}()
-    enable!(src, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(src, 2, Exponential(2.0), 0.0, 0.0)
 
     dst = MultiSampler{Int64,Int64,Float64}(ByDistribution())
     dst[1] = FirstToFire{Int64,Float64}()
@@ -213,16 +213,16 @@ end
     sampler[1] = FirstToFire{Int64,Float64}()
     sampler[2] = FirstToFire{Int64,Float64}()
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
 
     # Get initial next event
-    t1, k1 = next(sampler, 0.0, rng)
+    t1, k1 = next(sampler, 0.0)
 
     # Jitter should resample - times may change
-    jitter!(sampler, 0.5, rng)
+    jitter!(sampler, 0.5)
 
-    t2, k2 = next(sampler, 0.5, rng)
+    t2, k2 = next(sampler, 0.5)
     @test t2 >= 0.5
 end
 
@@ -238,11 +238,11 @@ end
     sampler[1] = FirstToFire{Int64,Float64}()
     sampler[2] = FirstToFire{Int64,Float64}()
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
     @test length(sampler) == 2
 
-    when, which = next(sampler, 0.0, rng)
+    when, which = next(sampler, 0.0)
     fire!(sampler, which, when)
     @test length(sampler) == 1
 end
@@ -258,7 +258,7 @@ end
     sampler = MultiSampler{Int64,Int64,Float64}(ByDistribution())
     sampler[1] = FirstToFire{Int64,Float64}()
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # getindex returns the stored firing time from FirstToFire
     firing_time = sampler[1]
@@ -280,14 +280,14 @@ end
 
     @test length(sampler) == 0
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
     @test length(sampler) == 1
 
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
     @test length(sampler) == 2
 
     # Gamma goes to sampler[2]
-    enable!(sampler, 3, Gamma(1.0, 1.0), 0.0, 0.0, rng)
+    enable!(sampler, 3, Gamma(1.0, 1.0), 0.0, 0.0)
     @test length(sampler) == 3
 end
 
@@ -321,7 +321,7 @@ end
 
     rng = Xoshiro(12345)
     current_time = 5.0
-    when, which = next(sampler, current_time, rng)
+    when, which = next(sampler, current_time)
 
     # Both sub-samplers must have been queried with the true current time.
     @test rec1.recorded == current_time

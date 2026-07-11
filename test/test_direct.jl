@@ -10,9 +10,9 @@ using SafeTestsets
     rng = MersenneTwister(90422342)
     propensities = [0.3, 0.2, 0.7, 0.001, 0.25]
     for (i, p) in enumerate(propensities)
-        enable!(dc, i, Exponential(p), 0.0, 0.0, rng)
+        enable!(dc, i, Exponential(p), 0.0, 0.0)
     end
-    when, which = next(dc, 100.0, rng)
+    when, which = next(dc, 100.0)
     @test when > 100
     @test 1 <= which
     @test which <= length(propensities)
@@ -32,10 +32,10 @@ end
     @test_throws KeyError sampler[1]
     @test keytype(sampler) <: Int64
 
-    @test_throws ErrorException enable!(sampler, 1, Dirac(1.0), 0.0, 0.0, rng)
+    @test_throws ErrorException enable!(sampler, 1, Dirac(1.0), 0.0, 0.0)
 
     for (clock, when_fire) in [(1, 7.9), (2, 12.3), (3, 3.7), (4, 0.00013), (5, 0.2)]
-        enable!(sampler, clock, Exponential(when_fire), 0.0, 0.0, rng)
+        enable!(sampler, clock, Exponential(when_fire), 0.0, 0.0)
     end
 
     @test length(sampler) == 5
@@ -59,7 +59,7 @@ end
     md = DirectCall{Int,Float64}()
     rng = MersenneTwister(90497979)
     current = 0.0
-    when, which = next(md, current, rng)
+    when, which = next(md, current)
     @test isinf(when)
     @test which === nothing
     reset!(md)
@@ -78,15 +78,15 @@ end
     # Check that we get the correct marginal probability.
     md = DirectCall{Int,Float64}()
     for i in 1:10
-        enable!(md, i, Exponential(1), 0.0, 0.0, rng)
+        enable!(md, i, Exponential(1), 0.0, 0.0)
     end
     for i in 11:20
-        enable!(md, i, Exponential(1.5), 0.0, 0.0, rng)
+        enable!(md, i, Exponential(1.5), 0.0, 0.0)
     end
     hilo = zeros(Int, 2)
     curtime = 2.5
     for i in 1:10000
-        when, which = next(md, curtime, rng)
+        when, which = next(md, curtime)
         hilo[(which-1)÷10+1] += 1
     end
     ci = confint(BinomialTest(hilo[1], sum(hilo), 3 / 5))
@@ -114,17 +114,17 @@ end
     src = DirectCall{Int,Float64}()
     dst = DirectCall{Int,Float64}()
     rng = MersenneTwister(90422342)
-    enable!(src, 1, Exponential(), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(), 0.0, 0.0, rng)
-    enable!(dst, 3, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(), 0.0, 0.0)
+    enable!(src, 2, Exponential(), 0.0, 0.0)
+    enable!(dst, 3, Exponential(), 0.0, 0.0)
     @test length(src) == 2
     @test length(dst) == 1
     copy_clocks!(dst, src)
     @test length(dst) == 2
-    enable!(src, 5, Exponential(), 0.0, 0.0, rng)
+    enable!(src, 5, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 2
-    enable!(dst, 6, Exponential(), 0.0, 0.0, rng)
+    enable!(dst, 6, Exponential(), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 3
 end
@@ -137,13 +137,13 @@ end
 
     sampler = DirectCall{Int,Float64}()
     rng = MersenneTwister(90422342)
-    enable!(sampler, 1, Exponential(), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(), 0.0, 0.0)
     @test enabled(sampler) == Set([1])
-    enable!(sampler, 2, Exponential(), 0.0, 0.0, rng)
+    enable!(sampler, 2, Exponential(), 0.0, 0.0)
     @test enabled(sampler) == Set([1, 2])
-    enable!(sampler, 3, Exponential(), 0.5, 0.5, rng)
+    enable!(sampler, 3, Exponential(), 0.5, 0.5)
     disable!(sampler, 2, 1.0)
-    enable!(sampler, 4, Exponential(), 1.0, 1.0, rng)
+    enable!(sampler, 4, Exponential(), 1.0, 1.0)
     @test 4 in enabled(sampler)
     @test isenabled(sampler, 3)
     @test !isenabled(sampler, 2)
@@ -177,10 +177,10 @@ end
     model = BasicErlangLoss()
     time_now = zero(T)
     for sinit in samplers
-        enable!(sinit, (:arrival, 0), Exponential(1 / model.λ), time_now, time_now, rng)
+        enable!(sinit, (:arrival, 0), Exponential(1 / model.λ), time_now, time_now)
     end
     for i in 1:100
-        (when, which) = next(s_keep_sum, time_now, rng)
+        (when, which) = next(s_keep_sum, time_now)
         for fclock in samplers
             fire!(fclock, which, when)
         end
@@ -196,16 +196,16 @@ end
 
 
 @safetestset direct_call_clone = "DirectCall clone" begin
-    using CompetingClocks: DirectCall, enable!, clone
+    using CompetingClocks: DirectCall, enable!, similar_sampler
     using Random: Xoshiro
     using Distributions: Exponential
 
     rng = Xoshiro(234567)
     sampler = DirectCall{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
 
-    cloned = clone(sampler)
+    cloned = similar_sampler(sampler)
     @test length(cloned) == 0  # cloned is empty
     @test length(sampler) == 2  # original unchanged
 end
@@ -218,10 +218,10 @@ end
 
     rng = Xoshiro(345678)
     sampler = DirectCall{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # jitter! does nothing for DirectCall (returns nothing)
-    result = jitter!(sampler)
+    result = jitter!(sampler, 0.0)
     @test result === nothing
 end
 
@@ -238,11 +238,11 @@ end
     @test sampler.calculate_likelihood == true
 
     # Enable some clocks with known rates
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
-    enable!(sampler, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
+    enable!(sampler, 2, Exponential(0.5), 0.0, 0.0)  # rate = 2.0
 
     # Get next event and fire
-    t1, k1 = next(sampler, 0.0, rng)
+    t1, k1 = next(sampler, 0.0)
     fire!(sampler, k1, t1)
 
     # log_likelihood should have been updated
@@ -250,8 +250,8 @@ end
 
     # Test steploglikelihood directly
     sampler2 = DirectCall{Int,Float64}()
-    enable!(sampler2, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
-    enable!(sampler2, 2, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+    enable!(sampler2, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
+    enable!(sampler2, 2, Exponential(0.5), 0.0, 0.0)  # rate = 2.0
 
     # steploglikelihood = log(lambda_i) - total_rate * delta_t
     ll = steploglikelihood(sampler2, 0.0, 1.0, 1)
@@ -261,11 +261,11 @@ end
 
     # Test pathloglikelihood
     sampler3 = DirectCall{Int,Float64}(trajectory=true)
-    enable!(sampler3, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler3, 2, Exponential(0.5), 0.0, 0.0, rng)
+    enable!(sampler3, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler3, 2, Exponential(0.5), 0.0, 0.0)
 
     # Fire to accumulate some log likelihood
-    t, k = next(sampler3, 0.0, rng)
+    t, k = next(sampler3, 0.0)
     fire!(sampler3, k, t)
 
     # pathloglikelihood adds the "no event" contribution from now to endtime
@@ -281,7 +281,7 @@ end
 
     rng = Xoshiro(567890)
     sampler = DirectCall{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # haskey with wrong type should return false (not throw)
     @test haskey(sampler, 1) == true

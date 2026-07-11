@@ -11,12 +11,15 @@ using SafeTestsets
     seen = Set{Int}()
     sample_time = 0.5
     for i in 1:100
-        sampler = PSSACR{Int,Float64}()
-        enable!(sampler, 1, Exponential(1.7), 0.0, 0.0, rng)
-        enable!(sampler, 2, Exponential(4.5), 0.0, 0.0, rng)
-        enable!(sampler, 3, Exponential(2.0), 0.0, 0.0, rng)
+        # Each iteration needs its own randomness: with the sampler owning keyed
+        # streams, two samplers built from the same seed draw identically, so we
+        # give each iteration a distinct seed to recover the intended variety.
+        sampler = PSSACR{Int,Float64}(seed=i)
+        enable!(sampler, 1, Exponential(1.7), 0.0, 0.0)
+        enable!(sampler, 2, Exponential(4.5), 0.0, 0.0)
+        enable!(sampler, 3, Exponential(2.0), 0.0, 0.0)
         disable!(sampler, 2, sample_time)
-        when, which = next(sampler, sample_time, rng)
+        when, which = next(sampler, sample_time)
         push!(seen, which)
         @test when > sample_time
         min_when = min(min_when, when)
@@ -39,7 +42,7 @@ end
     @test keytype(sampler) <: Int64
 
     for (clock, rate) in [(1, 0.5), (2, 1.0), (3, 2.0), (4, 10.0), (5, 0.1)]
-        enable!(sampler, clock, Exponential(1/rate), 0.0, 0.0, rng)
+        enable!(sampler, clock, Exponential(1/rate), 0.0, 0.0)
     end
 
     @test length(sampler) == 5
@@ -61,22 +64,22 @@ end
 
     rng = MersenneTwister(90422342)
     sampler = PSSACR{Int,Float64}()
-    when, which = next(sampler, 5.7, rng)
+    when, which = next(sampler, 5.7)
     @test when == Inf
     @test which === nothing
 end
 
 
 @safetestset pssacr_clone = "PSSACR clone" begin
-    using CompetingClocks: PSSACR, enable!, clone
+    using CompetingClocks: PSSACR, enable!, similar_sampler
     using Random: Xoshiro
     using Distributions: Exponential
 
     rng = Xoshiro(234567)
     sampler = PSSACR{Int,Float64}(ngroups=32)
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0, rng)
-    cloned = clone(sampler)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(2.0), 0.0, 0.0)
+    cloned = similar_sampler(sampler)
     @test length(cloned.groups) == 32
     @test length(cloned) == 0  # cloned is empty
     @test length(sampler) == 2  # original unchanged
@@ -91,17 +94,17 @@ end
     src = PSSACR{Int,Float64}(ngroups=16)
     dst = PSSACR{Int,Float64}(ngroups=16)
     rng = MersenneTwister(90422342)
-    enable!(src, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(dst, 3, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(src, 2, Exponential(1.0), 0.0, 0.0)
+    enable!(dst, 3, Exponential(1.0), 0.0, 0.0)
     @test length(src) == 2
     @test length(dst) == 1
     copy_clocks!(dst, src)
     @test length(dst) == 2
-    enable!(src, 5, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(src, 5, Exponential(1.0), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 2
-    enable!(dst, 6, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(dst, 6, Exponential(1.0), 0.0, 0.0)
     @test length(src) == 3
     @test length(dst) == 3
 
@@ -120,12 +123,12 @@ end
     src = PSSACR{Int,Float64}(ngroups=16)
     dst = PSSACR{Int,Float64}(ngroups=16)
 
-    enable!(src, 1, Exponential(1.7), 0.0, 0.0, rng)
-    enable!(src, 2, Exponential(4.5), 0.0, 0.0, rng)
-    enable!(src, 3, Exponential(2.0), 0.0, 0.0, rng)
+    enable!(src, 1, Exponential(1.7), 0.0, 0.0)
+    enable!(src, 2, Exponential(4.5), 0.0, 0.0)
+    enable!(src, 3, Exponential(2.0), 0.0, 0.0)
 
     # Populate cached_next so copy_clocks! must copy the OrderedSample.
-    when, which = next(src, 0.5, rng)
+    when, which = next(src, 0.5)
     @test src.cached_next !== nothing
 
     # Regression: previously this threw because copy_clocks! accessed a
@@ -137,7 +140,7 @@ end
     @test dst.cached_next.key == src.cached_next.key
     @test dst.cached_next.time == src.cached_next.time
     # The cached next event is reproduced verbatim by the copy.
-    dwhen, dwhich = next(dst, 0.5, rng)
+    dwhen, dwhich = next(dst, 0.5)
     @test dwhich == which
     @test dwhen == when
 end
@@ -153,7 +156,7 @@ end
 
     # Assign clock 1 to group 3 before enabling
     assign_group!(sampler, 1, 3)
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
     @test sampler.group_of[1] == 3
 
     # Test bounds checking
@@ -171,22 +174,22 @@ end
     sampler = PSSACR{Int,Float64}(ngroups=1)  # single group for easy tracking
 
     # Enable with rate 1.0
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
     @test sampler.rates[1] == 1.0
     g = sampler.group_of[1]
     @test sampler.group_max[g] == 1.0
 
     # Update to higher rate (new_rate > group_max)
-    enable!(sampler, 1, Exponential(0.5), 0.0, 0.0, rng)  # rate = 2.0
+    enable!(sampler, 1, Exponential(0.5), 0.0, 0.0)  # rate = 2.0
     @test sampler.rates[1] == 2.0
     @test sampler.group_max[g] == 2.0
 
     # Add another clock with lower rate
-    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)  # rate = 1.0
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0)  # rate = 1.0
     @test sampler.group_max[g] == 2.0  # max unchanged
 
     # Update clock 1 to lower rate (was max, triggers _recompute_group_max!)
-    enable!(sampler, 1, Exponential(10.0), 0.0, 0.0, rng)  # rate = 0.1
+    enable!(sampler, 1, Exponential(10.0), 0.0, 0.0)  # rate = 0.1
     @test sampler.rates[1] == 0.1
     @test sampler.group_max[g] == 1.0  # now clock 2 is max
 end
@@ -200,8 +203,8 @@ end
     rng = Xoshiro(567890)
     sampler = PSSACR{Int,Float64}()
 
-    @test_throws ArgumentError enable!(sampler, 1, Gamma(1.0, 1.0), 0.0, 0.0, rng)
-    @test_throws ArgumentError enable!(sampler, 2, Weibull(1.0, 1.0), 0.0, 0.0, rng)
+    @test_throws ArgumentError enable!(sampler, 1, Gamma(1.0, 1.0), 0.0, 0.0)
+    @test_throws ArgumentError enable!(sampler, 2, Weibull(1.0, 1.0), 0.0, 0.0)
 end
 
 
@@ -214,9 +217,9 @@ end
     # Use single group to ensure all clocks go to same group
     sampler = PSSACR{Int,Float64}(ngroups=1)
 
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)
-    enable!(sampler, 3, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0)
+    enable!(sampler, 3, Exponential(1.0), 0.0, 0.0)
 
     # Clock 1 is first in group, clock 3 is last
     # Disabling clock 1 should trigger swap-remove (pos != lastidx)
@@ -236,19 +239,19 @@ end
 
     rng = Xoshiro(789012)
     sampler = PSSACR{Int,Float64}()
-    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0), 0.0, 0.0)
 
     # No cached_next yet - should throw KeyError
     @test_throws KeyError sampler[1]
 
     # After next(), cached_next is set
-    t, k = next(sampler, 0.0, rng)
+    t, k = next(sampler, 0.0)
     @test k == 1  # only one clock enabled
     @test sampler[1] == t
 
     # Add another clock, ask for non-cached clock
-    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0, rng)
-    t2, k2 = next(sampler, 0.0, rng)
+    enable!(sampler, 2, Exponential(1.0), 0.0, 0.0)
+    t2, k2 = next(sampler, 0.0)
     # Only the cached clock should be accessible
     @test sampler[k2] == t2
     if k2 == 1

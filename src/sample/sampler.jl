@@ -78,12 +78,35 @@ function MultiSampler{SamplerKey,Key,Time}(
 end
 
 
+# A full-state clone: each sub-sampler is fully cloned (clocks + streams) and the
+# clock→sub-sampler assignment is copied, so the clone races identically.
 function clone(sampler::MultiSampler{SamplerKey,Key,Time}) where {SamplerKey,Key,Time}
     cloned = MultiSampler{SamplerKey,Key,Time}(sampler.chooser)
     for (skey, subsampler) in sampler.propagator
         cloned[skey] = clone(subsampler)
     end
+    copy!(cloned.chosen, sampler.chosen)
     return cloned
+end
+
+# An empty same-type copy: each sub-sampler is emptied (similar), the assignment
+# map is left empty.
+function similar_sampler(sampler::MultiSampler{SamplerKey,Key,Time}) where {SamplerKey,Key,Time}
+    fresh = MultiSampler{SamplerKey,Key,Time}(sampler.chooser)
+    for (skey, subsampler) in sampler.propagator
+        fresh[skey] = similar_sampler(subsampler)
+    end
+    return fresh
+end
+
+# The MultiSampler owns no streams itself; it re-keys each sub-sampler with a
+# seed derived from the base seed AND the sub-sampler's key, so distinct
+# sub-samplers stay independent rather than sharing one stream family.
+function rekey_streams!(sampler::MultiSampler{SamplerKey,Key,Time}, seed) where {SamplerKey,Key,Time}
+    for (skey, subsampler) in sampler.propagator
+        rekey_streams!(subsampler, hash((UInt64(seed), skey)))
+    end
+    return sampler
 end
 
 
@@ -106,10 +129,10 @@ function copy_clocks!(
     return dst
 end
 
-function jitter!(sampler::MultiSampler{SamplerKey,Key,Time}, when::Time, rng::AbstractRNG
+function jitter!(sampler::MultiSampler{SamplerKey,Key,Time}, when::Time
 ) where {SamplerKey,Key,Time}
     for propagator in values(sampler.propagator)
-        jitter!(propagator, when, rng)
+        jitter!(propagator, when)
     end
 end
 
@@ -123,13 +146,12 @@ end
 function next(
     sampler::MultiSampler{SamplerKey,Key,Time},
     when::Time,
-    rng::AbstractRNG
 ) where {SamplerKey,Key,Time}
 
     least_when::Time = typemax(Time)
     least_transition::Union{Nothing,Key} = nothing
     for propagator in values(sampler.propagator)
-        sub_when, sub_transition = next(propagator, when, rng)
+        sub_when, sub_transition = next(propagator, when)
         if sub_when < least_when
             least_when = sub_when
             least_transition = sub_transition
@@ -145,12 +167,11 @@ function enable!(
     distribution::UnivariateDistribution,
     te::Time,
     when::Time,
-    rng::AbstractRNG
 ) where {SamplerKey,Key,Time}
     this_clock_sampler = choose_sampler(sampler.chooser, clock, distribution)
     sampler.chosen[clock] = this_clock_sampler
     propagator = sampler.propagator[this_clock_sampler]
-    enable!(propagator, clock, distribution, te, when, rng)
+    enable!(propagator, clock, distribution, te, when)
 end
 
 
