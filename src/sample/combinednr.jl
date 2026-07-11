@@ -456,7 +456,10 @@ end
 For the `CombinedNextReaction` sampler, returns the stored firing time associated to the clock.
 """
 function Base.getindex(nr::CombinedNextReaction{K,T}, clock::K) where {K,T}
-    if haskey(nr.transition_entry, clock)
+    # A fired or disabled clock is retained in transition_entry (heap_handle == 0)
+    # for draw reuse, but it has no scheduled firing time; treat it as absent
+    # rather than indexing the heap at zero.
+    if haskey(nr.transition_entry, clock) && nr.transition_entry[clock].heap_handle > 0
         heap_handle = getfield(nr.transition_entry[clock], :heap_handle)
         return getfield(nr.firing_queue[heap_handle], :time)
     else
@@ -660,6 +663,18 @@ OWN keyed stream so the redraw is identical across a coupled clone pair, and its
 stored survival and schedule updated so the retained-draw identity stays true.
 
 See the unbiasedness precondition on the generic `force_fire!`.
+
+TWO FORCES AT ONE INSTANT (the smoothed-perturbation-analysis construction):
+firing a chosen pair back-to-back at the same `tstar` is sound. The first force
+happens at the race's decision time — the proven case — and the second force at
+the same instant elapses zero time with every survivor scheduled strictly
+later, so no keep-if-later redraw triggers on it. One asymmetry: when the FIRST
+force imposes a non-winner, the natural winner's schedule equals `tstar`, fails
+the strict `>` keep test, and is redrawn before being force-consumed — unbiased
+(the redraw is a fresh uniform that is then discarded by the force) but it
+advances that clock's keyed stream, weakening clone-pair coupling for that
+clock's later re-enables. Pinned by the SPA estimator's exponential-race test,
+where the constructed pair's jump must equal the analytic ±1 exactly.
 """
 function force_fire!(nr::CombinedNextReaction{K,T}, clock::K, tstar::T) where {K,T<:ContinuousTime}
     haskey(nr, clock) || throw(KeyError(clock))  # haskey requires heap_handle > 0

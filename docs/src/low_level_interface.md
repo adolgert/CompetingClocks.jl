@@ -40,6 +40,7 @@ CompetingClocks.timetype(::SSA{K,T}) where {K,T}
 CompetingClocks.enabled(::SSA{K,T}) where {K,T}
 Base.length(::SSA)
 Base.getindex(::SSA{K,T}, ::K) where {K,T}
+Base.getindex(::CompetingClocks.SamplingContext{K,T,Sampler,RNG,W,Nothing}, ::K) where {K,T,Sampler,RNG,W}
 Base.keys(::SSA)
 ```
 

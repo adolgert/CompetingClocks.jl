@@ -366,3 +366,42 @@ end
     @test watcher.disables == 0
     @test watcher.fires == 0
 end
+
+
+@safetestset context_scheduled_time = "Context getindex reports an enabled clock's scheduled time and treats fired or disabled clocks as absent" begin
+    using CompetingClocks
+    using CompetingClocks: SamplingContext, SamplerBuilder, NextReactionMethod,
+        enable!, disable!, next, fire!
+    using Distributions: Exponential
+    using Random: Xoshiro
+
+    rng = Xoshiro(4711)
+    builder = SamplerBuilder(Int64, Float64; method=NextReactionMethod())
+    ctx = SamplingContext(builder, rng)
+    for clock_id in 1:4
+        enable!(ctx, clock_id, Exponential(1.0))
+    end
+
+    # The context-level query matches the raw sampler's stored schedule, and
+    # the winner's schedule is the peeked firing time.
+    for clock_id in 1:4
+        @test ctx[clock_id] == ctx.sampler[clock_id]
+    end
+    when, which = next(ctx)
+    @test ctx[which] == when
+
+    # A never-enabled key is absent.
+    @test_throws KeyError ctx[99]
+
+    # A disabled clock keeps a retained-survival entry in CombinedNextReaction
+    # (heap_handle == 0) but has no schedule; getindex must not surface it.
+    other = which == 1 ? 2 : 1
+    disable!(ctx, other)
+    @test_throws KeyError ctx[other]
+
+    # A fired clock is likewise consumed and absent until re-enabled.
+    fire!(ctx, which, when)
+    @test_throws KeyError ctx[which]
+    enable!(ctx, which, Exponential(1.0))
+    @test ctx[which] > when
+end

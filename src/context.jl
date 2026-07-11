@@ -647,6 +647,21 @@ enabled_ages(ctx::SamplingContext{K,T,Sampler,RNG,W,Nothing}, when::T) where {K,
     enabled_ages(ctx.sampler, when)
 
 """
+    getindex(ctx::SamplingContext, clock) -> T
+
+The scheduled (putative) firing time of the enabled `clock` — the context-level
+form of the sampler's `getindex`, so an estimator that needs a clock's schedule
+(the runner-up's residual in the smoothed-perturbation-analysis weight) need not
+reach the raw sampler. Defined for the non-delayed context, where the sampler's
+keys are the caller's clock keys. Throws `KeyError` when `clock` is not
+currently enabled. Requires a scheduling sampler that stores putative times
+(e.g. `CombinedNextReaction`); a rejection-style sampler has no schedule to
+report.
+"""
+Base.getindex(ctx::SamplingContext{K,T,Sampler,RNG,W,Nothing}, clock::K) where {K,T,Sampler,RNG,W} =
+    ctx.sampler[clock]
+
+"""
     enable_completion!(ctx, clock, duration_dist, when)
 
 Internal helper: schedule the completion event for a delayed reaction at time

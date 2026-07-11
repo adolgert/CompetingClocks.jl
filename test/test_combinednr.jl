@@ -50,7 +50,9 @@ end
 
     disable!(sampler, 1, 0.0)
 
-    @test_throws BoundsError sampler[1]
+    # A disabled clock keeps a retained-survival entry (heap_handle == 0) but
+    # has no schedule; getindex treats it as absent, matching haskey.
+    @test_throws KeyError sampler[1]
     @test sampler[2] == 12.3
 
 end
@@ -87,7 +89,9 @@ end
 
     disable!(sampler, :S => 1, 0.0)
 
-    @test_throws BoundsError sampler[:S=>1]
+    # Same absence semantics as the Int-keyed test above: KeyError, not a
+    # BoundsError from indexing the heap at the retained entry's zero handle.
+    @test_throws KeyError sampler[:S=>1]
     @test sampler[:S=>2] == 12.3
 
 end

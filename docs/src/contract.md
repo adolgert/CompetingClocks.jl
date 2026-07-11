@@ -97,6 +97,20 @@ a survivor's stored schedule conditions on the very draw being kept and
 biases the kept branch. Callers own this precondition; the sampler cannot
 check it.
 
+One extension of the proven regime is used by the smoothed-perturbation-analysis
+(SPA) estimator: **two forces at one instant**. Firing a chosen pair
+back-to-back at the same `tstar` is sound because the first force happens at
+the race's decision time and the second elapses zero time — every survivor is
+then scheduled strictly later, so no keep-if-later redraw triggers on the
+second call. When the *first* force imposes a non-winner, the natural winner's
+schedule equals `tstar`, fails the strict keep test, and is redrawn before
+being force-consumed; the redraw is a fresh uniform immediately discarded by
+the force, so the construction stays unbiased, but that clock's keyed stream
+advances by one draw relative to a clone that forced the other order —
+weakening (not breaking) common-random-number coupling for its later
+re-enables. The SPA test suite pins this construction against an analytic
+race jump.
+
 ## Storable is not replayable
 
 The number a sampler *stores* for a clock is generally not the coordinate an
