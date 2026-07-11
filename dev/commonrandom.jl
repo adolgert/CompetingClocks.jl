@@ -6,48 +6,70 @@
 
 # What we want is a [variance reduction](https://en.wikipedia.org/wiki/Variance_reduction) technique. Common random numbers (CRN) are a variance reduction technique that enables you to use fewer simulation runs to compare the effect of different simulation parameters on the outcome. There are several other variance reduction techniques, such as antithetic variates and importance sampling, but let's look at common random numbers in CompetingClocks.
 
-# If you estimate a value with $n$ independent trajectories, then the bias of the estimate is proportional to $1/\sqrt{n}$ in most cases. If you want to distinguish the effect of changing a parameter, then the estimate must be precise enough that you can see the difference. It is common to use millions of trajectories. On the other hand, CRN means that you can produce $n=100$ trajectories, with significant bias in the estimate, and still see the effect of changing a parameter.
-
 # CRN works well when the sample path is similar from run to run. If two runs use completely different events, then there will be too little overlap. If the causal chain of which events affect other events changes, that can be a problem, too. In most cases, people try CRN and see if it helps.
 
 
 # ## Using Common Random Numbers in CompetingClocks
 
-# CompetingClocks implements common random numbers by recording the state of the random number generator every time a clock is enabled. There are other ways to do this, but this one works with the [CompetingClocks.CombinedNextReaction](@ref) and [CompetingClocks.FirstToFire](@ref) samplers. The workflow you would use looks notionally like:
+# Each sampler OWNS its randomness as a family of per-clock keyed streams (see
+# [CompetingClocks.KeyedStreams](@ref)). A draw belongs to a CLOCK — and to that
+# clock's occurrence count — not to a position in a global call sequence. The
+# consequence is the whole of common random numbers: two samplers built from the
+# **same seed** draw the identical firing time for the same clock, even when their
+# events fire in a different order, because each clock's stream is seeded once
+# from the clock and advances only when that clock draws.
 
-#   1. Create a sampler with the keyword argument `common_random=true`.
-#   2. Run a lot of simulations in order to explore and record all possible clock states. Run `reset!(recorder)` after each simulation.
-#   3. For every parameter set to try, run it the same way, using `reset!` after each run.
-#   4. Compare outcomes.
-
-# Because the `CommonRandom` stores the state of the random number generator at each step, it works best with random number generators that have small state, such as Xoshiro on a linear congruential generator (LCG).
+# There is therefore no recorder to prime, no replay mode, and no miss count. To
+# compare a baseline against a perturbed parameter with common random numbers, you
+# build both from the same seed and run them:
 
 struct MakeModel end #hide
 modify_model!(model, param_idx) = model #hide
-run_simulation(model, sampler) = nothing #hide
+run_simulation(model, sampler) = 0.0 #hide
 using Random: Xoshiro
 using CompetingClocks
 example_clock = (3, 7)  # We will use clock IDs that are a tuple of 2 integers.
 model = MakeModel()
 (Key, Time) = (typeof(example_clock), Float64)
-builder = SamplerBuilder(Key, Time; common_random=true)
-rng = Xoshiro(9469922)
-sampler = SamplingContext(builder, rng)
+
+# The context's rng is used only to choose the sampler's stream seed, so passing
+# the SAME rng seed to two contexts couples them. Compare a baseline outcome to a
+# perturbed one, reusing the same seed across the paired runs:
+baseline = Float64[]
+perturbed = Float64[]
 for trial_idx in 1:100
-    run_simulation(model, sampler)
-    reset!(sampler)
+    ## The same seed drives both runs of the pair, which couples them.
+    base_ctx = SamplingContext(SamplerBuilder(Key, Time), Xoshiro(trial_idx))
+    pert_ctx = SamplingContext(SamplerBuilder(Key, Time), Xoshiro(trial_idx))
+    push!(baseline, run_simulation(model, base_ctx))
+    push!(perturbed, run_simulation(modify_model!(model, 1), pert_ctx))
 end
-freeze_crn!(sampler)
-for param_idx in 1:10
-    each_model = modify_model!(model, param_idx)
-    run_simulation(each_model, sampler)
-    reset!(sampler)
-end
+
+# The paired difference `perturbed .- baseline` has far smaller variance than if
+# the two runs had used independent seeds, because each clock's draw is shared
+# between the pair. That is the variance reduction, and it falls out of stream
+# ownership rather than any bookkeeping.
+
+# ## Cloning and re-keying
+
+# Two lower-level primitives express the same idea inside one run:
+#
+#   * `clone(sampler)` makes a full-state copy — clock state AND the keyed streams
+#     (generator states and occurrence counts). The clone and the original race
+#     the identical clocks to the identical times: they are coupled.
+#   * `rekey_streams!(sampler, seed)` re-seeds the streams, forgetting every live
+#     generator, so a clone can be DEcoupled to explore a divergent future.
+#
+# Splitting a run into independent continuations is exactly a `clone` followed by
+# a `rekey_streams!` on each copy. The [Randomness Ownership](randomness.md) page
+# explains the stream mechanism, `split!`, and the low-level coupling recipe in
+# detail.
 
 # ## Checking effectiveness of Common Random Numbers
 
-# If your simulation has a large sample space, CRN may not help. We run a first set of simulations in order to record the state of the system for lots of different clocks and different multiplicities of clock events. If that worked well, then subsequent runs of the simulation will re-use draws from the random number generator. If there are a lot of events which are needed but haven't been recorded, those misses are a sign that CRN is unlikely to reduce variance much for this simulation.
-
-# We check this by checking the [CompetingClocks.misscount](@ref) during later runs of the simulation under CRN. If that miss count is high, we can look into which clocks are firing that didn't previously fire by iterating over the [CompetingClocks.misses](@ref), which are pairs of (clock key, number of misses for that clock).
-
-# The final word on effectiveness of CRN is to look at the variance of summary outcomes for runs with and without CRN. The CRN will, in general, slow down a sampler, but it should mean that many fewer runs are required to distinguish the effect of changes in system parameters.
+# If your simulation has a large sample space, CRN may not help: when the two runs
+# take genuinely different events, few clocks share a coupled draw. The final word
+# on effectiveness is to look at the variance of summary outcomes for the paired
+# (same-seed) runs versus independent-seed runs. If the paired variance is much
+# smaller, CRN is helping and you need far fewer runs to distinguish the effect of
+# a parameter change.

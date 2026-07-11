@@ -36,13 +36,13 @@ end
 
 
 function initialize_model!(model, sampler, rng)
-    enable!(sampler, 1, Exponential(1.0 / model.birth_rate), 0.0, 0.0, rng)
+    enable!(sampler, 1, Exponential(1.0 / model.birth_rate), 0.0, 0.0)
 
     initial_population = model.birth_rate * mean(model.death_distribution)
 
     for name_id in 1:Int(round(initial_population))
         past_birth = rand(rng, model.death_distribution)
-        enable!(sampler, name_id, model.death_distribution, -past_birth, 0.0, rng)
+        enable!(sampler, name_id, model.death_distribution, -past_birth, 0.0)
         model.next_name = name_id + 1
         model.alive += 1
     end
@@ -56,13 +56,13 @@ end;
 # event was death, we simply disable the clock. We return the integrated population
 # over time from the `step!` method to check simulation results.
 
-function step!(model::ConstantBirth, sampler::SSA{K,T}, when::T, which::K, rng) where {K,T}
+function step!(model::ConstantBirth, sampler::SSA{K,T}, when::T, which::K) where {K,T}
     if which == 1
         disable!(sampler, 1, when)
-        enable!(sampler, 1, Exponential(1.0 / model.birth_rate), when, when, rng)
+        enable!(sampler, 1, Exponential(1.0 / model.birth_rate), when, when)
 
         name_id = model.next_name
-        enable!(sampler, name_id, model.death_distribution, when, when, rng)
+        enable!(sampler, name_id, model.death_distribution, when, when)
         model.next_name += 1
         model.alive += 1
     else
@@ -82,22 +82,23 @@ function run_constant_birth(rng, max_step = 10000)
     death_rate = Weibull(2.0, 80)
     model = ConstantBirth(birth_rate, death_rate, 2, 0, 0.0)
 
-    sampler = FirstToFire{Int,Float64}()
+    ## The sampler owns its randomness; the seed selects its per-clock streams.
+    sampler = FirstToFire{Int,Float64}(rand(rng, UInt64))
     initialize_model!(model, sampler, rng)
     ## Begin by dropping a few events to account for burn-in.
     when = 0.0
-    (when, which) = next(sampler, when, rng)
+    (when, which) = next(sampler, when)
     while when < 1e4
-        step!(model, sampler, when, which, rng)
-        (when, which) = next(sampler, when, rng)
+        step!(model, sampler, when, which)
+        (when, which) = next(sampler, when)
     end
 
     ## Then collect statistics.
     total::Float64 = 0.0
     start_time = when
     for _ in 1:max_step
-        total += step!(model, sampler, when, which, rng)
-        (when, which) = next(sampler, when, rng)
+        total += step!(model, sampler, when, which)
+        (when, which) = next(sampler, when)
     end
     steady_state = model.birth_rate * mean(model.death_distribution)
     
@@ -111,10 +112,11 @@ end;
 # it gets closer to the expected average with smaller standard deviation.
 
 function multiple_runs(trial_cnt = 20, max_step = 1000)
-    rng = Xoshiro(837100235)
     trials = zeros(Float64, trial_cnt)
     single_expected = 0.0
     Threads.@threads for trial_idx in 1:trial_cnt
+        ## One rng per trial keeps the threaded runs independent and reproducible.
+        rng = Xoshiro(837100235 + trial_idx)
         expected, observed = run_constant_birth(rng, max_step)
         trials[trial_idx] = observed
         single_expected = expected

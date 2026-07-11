@@ -40,7 +40,7 @@ function get_key!(model::SIRNonMarkov)
     return key
 end
 
-function initialize!(model::SIRNonMarkov, sampler, rng)
+function initialize!(model::SIRNonMarkov, sampler)
     (β, c, γ) = model.parameters
     ## enable the infection clock
     enable!(
@@ -48,12 +48,11 @@ function initialize!(model::SIRNonMarkov, sampler, rng)
         (:infection, get_key!(model)),
         Exponential(1.0/(β*c*model.state[2]/sum(model.state)*model.state[1])),
         model.time,
-        model.time,
-        rng
+        model.time
         )
     ## enable the recovery clocks
     for _ in 1:model.state[2]
-        enable!(sampler, (:recovery, get_key!(model)), model.recovery_distribution, model.time, model.time, rng)
+        enable!(sampler, (:recovery, get_key!(model)), model.recovery_distribution, model.time, model.time)
     end
 end;
 
@@ -65,7 +64,7 @@ end;
 # recovery clock for the newly infectious individual. Recovery events simply disable the 
 # clock associated to that event. Both events update the state vector.
 
-function step!(model::SIRNonMarkov, sampler::SSA{K,T}, when::T, which::K, rng) where {K,T}
+function step!(model::SIRNonMarkov, sampler::SSA{K,T}, when::T, which::K) where {K,T}
     (β, c, γ) = model.parameters
     model.time = when
     if first(which) == :infection
@@ -78,8 +77,7 @@ function step!(model::SIRNonMarkov, sampler::SSA{K,T}, when::T, which::K, rng) w
             which,
             Exponential(1.0/(β*c*model.state[2]/sum(model.state)*model.state[1])),
             model.time,
-            model.time,
-            rng
+            model.time
             )
         ## enable a recovery event for the newly infected person
         enable!(
@@ -87,8 +85,7 @@ function step!(model::SIRNonMarkov, sampler::SSA{K,T}, when::T, which::K, rng) w
             (:recovery, get_key!(model)),
             model.recovery_distribution,
             model.time,
-            model.time,
-            rng
+            model.time
             )
     elseif first(which) == :recovery
         model.state[2] -= 1
@@ -107,44 +104,44 @@ tmax = 40.0
 initial_state = [990, 10, 0]
 p = [0.05, 10.0, 4.0] 
 
-seed = 456959517
-rng = MersenneTwister(seed);
+seed = 456959517;
 
 # Next we generate the model struct and the sampler object. Here
-# we choose the `CombinedNextReaction` sampler type. We choose to use
+# we choose the `CombinedNextReaction` sampler type, seeded so that it owns
+# its own per-clock random streams. We choose to use
 # a Dirac delta distribution to simulate deterministic recovery times.
 
 sirmodel = SIRNonMarkov(deepcopy(initial_state), p, 0, Dirac(p[3]), 0.0)
-sampler = CombinedNextReaction{Tuple{Symbol,Int},Float64}();
+sampler = CombinedNextReaction{Tuple{Symbol,Int},Float64}(seed);
 
 # Now we may run the model, using a function `run_sir!`.
 # We preallocate a matrix to store model output. Note that in the simple
 # SIR model with only infection and recovery events, a maximum of ``2S + I``
 # events is possible.
 
-function run_sir!(model, sampler, tmax, rng)
+function run_sir!(model, sampler, tmax)
 
     output = zeros(2*model.state[1]+model.state[2]+1, 4)
     nout = 1
     output[nout,:] = [sirmodel.time; sirmodel.state]
     nout += 1;
 
-    initialize!(model, sampler, rng)
+    initialize!(model, sampler)
 
-    (when, which) = next(sampler, model.time, rng)
+    (when, which) = next(sampler, model.time)
 
     while when <= tmax
-        step!(model, sampler, when, which, rng)
-        (when, which) = next(sampler, model.time, rng)
-    
+        step!(model, sampler, when, which)
+        (when, which) = next(sampler, model.time)
+
         output[nout,:] .= [model.time; model.state]
         nout += 1
     end
-    
+
     return output, nout
 end
 
-(output, nout) = run_sir!(sirmodel, sampler, tmax, rng);
+(output, nout) = run_sir!(sirmodel, sampler, tmax);
 
 # Finally we can plot the sampled trajectory.
 
