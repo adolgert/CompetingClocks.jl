@@ -129,8 +129,9 @@ estimator check support at construction:
 - [`supports_retained_draw`](@ref) — the sampler can report the
   survival-space uniform behind a scheduled draw.
 - [`supports_carry`](@ref) — the sampler can re-evaluate a still-enabled
-  clock's distribution *deterministically*, consuming no fresh randomness
-  (see [Re-evaluation Couplings](reenable.md)).
+  clock's distribution *deterministically*, consuming no fresh randomness;
+  only such a sampler may be constructed with `coupling=:carry`
+  (see [Re-evaluation and the Sampler's Coupling](reenable.md)).
 
 The support matrix for the samplers in this package:
 
@@ -178,8 +179,9 @@ consumed. The result is a strict tier structure:
   outcome along a fixed realization of the randomness) adds exactly one item:
   the retained draw `(te, u)` of each firing, which the record already
   carries. It replays firing times through the retained-draw identity at a
-  perturbed parameter. For a *live* IPA run, the `:carry` re-evaluation
-  coupling of [`reenable!`](@ref) is the sampler-side requirement.
+  perturbed parameter. For a *live* IPA run, a sampler constructed with the
+  `:carry` re-evaluation coupling (the default for `CombinedNextReaction` and
+  `FirstToFire`; see [`reenable!`](@ref)) is the sampler-side requirement.
 - **Weak-derivative / branching** estimators add the cluster of live verbs:
   `enabled_ages` to build the selection law at the branch point, `clone` to
   copy the running sampler, `force_fire!` to impose the branched firing, and

@@ -141,7 +141,7 @@ makedocs(;
             "Recording Trajectories" => "recording.md",
             "Estimator-Facing Verbs" => "estimator_verbs.md",
             "Randomness Ownership" => "randomness.md",
-            "Re-evaluation Couplings" => "reenable.md",
+            "Re-evaluation and the Sampler's Coupling" => "reenable.md",
         ],
         "API Reference" => [
             "contextinterface.md",

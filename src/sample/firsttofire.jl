@@ -9,7 +9,7 @@ end
 
 
 """
-    FirstToFire{KeyType,TimeType}()
+    FirstToFire{KeyType,TimeType}(seed; coupling=:carry)
 
 This sampler is often the fastest for non-exponential distributions.
 When a clock is first enabled, this sampler asks the clock when it would
@@ -20,35 +20,46 @@ is removed from the list. There is no memory of previous firing times.
 This uses a `DataStructures.MutableBinaryMinHeap` which is a Fibonacci
 heap. It has been tested against many other heaps and rarely loses by more
 than a few percent, so we are sticking with it.
+
+The `coupling` keyword (default `:carry`) fixes, at construction, how
+[`reenable!`](@ref) realizes a mid-flight distribution change: `:carry` rebases
+the stored firing time through the change deterministically (consuming no
+randomness — the coupling pathwise/IPA derivatives need), while `:redraw` draws
+the remaining lifetime fresh, conditioned on age. Both agree in law. Read it
+back with [`coupling`](@ref).
 """
 mutable struct FirstToFire{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryMinHeap{OrderedSample{K,T}}
     # This maps from transition to entry in the firing queue.
     transition_entry::Dict{K,FTFEntry{T,UnivariateDistribution}}
     streams::KeyedStreams{K}
+    coupling::Symbol
 end
 
 
-function FirstToFire{K,T}(seed=_DEFAULT_STREAM_SEED) where {K,T}
+function FirstToFire{K,T}(seed=_DEFAULT_STREAM_SEED; coupling::Symbol=:carry) where {K,T}
+    validate_coupling(FirstToFire, coupling)
     heap = MutableBinaryMinHeap{OrderedSample{K,T}}()
     state = Dict{K,FTFEntry{T,UnivariateDistribution}}()
-    FirstToFire{K,T}(heap, state, KeyedStreams{K}(seed))
+    FirstToFire{K,T}(heap, state, KeyedStreams{K}(seed), coupling)
 end
 
+coupling(ftf::FirstToFire) = ftf.coupling
 
 # A full-state clone copies the firing queue, the entry table, AND the keyed
 # streams (generator states, counts). Running the clone and the original forward
 # yields identical firing sequences — every clock was drawn once at enable from
 # its own stream and the clone inherits those exact stream states.
 function clone(ftf::FirstToFire{K,T}) where {K,T}
-    c = FirstToFire{K,T}(ftf.streams.seed)
+    c = FirstToFire{K,T}(ftf.streams.seed; coupling=ftf.coupling)
     c.firing_queue = deepcopy(ftf.firing_queue)
     copy!(c.transition_entry, ftf.transition_entry)
     c.streams = copy(ftf.streams)
     return c
 end
 
-similar_sampler(ftf::FirstToFire{K,T}) where {K,T} = FirstToFire{K,T}(ftf.streams.seed)
+similar_sampler(ftf::FirstToFire{K,T}) where {K,T} =
+    FirstToFire{K,T}(ftf.streams.seed; coupling=ftf.coupling)
 
 rekey_streams!(ftf::FirstToFire, seed) = (rekey_streams!(ftf.streams, seed); ftf)
 
@@ -62,6 +73,9 @@ function copy_clocks!(dst::FirstToFire{K,T}, src::FirstToFire{K,T}) where {K,T}
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
     dst.streams = copy(src.streams)
+    # copy_clocks! promises a full replacement of the destination's state, so
+    # the destination must re-evaluate clocks the same way the source would.
+    dst.coupling = src.coupling
     return dst
 end
 
@@ -181,9 +195,10 @@ enabling_times(propagator::FirstToFire) =
 
 
 """
-    reenable!(propagator::FirstToFire, clock, distribution, te, when, coupling)
+    reenable!(propagator::FirstToFire, clock, distribution, te, when)
 
-Re-evaluate `clock`'s distribution mid-flight under an explicit `coupling`.
+Re-evaluate `clock`'s distribution mid-flight. Which pathwise coupling realizes
+the change is the sampler's construction-time [`coupling`](@ref) field.
 
 `:redraw` is the plain [`enable!`](@ref)-on-enabled-key path: draw a fresh firing
 time from the clock's own keyed stream, conditioned on the current age.
@@ -204,16 +219,15 @@ rate-ratio scaling of the remaining time.
 """
 function reenable!(
     propagator::FirstToFire{K,T}, clock::K, distribution::UnivariateDistribution,
-    te::T, when::T, coupling::Symbol) where {K,T}
+    te::T, when::T) where {K,T}
     haskey(propagator, clock) || throw(ArgumentError(
         "reenable! needs clock $clock currently enabled; use enable! to start a " *
         "clock that is not enabled."))
-    if coupling === :redraw
-        enable!(propagator, clock, distribution, te, when)
-    elseif coupling === :carry
+    # The constructor validated the field, so only the two couplings reach here.
+    if propagator.coupling === :carry
         _reenable_carry!(propagator, clock, distribution, te, when)
     else
-        throw(ArgumentError("coupling must be :carry or :redraw, got :$coupling."))
+        enable!(propagator, clock, distribution, te, when)
     end
     nothing
 end

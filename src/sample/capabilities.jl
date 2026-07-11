@@ -70,11 +70,54 @@ reconstructs it from the stored absolute firing time (its retained-draw identity
 `logu = logccdf(dist_old, sched - te)`). The exponential-only samplers keep no
 in-flight draw to carry (they re-read a memoryless rate each step), and
 `FirstReaction` redraws every clock at every `next` so it has no retained
-schedule to move — both leave this `false`, and `reenable!(..., :carry)` on them
-throws an `ArgumentError` naming the missing trait.
+schedule to move — both leave this `false`, and constructing them with
+`coupling=:carry` throws an `ArgumentError` naming this trait (see
+[`validate_coupling`](@ref)).
 """
 supports_carry(::Type{<:SSA}) = false
 supports_carry(s::SSA) = supports_carry(typeof(s))
+
+
+"""
+    validate_coupling(SamplerType, coupling::Symbol) -> Symbol
+
+Check a re-evaluation `coupling` requested at sampler construction: it must be
+`:carry` or `:redraw`, and `:carry` additionally requires
+[`supports_carry`](@ref)`(SamplerType) == true`. Throws an `ArgumentError`
+otherwise; returns `coupling` so a constructor can validate and store in one
+expression. Every sampler constructor (and every `SamplerSpec` that forwards a
+coupling) routes through this ONE helper so the validation rules live in a
+single place and a bad request fails at construction, not at the first
+[`reenable!`](@ref).
+"""
+function validate_coupling(::Type{S}, coupling::Symbol) where {S<:SSA}
+    coupling in (:carry, :redraw) || throw(ArgumentError(
+        "coupling must be :carry or :redraw, got :$coupling."))
+    if coupling === :carry && !supports_carry(S)
+        throw(ArgumentError(
+            "coupling=:carry is not supported by $S; supports_carry(::Type{$S}) " *
+            "is false. This sampler keeps no in-flight draw to carry through a " *
+            "distribution change; construct it with coupling=:redraw, or choose " *
+            "a sampler with supports_carry == true."))
+    end
+    return coupling
+end
+
+
+"""
+    coupling(sampler) -> Symbol
+
+The re-evaluation coupling this sampler applies when [`reenable!`](@ref)
+changes a still-enabled clock's distribution: `:carry` (map the retained draw
+through the change deterministically) or `:redraw` (draw the remaining lifetime
+fresh, conditioned on age). The coupling is a CONSTRUCTION-TIME property of the
+sampler, chosen by the `coupling` keyword of the carry-capable samplers
+(`CombinedNextReaction`, `FirstToFire`, default `:carry`). Every other sampler
+retains no in-flight draw, so redraw is its only possible behavior and this
+generic method answers `:redraw` for it. A `SamplingContext` forwards to its
+inner sampler. Downstream recorders read a run's coupling from this accessor.
+"""
+coupling(::SSA) = :redraw
 
 
 """

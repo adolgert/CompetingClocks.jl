@@ -18,8 +18,14 @@ times to fire.
 mutable struct FirstReaction{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
     streams::KeyedStreams{K}
-    FirstReaction{K,T}(seed=_DEFAULT_STREAM_SEED) where {K,T<:ContinuousTime} =
+    # The coupling keyword is validated but NOT stored: FirstReaction redraws
+    # every clock at every `next`, so redraw is its only possible behavior, and
+    # a :carry request must fail here at construction rather than at the first
+    # reenable!.
+    function FirstReaction{K,T}(seed=_DEFAULT_STREAM_SEED; coupling::Symbol=:redraw) where {K,T<:ContinuousTime}
+        validate_coupling(FirstReaction, coupling)
         new(Dict{K,EnablingEntry{K,T}}(), KeyedStreams{K}(seed))
+    end
 end
 
 
@@ -96,26 +102,23 @@ end
 
 
 """
-    reenable!(fr::FirstReaction, clock, distribution, te, when, coupling)
+    reenable!(fr::FirstReaction, clock, distribution, te, when)
 
 Re-evaluate `clock`'s distribution mid-flight. For FirstReaction the coupling
-choice is MOOT: it retains no schedule and redraws every clock's remaining
+question is MOOT: it retains no schedule and redraws every clock's remaining
 lifetime, conditioned on age, at every `next`, so there is no in-flight draw to
-either carry or discard — this is the redraw-everything coupling. Both `:carry`
-and `:redraw` therefore resolve to the same action, replacing the stored
-distribution and enabling time, and both are accepted so a driver can issue the
-same `reenable!` call against any backend. (Correspondingly `supports_carry` is
-`false`: FirstReaction cannot move a firing time CONTINUOUSLY in a parameter,
-because it holds no firing time to move — the property carry exists to provide.)
+either carry or discard — this is the redraw-everything behavior, and no
+coupling field is stored. The re-evaluation simply replaces the stored
+distribution and enabling time. (Correspondingly `supports_carry` is `false`:
+FirstReaction cannot move a firing time CONTINUOUSLY in a parameter, because it
+holds no firing time to move — the property carry exists to provide.)
 """
 function reenable!(
     fr::FirstReaction{K,T}, clock::K, distribution::UnivariateDistribution,
-    te::T, when::T, coupling::Symbol) where {K,T}
+    te::T, when::T) where {K,T}
     haskey(fr.enabled, clock) || throw(ArgumentError(
         "reenable! needs clock $clock currently enabled; use enable! to start a " *
         "clock that is not enabled."))
-    (coupling === :carry || coupling === :redraw) || throw(ArgumentError(
-        "coupling must be :carry or :redraw, got :$coupling."))
     enable!(fr, clock, distribution, te, when)
     nothing
 end

@@ -9,7 +9,7 @@ guarantees an estimator may rely on and the preconditions a caller must
 honor. The manual pages ([Recording Trajectories](recording.md),
 [Estimator-Facing Verbs](estimator_verbs.md),
 [Randomness Ownership](randomness.md),
-[Re-evaluation Couplings](reenable.md)) show how to use the machinery; this
+[Re-evaluation and the Sampler's Coupling](reenable.md)) show how to use the machinery; this
 page states what must always be true.
 
 ## The retained-draw identity

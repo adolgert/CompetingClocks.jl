@@ -92,7 +92,7 @@ end
 
 
 """
-    CombinedNextReaction{KeyType,TimeType}()
+    CombinedNextReaction{KeyType,TimeType}(seed; coupling=:carry)
 
 This combines Next Reaction Method and Modified Next Reaction Method.
 The Next Reaction Method is from Gibson and Bruck in their 2000 paper called
@@ -128,18 +128,31 @@ sampling_space(::LinearGamma) = LinearSampling
 
 If you want to test a distribution, look at `tests/nrmetric.jl` to see how
 distributions are timed.
+
+The `coupling` keyword (default `:carry`) fixes, at construction, how
+[`reenable!`](@ref) realizes a mid-flight distribution change: `:carry` maps
+the retained survival draw through the change deterministically (the
+Anderson–Kurtz random-time-change coupling; consumes no randomness and is what
+pathwise/IPA derivatives need), while `:redraw` draws the remaining lifetime
+fresh, conditioned on age. Both agree in law. Read it back with
+[`coupling`](@ref). The `:carry` default restores this sampler's historical
+behavior on re-enabling an enabled clock.
 """
 mutable struct CombinedNextReaction{K,T} <: SSA{K,T}
     firing_queue::MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}
     transition_entry::Dict{K,NRTransition{T}}
     streams::KeyedStreams{K}
+    coupling::Symbol
 end
 
 
-function CombinedNextReaction{K,T}(seed=_DEFAULT_STREAM_SEED) where {K,T<:ContinuousTime}
+function CombinedNextReaction{K,T}(seed=_DEFAULT_STREAM_SEED; coupling::Symbol=:carry) where {K,T<:ContinuousTime}
+    validate_coupling(CombinedNextReaction, coupling)
     heap = MutableBinaryHeap{OrderedSample{K,T},Base.ForwardOrdering}()
-    CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}(), KeyedStreams{K}(seed))
+    CombinedNextReaction{K,T}(heap, Dict{K,NRTransition{T}}(), KeyedStreams{K}(seed), coupling)
 end
+
+coupling(nr::CombinedNextReaction) = nr.coupling
 
 # A full-state clone copies the firing queue, the retained-survival table, AND
 # the keyed streams (generator states, counts). Because this sampler REUSES a
@@ -147,14 +160,15 @@ end
 # what keeps the clone's future draws identical to the original's — the coupling
 # the CRN successor relies on.
 function clone(nr::CombinedNextReaction{K,T}) where {K,T}
-    c = CombinedNextReaction{K,T}(nr.streams.seed)
+    c = CombinedNextReaction{K,T}(nr.streams.seed; coupling=nr.coupling)
     c.firing_queue = deepcopy(nr.firing_queue)
     copy!(c.transition_entry, nr.transition_entry)
     c.streams = copy(nr.streams)
     return c
 end
 
-similar_sampler(nr::CombinedNextReaction{K,T}) where {K,T} = CombinedNextReaction{K,T}(nr.streams.seed)
+similar_sampler(nr::CombinedNextReaction{K,T}) where {K,T} =
+    CombinedNextReaction{K,T}(nr.streams.seed; coupling=nr.coupling)
 
 rekey_streams!(nr::CombinedNextReaction, seed) = (rekey_streams!(nr.streams, seed); nr)
 
@@ -169,6 +183,10 @@ function copy_clocks!(dst::CombinedNextReaction{K,T}, src::CombinedNextReaction{
     dst.firing_queue = deepcopy(src.firing_queue)
     copy!(dst.transition_entry, src.transition_entry)
     dst.streams = copy(src.streams)
+    # The coupling is a construction-time property, but copy_clocks! promises a
+    # full replacement of the destination's state, so the destination must
+    # re-evaluate clocks the same way the source would have.
+    dst.coupling = src.coupling
     return dst
 end
 
@@ -528,9 +546,10 @@ supports_carry(::Type{<:CombinedNextReaction}) = true
 
 
 """
-    reenable!(nr::CombinedNextReaction, clock, distribution, te, when, coupling)
+    reenable!(nr::CombinedNextReaction, clock, distribution, te, when)
 
-Re-evaluate `clock`'s distribution mid-flight under an explicit `coupling`.
+Re-evaluate `clock`'s distribution mid-flight. Which pathwise coupling realizes
+the change is the sampler's construction-time [`coupling`](@ref) field.
 
 `:carry` reuses the retained survival: this is EXACTLY the already-enabled branch
 of [`enable!`](@ref) (`consume_survival` re-references the stored survival from
@@ -547,17 +566,16 @@ generally moves the schedule.
 """
 function reenable!(
     nr::CombinedNextReaction{K,T}, clock::K, distribution::UnivariateDistribution,
-    te::T, when::T, coupling::Symbol) where {K,T}
+    te::T, when::T) where {K,T}
     haskey(nr, clock) || throw(ArgumentError(
         "reenable! needs clock $clock currently enabled (heap_handle > 0); " *
         "use enable! to start a clock that is not enabled."))
-    if coupling === :carry
+    # The constructor validated the field, so only the two couplings reach here.
+    if nr.coupling === :carry
         # The already-enabled branch of enable! is the carry map.
         enable!(nr, clock, distribution, te, when)
-    elseif coupling === :redraw
-        _reenable_redraw!(nr, clock, distribution, sampling_space(distribution), te, when)
     else
-        throw(ArgumentError("coupling must be :carry or :redraw, got :$coupling."))
+        _reenable_redraw!(nr, clock, distribution, sampling_space(distribution), te, when)
     end
     nothing
 end

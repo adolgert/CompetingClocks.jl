@@ -84,7 +84,7 @@ const _PUBLIC_NAMES = (
     :split!, :jitter!,
     :supports_enabled_ages, :supports_force, :supports_retained_draw,
     :supports_carry, :enabling_times, :enabled_ages, :retained_draw,
-    :force_fire!, :reenable!,
+    :force_fire!, :reenable!, :coupling, :validate_coupling,
 )
 
 @static if VERSION >= v"1.11"

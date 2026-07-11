@@ -96,7 +96,10 @@ mutable struct PSSACR{K,T} <: SSA{K,T}
 end
 
 # Constructor
-function PSSACR{K,T}(; ngroups::Int=64, seed=_DEFAULT_STREAM_SEED) where {K,T}
+function PSSACR{K,T}(; ngroups::Int=64, seed=_DEFAULT_STREAM_SEED, coupling::Symbol=:redraw) where {K,T}
+    # Validated but not stored: a memoryless sampler can only redraw, so the
+    # keyword exists to reject coupling=:carry at construction.
+    validate_coupling(PSSACR, coupling)
     groups = [Vector{K}() for _ in 1:ngroups]
     zerosT = zero(T)
     PSSACR{K,T}(

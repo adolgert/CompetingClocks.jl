@@ -161,17 +161,20 @@ optional.
 ## Re-enabling an enabled clock: prefer the explicit `reenable!`
 
 This is a behavioral footnote rather than a break. Calling `enable!` on an
-already-enabled clock still re-evaluates its distribution in place, but which
-pathwise coupling that implements is chosen silently by the backend:
-`CombinedNextReaction` carries its retained draw through the change, while
-`FirstToFire`, `FirstReaction`, and the exponential-only samplers redraw. The
-couplings agree in law, so no statistical result changes — but if you are
-coupling runs or differentiating along paths, the silent difference matters.
-0.4 adds [`reenable!`](@ref)`(..., :carry | :redraw)` so the choice is yours
-per call; new code should use it, and code that relied on
-`CombinedNextReaction`'s silent carry should say `:carry` explicitly rather
-than depend on the backend default. See
-[Re-evaluation Couplings](reenable.md).
+already-enabled clock still re-evaluates its distribution in place. 0.4 adds
+[`reenable!`](@ref)`(sampler, clock, dist, te, when)` as the explicit verb for
+that re-evaluation, and makes the pathwise coupling that realizes it — carry
+the retained draw through the change, or redraw the remaining lifetime
+conditioned on age — a construction-time property of the sampler. The
+carry-capable samplers (`CombinedNextReaction`, `FirstToFire`) take a
+`coupling` keyword defaulting to `:carry`, which makes their historical carry
+behavior the explicit default: a simulation that never mentions a coupling
+gets the same trajectory it always got. Build with `coupling=:redraw` (or
+`NextReactionMethod(coupling=:redraw)` at the spec level) for
+redraw-at-change; the couplings agree in law, so no statistical result
+changes, but pathwise derivatives and coupled runs care. Read a sampler's
+coupling with `CompetingClocks.coupling(sampler)`. See
+[Re-evaluation and the Sampler's Coupling](reenable.md).
 
 ## New in 0.4, not breaking
 

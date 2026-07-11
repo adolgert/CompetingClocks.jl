@@ -41,7 +41,10 @@ mutable struct RSSA{K,T} <: SSA{K,T}
     streams::KeyedStreams{K}
 end
 
-function RSSA{K,T}(; bound_factor=1.05, seed=_DEFAULT_STREAM_SEED) where {K,T}
+function RSSA{K,T}(; bound_factor=1.05, seed=_DEFAULT_STREAM_SEED, coupling::Symbol=:redraw) where {K,T}
+    # Validated but not stored: a memoryless sampler can only redraw, so the
+    # keyword exists to reject coupling=:carry at construction.
+    validate_coupling(RSSA, coupling)
     bf = convert(T, bound_factor)
     bf < one(T) && (bf = one(T))
     RSSA{K,T}(

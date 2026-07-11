@@ -136,16 +136,18 @@ end
 
 
 """
-    sampler_reenable!(ctx, ikey, dist, te, when, coupling)
+    sampler_reenable!(ctx, ikey, dist, te, when)
 
-Re-enable `ikey` on the underlying sampler under an explicit `coupling`, mirroring
-[`sampler_enable!`](@ref). The sampler only draws numbers, so it receives the
-primal (value-only) shadow of the distribution; the differentiable copy stays on
-the likelihood watcher, which the caller fanned out to separately.
+Re-enable `ikey` on the underlying sampler, mirroring [`sampler_enable!`](@ref).
+The sampler realizes the change under its own construction-time
+[`coupling`](@ref); the context forwards no coupling. The sampler only draws
+numbers, so it receives the primal (value-only) shadow of the distribution; the
+differentiable copy stays on the likelihood watcher, which the caller fanned out
+to separately.
 """
-@inline function sampler_reenable!(ctx::SamplingContext, ikey, dist, te, when, coupling)
+@inline function sampler_reenable!(ctx::SamplingContext, ikey, dist, te, when)
     dist = primal_distribution(dist)
-    reenable!(ctx.sampler, ikey, dist, te, when, coupling)
+    reenable!(ctx.sampler, ikey, dist, te, when)
 end
 
 
@@ -317,47 +319,57 @@ function enable!(ctx::SamplingContext{K,T}, clock::K, dist::UnivariateDistributi
 end
 
 """
-    reenable!(ctx, clock, dist, relative_te, coupling::Symbol)
-    reenable!(ctx, clock, dist, coupling::Symbol)
+    reenable!(ctx, clock, dist, relative_te)
+    reenable!(ctx, clock, dist)
 
 Re-evaluate the distribution of a clock that is CURRENTLY ENABLED, keeping its
-age, and declare EXPLICITLY which pathwise coupling the change implements —
-`:carry` (deterministic carry, the coupling pathwise/IPA derivatives need) or
-`:redraw` (redraw-at-change). This is the explicit form of calling [`enable!`](@ref)
-again on an already-enabled clock, whose coupling the backend would otherwise
-pick silently.
+age: the clock's remaining firing time becomes the law specified by the new
+`(dist, te)` and the current time. This is the explicit form of calling
+[`enable!`](@ref) again on an already-enabled clock. Which pathwise coupling
+realizes the change — `:carry` (deterministic carry, the coupling pathwise/IPA
+derivatives need) or `:redraw` (redraw-at-change) — is a property of the
+underlying sampler, fixed at its construction and readable with
+[`coupling`](@ref)`(ctx)`; the context forwards no coupling.
 
 The watcher fan-out is IDENTICAL to `enable!`: the likelihood watcher and any
 `TrajectoryRecorder` see a re-enable exactly as they see any enable, so they
 close the OLD segment (accumulating its survival) and open the NEW one with the
 new `(distribution, te)`. The piecewise-hazard likelihood and the recorder's
 back-calculated firing uniform therefore use the CURRENT segment's distribution
-automatically — the coupling choice affects only the sampler's retained draw, not
-the recorded law.
+automatically — the sampler's coupling affects only its retained draw, not the
+recorded law.
 
 `relative_te` re-anchors the enabling time exactly like `enable!`: the new
 enabling time is `te = time(ctx) + relative_te`, so the clock's new age is
 `-relative_te`. To KEEP the clock's age (the usual re-evaluation), pass the
 clock's ORIGINAL enabling time as a shift, `relative_te = original_te −
 time(ctx)` (a nonpositive number) — this is exactly what ChronoSim's
-`sim_event_reenable` computes as `enable_time − sim.when`. The 2-argument form
+`sim_event_reenable` computes as `enable_time − sim.when`. The 3-argument form
 mirrors `enable!(ctx, clock, dist)` and anchors at the current time
 (`relative_te = 0`, age reset to 0), which is the shifted-re-anchoring case, not
 the age-keeping one.
 """
 function reenable!(ctx::SamplingContext{K,T}, clock::K, dist::UnivariateDistribution,
-                   relative_te::T, coupling::Symbol) where {K,T}
+                   relative_te::T) where {K,T}
     when = ctx.time
     te   = when + relative_te
     ikey = internal_key(ctx, clock)
     watch_enable!(ctx.watchers, ikey, dist, dist, te, when)
-    sampler_reenable!(ctx, ikey, dist, te, when, coupling)
+    sampler_reenable!(ctx, ikey, dist, te, when)
 end
 
-function reenable!(ctx::SamplingContext{K,T}, clock::K, dist::UnivariateDistribution,
-                   coupling::Symbol) where {K,T}
-    reenable!(ctx, clock, dist, zero(T), coupling)
+function reenable!(ctx::SamplingContext{K,T}, clock::K, dist::UnivariateDistribution) where {K,T}
+    reenable!(ctx, clock, dist, zero(T))
 end
+
+"""
+    coupling(ctx::SamplingContext) -> Symbol
+
+The re-evaluation coupling of the context's underlying sampler: `:carry` or
+`:redraw`. This method forwards to the inner sampler (see [`coupling`](@ref))
+so a recorder can read a run's coupling without reaching into the context.
+"""
+coupling(ctx::SamplingContext) = coupling(ctx.sampler)
 
 """
     enable!(ctx, clock, dist::Vector, relative_te)
@@ -695,6 +707,19 @@ function copy_clocks!(dst::SamplingContext{K,T}, src::SamplingContext{K,T}) wher
 
     return dst
 end
+
+
+"""
+    jitter!(ctx::SamplingContext, when)
+
+Resample every currently-enabled clock of the context's sampler from its own
+keyed streams, forwarding to [`jitter!`](@ref) on the inner sampler. This pairs
+with [`rekey_streams!`](@ref) to make a faithful copy diverge — exactly the
+sequence [`split!`](@ref) performs internally — so branching code driving a
+context need not reach into `ctx.sampler`. Jittering without a preceding re-key
+reproduces the original draws.
+"""
+jitter!(ctx::SamplingContext{K,T}, when::T) where {K,T} = jitter!(ctx.sampler, when)
 
 
 """

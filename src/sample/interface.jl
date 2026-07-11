@@ -45,12 +45,14 @@ truncated sample from now, pushing every firing at least `age` into the future.
 
 Calling `enable!` on a clock that is ALREADY enabled re-evaluates its
 distribution in place and keeps the clock's age. Which pathwise coupling that
-implements is chosen SILENTLY by the backend: `CombinedNextReaction` reuses the
+implements is a property of the backend: `CombinedNextReaction` reuses the
 retained survival (deterministic carry), while `FirstToFire`, `FirstReaction`,
 and the exponential-only samplers redraw at the change. Both agree in law and
-differ only where pathwise (IPA) derivatives care. To make the choice EXPLICIT,
-call [`reenable!`](@ref)` (..., :carry | :redraw)` instead; this `enable!`
-re-enable path is retained for backward compatibility.
+differ only where pathwise (IPA) derivatives care. To state the re-evaluation
+intent explicitly — and to get the sampler's construction-time
+[`coupling`](@ref) applied deliberately rather than incidentally — call
+[`reenable!`](@ref) instead; this `enable!` re-enable path is retained for
+backward compatibility.
 """
 function enable!(
     sampler::SSA{K,T},
@@ -63,38 +65,36 @@ function enable!(
 end
 
 """
-    reenable!(sampler, clock, distribution, te, when, coupling::Symbol)
+    reenable!(sampler, clock, distribution, te, when)
 
 Re-evaluate the distribution of a clock that is CURRENTLY ENABLED, keeping its
-age, and declare EXPLICITLY which pathwise coupling the change implements. This
-is the explicit form of what a plain [`enable!`](@ref) on an already-enabled key
-does implicitly — plain `enable!` picks the coupling silently per backend, while
-`reenable!` makes it a per-call choice so a pathwise (IPA) estimator can insist
-on carry and a redraw-at-change model can insist on redraw.
+age: the clock's law of remaining firing time becomes the one fully specified
+by `(distribution, te)` and the current time `when`. This is the explicit form
+of what a plain [`enable!`](@ref) on an already-enabled key does implicitly.
 
 `clock` must already be enabled in `sampler`. Its distribution becomes
 `distribution`; `te` is the (possibly shifted) enabling time of the new segment,
 carrying the same flexibility as `enable!` — pass the original enabling time to
-keep the clock's age, or a shifted one for re-anchoring. `coupling` is one of:
+keep the clock's age, or a shifted one for re-anchoring.
 
-  * `:redraw` — discard any retained draw/schedule and draw the remaining
-    lifetime fresh, conditioned on the clock's current age. This is the
-    redraw-at-change coupling; it is exactly what a plain `enable!` on an
-    already-enabled key does in `FirstToFire` and the exponential-only samplers.
-  * `:carry` — deterministic carry: consume NO randomness; map the retained draw
-    through the distribution change by matching conditional survival, so the new
-    firing age `a_f'` solves `H_new(a_f') = H_new(a) + H_old(a_f) − H_old(a)`
-    with `H = −log S` the integrated hazard, `a` the age at the change, and
-    `a_f` the old firing age. Only samplers with
-    [`supports_carry`](@ref)` == true` implement it; the others throw an
-    `ArgumentError`.
+HOW the sampler realizes the change pathwise is not part of this call: it is the
+sampler's construction-time [`coupling`](@ref) property. A carry-capable sampler
+(`CombinedNextReaction`, `FirstToFire`) built with `coupling=:carry` (the
+default) maps its retained draw through the change deterministically, consuming
+no randomness: the new firing age `a_f'` solves
+`H_new(a_f') = H_new(a) + H_old(a_f) − H_old(a)` with `H = −log S` the
+integrated hazard, `a` the age at the change, and `a_f` the old firing age.
+Built with `coupling=:redraw`, it discards the retained draw and draws the
+remaining lifetime fresh, conditioned on the current age. Both couplings
+produce the SAME law and differ only pathwise (where IPA and common-random-
+number coupling care). Requesting `:carry` on a sampler without
+[`supports_carry`](@ref) fails at construction, not here.
 
-This generic method serves every sampler whose plain `enable!`-on-enabled-key IS
-the redraw coupling (`FirstToFire`, the exponential-only backends, `Petri`): it
-forwards `:redraw` to `enable!` and rejects `:carry` unless the sampler opts in
-with `supports_carry`. `CombinedNextReaction` (whose historical `enable!`
-behavior IS carry) and `FirstToFire` (which adds a carry from its stored firing
-time) override it.
+This generic method serves the memoryless/redraw-only backends and `Petri`:
+they keep no retained draw, redraw is their only possible behavior, and no
+field is needed, so the method simply forwards to `enable!`, whose
+already-enabled path IS the redraw-at-change re-evaluation for them.
+`CombinedNextReaction`, `FirstToFire`, and `FirstReaction` override it.
 """
 function reenable!(
     sampler::SSA{K,T},
@@ -102,27 +102,12 @@ function reenable!(
     distribution::UnivariateDistribution,
     te::T,
     when::T,
-    coupling::Symbol,
 ) where {K,T}
-    if coupling === :redraw
-        # Plain enable! on an already-enabled key is the redraw-at-change
-        # coupling for every sampler that keeps no retained draw. Backends whose
-        # enable! instead carries (CombinedNextReaction) override reenable!.
-        enable!(sampler, clock, distribution, te, when)
-    elseif coupling === :carry
-        supports_carry(sampler) || throw(ArgumentError(
-            "reenable!(..., :carry) is not supported by $(typeof(sampler)); " *
-            "supports_carry(::$(typeof(sampler))) is false. This sampler keeps " *
-            "no in-flight draw to carry through a distribution change; use " *
-            ":redraw, or a sampler with supports_carry == true."))
-        # A carry-supporting sampler must override reenable!; reaching here means
-        # the trait was set true without a method.
-        error("supports_carry($(typeof(sampler))) is true but reenable! has no " *
-              ":carry method for it — this is a package bug.")
-    else
-        throw(ArgumentError(
-            "coupling must be :carry or :redraw, got :$coupling."))
-    end
+    # Plain enable! on an already-enabled key is the redraw-at-change
+    # re-evaluation for every sampler that keeps no retained draw. Backends
+    # that retain a draw (CombinedNextReaction, FirstToFire) override
+    # reenable! to consult their coupling field.
+    enable!(sampler, clock, distribution, te, when)
 end
 
 """

@@ -17,8 +17,13 @@ mutable struct Petri{K,T} <: EnabledWatcher{K,T}
     enabled::Dict{K,EnablingEntry{K,T}}
     time_duration::T
     streams::KeyedStreams{K}
-    Petri{K,T}(dt=1.0; seed=_DEFAULT_STREAM_SEED) where {K,T} =
+    # The coupling keyword is validated but NOT stored: Petri ignores the
+    # distributions entirely, so redraw is the only re-evaluation it can
+    # perform, and a :carry request must fail at construction.
+    function Petri{K,T}(dt=1.0; seed=_DEFAULT_STREAM_SEED, coupling::Symbol=:redraw) where {K,T}
+        validate_coupling(Petri, coupling)
         new(Dict{K,EnablingEntry{K,T}}(), dt, KeyedStreams{K}(seed))
+    end
 end
 
 

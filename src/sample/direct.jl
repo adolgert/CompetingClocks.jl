@@ -39,7 +39,10 @@ mutable struct DirectCall{K,T,P} <: SSA{K,T}
 end
 
 
-function DirectCall{K,T}(; trajectory=false, seed=_DEFAULT_STREAM_SEED) where {K,T<:ContinuousTime}
+function DirectCall{K,T}(; trajectory=false, seed=_DEFAULT_STREAM_SEED, coupling::Symbol=:redraw) where {K,T<:ContinuousTime}
+    # Validated but not stored: a memoryless sampler can only redraw, so the
+    # keyword exists to reject coupling=:carry at construction.
+    validate_coupling(DirectCall, coupling)
     prefix_tree = BinaryTreePrefixSearch{T}()
     keyed_prefix_tree = KeyedRemovalPrefixSearch{K,typeof(prefix_tree)}(prefix_tree)
     DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory, KeyedStreams{K}(seed))
@@ -48,8 +51,9 @@ end
 
 function DirectCallExplicit(
     ::Type{K}, ::Type{T}, ::Type{Keep}, ::Type{Prefix};
-    trajectory=false, seed=_DEFAULT_STREAM_SEED) where {K,T,Keep,Prefix}
+    trajectory=false, seed=_DEFAULT_STREAM_SEED, coupling::Symbol=:redraw) where {K,T,Keep,Prefix}
 
+    validate_coupling(DirectCall, coupling)
     prefix_tree = Prefix{T}()
     keyed_prefix_tree = Keep{K,typeof(prefix_tree)}(prefix_tree)
     DirectCall{K,T,typeof(keyed_prefix_tree)}(keyed_prefix_tree, 0.0, 0.0, trajectory, KeyedStreams{K}(seed))

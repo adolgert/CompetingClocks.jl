@@ -29,7 +29,11 @@ function MultipleDirect{SamplerKey,K,Time}(
     chooser::Chooser;
     trajectory=false,
     seed=_DEFAULT_STREAM_SEED,
+    coupling::Symbol=:redraw,
 ) where {SamplerKey,K,Time,Chooser<:SamplerChoice{SamplerKey,K}}
+    # Validated but not stored: a memoryless sampler can only redraw, so the
+    # keyword exists to reject coupling=:carry at construction.
+    validate_coupling(MultipleDirect, coupling)
     MultipleDirect{SamplerKey,K,Time,Chooser}(
         Vector{KeyedPrefixSearch}(),
         Vector{Time}(),
