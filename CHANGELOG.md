@@ -1,5 +1,61 @@
 # Changelog
 
+## v0.4.1 (unreleased)
+
+### Breaking
+
+- **Samplers own their randomness; the `rng` argument is gone from sampler
+  verbs.** `enable!`, `next`, and `jitter!` on a low-level sampler no longer
+  accept an `AbstractRNG` — each sampler draws from its own per-clock keyed
+  streams (`KeyedStreams`). Call `next(sampler, when)` instead of
+  `next(sampler, when, rng)`. Code that uses only the high-level
+  `SamplingContext` verbs is unaffected, because the context API never
+  threaded an rng through its verbs; `SamplingContext` still takes an rng at
+  construction and uses it to seed the sampler's streams. See the manual's
+  "Randomness Ownership" page and the 0.3-to-0.4 migration guide.
+- **Sampler constructors take a stream seed.** Every low-level sampler
+  constructor accepts a seed selecting its family of per-clock streams, with
+  a fixed default so a bare constructor stays deterministic, e.g.
+  `FirstToFire{Int,Float64}(2947223)`. Replications that used to come from
+  advancing one shared rng must now come from distinct seeds — one sampler
+  (or one `rekey_streams!`) per replication.
+- **`clone(sampler)` changed meaning; `similar_sampler` is the old `clone`.**
+  In 0.3, `clone(sampler)` returned an empty sampler of the same type. It is
+  now a full-state copy — clock state, schedules, and keyed streams — so the
+  clone runs the identical future trajectory until re-keyed. This is a silent
+  behavioral break: audit every `clone(sampler)` call site, and use
+  `similar_sampler` (or `clone` followed by `rekey_streams!`) where the
+  intent was independent runs, otherwise those runs are perfectly coupled.
+  The context-level `clone(ctx, rng)` keeps its old meaning.
+- **The 0.3 common-random-numbers machinery is removed**: the `CommonRandom`
+  decorator, the `common_random=true` builder flag (now an error — the
+  keyword no longer exists), `freeze_crn!`, `reset_crn!`, and the
+  `misses`/`misscount` counters, along with the record-and-replay warm-up
+  they implemented. Coupling now falls out of stream ownership: equal seeds
+  give per-clock coupled paths with no warm-up phase and no misses, which is
+  strictly stronger than call-order replay.
+- **`split!` no longer takes fresh rngs from the caller.** It copies clocks
+  and stream states faithfully, then re-keys each copy's streams from that
+  copy's context rng before jittering. Hand-rolled splitting must insert the
+  `rekey_streams!` between `copy_clocks!` and `jitter!`; jittering a faithful
+  copy without the re-key reproduces the original's draws exactly.
+
+### Added
+
+- `reenable!(sampler, clock, dist, te, when)` as the explicit verb for
+  re-evaluating an already-enabled clock, with the pathwise coupling that
+  realizes it (`:carry` versus `:redraw`) a construction-time property of the
+  sampler. The default `:carry` reproduces the historical trajectories of
+  `CombinedNextReaction` and `FirstToFire`, so this is not a break; the
+  couplings agree in law and differ only pathwise. Read it back with
+  `coupling(sampler)`.
+- The estimator-facing surface: `TrajectoryRecorder` with the trajectory
+  record as a first-class product; the `enabled_ages`, `retained_draw`, and
+  `force_fire!` verbs with their capability traits (`supports_enabled_ages`,
+  `supports_retained_draw`, `supports_force`, `supports_carry`); a
+  context-level scheduled-time query; and manual pages for the contract and
+  invariants these rest on.
+
 ## v0.3.1 (unreleased)
 
 ### Added
