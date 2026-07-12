@@ -107,6 +107,82 @@ end
 end
 
 
+@safetestset keyed_streams_pin_survives_rekey =
+    "a pinned key replays its original stream after a rekey while other keys move to the new family" begin
+    using CompetingClocks: KeyedStreams, stream_for!, rekey_streams!, pin_stream!, is_pinned
+    using Random: rand
+
+    ks = KeyedStreams{Symbol}(7)
+    pin_stream!(ks, :init)
+    @test is_pinned(ks, :init) && !is_pinned(ks, :a)
+    init1 = rand(stream_for!(ks, :init))
+    init2 = rand(stream_for!(ks, :init))
+    a1 = rand(stream_for!(ks, :a))
+
+    rekey_streams!(ks, 999)
+    # The pinned key derives from its pinned seed, so it replays the SAME draws
+    # from the start of its stream: a rekeyed clone re-deriving the reserved
+    # initialization stream reproduces the identical initial condition.
+    @test rand(stream_for!(ks, :init)) == init1
+    @test rand(stream_for!(ks, :init)) == init2
+    # A non-pinned key decouples: its post-rekey draw matches a FRESH family
+    # seeded with the new seed, not its old family's draw.
+    @test rand(stream_for!(ks, :a)) != a1
+    ks999 = KeyedStreams{Symbol}(999)
+    ks2 = KeyedStreams{Symbol}(7)
+    pin_stream!(ks2, :init)
+    rekey_streams!(ks2, 999)
+    @test rand(stream_for!(ks2, :a)) == rand(stream_for!(ks999, :a))
+end
+
+
+@safetestset keyed_streams_pin_copied =
+    "copying a family carries its pins so the copy's pinned key also survives the copy's own rekey" begin
+    using CompetingClocks: KeyedStreams, stream_for!, rekey_streams!, pin_stream!, is_pinned
+    using Random: rand
+
+    ks = KeyedStreams{Symbol}(7)
+    pin_stream!(ks, :init)
+    v1 = rand(stream_for!(ks, :init))
+    kc = copy(ks)
+    @test is_pinned(kc, :init)
+    rekey_streams!(kc, 424242)
+    # The copy's pinned key re-derives from the ORIGINAL pinned seed.
+    @test rand(stream_for!(kc, :init)) == v1
+    # The original's live state was not disturbed by rekeying the copy: its next
+    # pinned draw continues its own stream (occurrence 2 differs from occurrence 1).
+    @test rand(stream_for!(ks, :init)) != v1
+end
+
+
+@safetestset keyed_streams_pin_records_current_seed =
+    "pinning records the family seed current at the moment of the pin" begin
+    using CompetingClocks: KeyedStreams, stream_for!, rekey_streams!, pin_stream!
+    using Random: rand
+
+    # Pin AFTER a rekey: the pin captures the post-rekey seed, so a later rekey
+    # keeps deriving from that captured seed, not from the construction seed.
+    ks = KeyedStreams{Symbol}(7)
+    rekey_streams!(ks, 9)
+    pin_stream!(ks, :init)
+    rekey_streams!(ks, 11)
+    ksref = KeyedStreams{Symbol}(9)
+    @test rand(stream_for!(ks, :init)) == rand(stream_for!(ksref, :init))
+end
+
+
+@safetestset keyed_streams_rekey_without_pins_unchanged =
+    "with no pins, rekeying behaves exactly as before: every generator and count is forgotten" begin
+    using CompetingClocks: KeyedStreams, stream_for!, rekey_streams!
+    using Random: rand
+
+    ks = KeyedStreams{Symbol}(7)
+    rand(stream_for!(ks, :a)); rand(stream_for!(ks, :b))
+    rekey_streams!(ks, 999)
+    @test isempty(ks.gens) && isempty(ks.counts) && isempty(ks.pinned)
+end
+
+
 # ---------------------------------------------------------------------------
 # clone full fidelity: a clone runs the identical trajectory as its original
 # because it inherits the whole stream family (generator states + counts). This
