@@ -26,6 +26,7 @@ all_tests = [
     "test_hazard.jl",
     "test_interface.jl",
     "test_keyed_streams.jl",
+    "test_stream_hash.jl",
     "test_crn_streams.jl",
     "test_keyedprefixsearch.jl",
     "test_likelihood.jl",

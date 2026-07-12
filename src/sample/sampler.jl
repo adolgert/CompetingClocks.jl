@@ -101,10 +101,12 @@ end
 
 # The MultiSampler owns no streams itself; it re-keys each sub-sampler with a
 # seed derived from the base seed AND the sub-sampler's key, so distinct
-# sub-samplers stay independent rather than sharing one stream family.
+# sub-samplers stay independent rather than sharing one stream family. The
+# derivation routes through the `stream_hash` seam like every other (seed, key)
+# hash site, so a caller-defined key representation keeps one identity here too.
 function rekey_streams!(sampler::MultiSampler{SamplerKey,Key,Time}, seed) where {SamplerKey,Key,Time}
     for (skey, subsampler) in sampler.propagator
-        rekey_streams!(subsampler, hash((UInt64(seed), skey)))
+        rekey_streams!(subsampler, stream_hash(UInt64(seed), skey))
     end
     return sampler
 end
