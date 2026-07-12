@@ -174,10 +174,14 @@ independent seeds — before relying on it.
 ## Reference
 
 The stream type and its verbs are documented in the
-[API reference](reference.md); the two below are the low-level accessors a
-custom sampler implementation would use.
+[API reference](reference.md); the ones below are the low-level accessors a
+custom sampler implementation would use, together with the seed-derivation
+seam and the pinning verbs a framework uses to reserve a shared stream.
 
 ```@docs
 stream_for!
 race_stream
+stream_hash
+pin_stream!
+is_pinned
 ```
