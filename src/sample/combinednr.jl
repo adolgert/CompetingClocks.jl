@@ -173,7 +173,12 @@ similar_sampler(nr::CombinedNextReaction{K,T}) where {K,T} =
 rekey_streams!(nr::CombinedNextReaction, seed) = (rekey_streams!(nr.streams, seed); nr)
 
 function reset!(nr::CombinedNextReaction)
-    empty!(nr.firing_queue)
+    # Drain by pop! rather than empty!: DataStructures gained
+    # empty!(::MutableBinaryHeap) only in 0.19, and the compat range admits
+    # 0.18 so this package can co-resolve with Gen.jl's 0.18 cap.
+    while !isempty(nr.firing_queue)
+        pop!(nr.firing_queue)
+    end
     @assert isempty(nr.firing_queue)
     empty!(nr.transition_entry)
     nothing

@@ -65,7 +65,12 @@ rekey_streams!(ftf::FirstToFire, seed) = (rekey_streams!(ftf.streams, seed); ftf
 
 
 function reset!(propagator::FirstToFire{K,T}) where {K,T}
-    empty!(propagator.firing_queue)
+    # Drain by pop! rather than empty!: DataStructures gained
+    # empty!(::MutableBinaryMinHeap) only in 0.19, and the compat range admits
+    # 0.18 so this package can co-resolve with Gen.jl's 0.18 cap.
+    while !isempty(propagator.firing_queue)
+        pop!(propagator.firing_queue)
+    end
     empty!(propagator.transition_entry)
 end
 

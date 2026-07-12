@@ -19,7 +19,7 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 CompetingClocksForwardDiffExt = "ForwardDiff"
 
 [compat]
-DataStructures = "^0.19"
+DataStructures = "0.18, 0.19"
 Distributions = "^0.25"
 ForwardDiff = "0.10, 1"
 Logging = "^1.0"
