@@ -29,6 +29,7 @@ all_tests = [
     "test_stream_hash.jl",
     "test_crn_streams.jl",
     "test_keyedprefixsearch.jl",
+    "test_lefttrunc.jl",
     "test_likelihood.jl",
     "test_multiple_direct.jl",
     "test_neverdist.jl",
