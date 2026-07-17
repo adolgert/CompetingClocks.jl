@@ -10,6 +10,6 @@ using Base: rand
 Drawing a random number from a left-truncated exponential is particularly simple.
 """
 function Base.rand(rng::AbstractRNG, d::Truncated{<:Exponential,Continuous})
-    @assert isinf(d.upper) || d.upper === nothing
+    @assert d.upper === nothing || isinf(d.upper)
     return d.lower + rand(rng, d.untruncated)
 end
